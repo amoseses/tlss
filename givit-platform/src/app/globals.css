@@ -56,6 +56,9 @@
 }
 
 :root {
+  --font-sans: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", Georgia, ui-serif, serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --background: #fdfaf7;
   --foreground: #1a1208;
   --card: #ffffff;

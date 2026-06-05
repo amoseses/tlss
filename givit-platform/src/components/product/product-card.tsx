@@ -31,7 +31,8 @@ export function ProductCard({
 }: Props) {
   const src = resolveProductImageSrc(product.id, images);
   const marketplaceProduct = product as Product & Partial<MarketplaceProduct>;
-  const priceLabel = marketplaceProduct.price_range ?? formatMoney(product.price_cents);
+  const salePrice = marketplaceProduct.sale_price_cents;
+  const priceLabel = salePrice ? formatMoney(salePrice) : marketplaceProduct.price_range ?? formatMoney(product.price_cents);
   const rankingLabel = rankLabel ?? (marketplaceProduct.category?.name
     ? `#${marketplaceProduct.category_rank ?? marketplaceProduct.rank ?? 1} in ${marketplaceProduct.category.name}`
     : `#${marketplaceProduct.rank ?? 1} in Marketplace`);
@@ -61,6 +62,11 @@ export function ProductCard({
           <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
             <span className="line-clamp-1">{rankingLabel}</span>
           </div>
+          {salePrice ? (
+            <div className="absolute right-2 top-2 rounded-full bg-emerald-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+              Deal
+            </div>
+          ) : null}
           <div className="absolute inset-x-0 bottom-0 translate-y-full transition-transform duration-200 group-hover:translate-y-0">
             <div className="flex items-center justify-center gap-1.5 bg-givit-ember/90 py-2 text-white backdrop-blur-sm">
               <ExternalLink className="h-3.5 w-3.5" />
@@ -81,12 +87,13 @@ export function ProductCard({
           )}
 
           <div className="mt-auto pt-1.5">
-            <p className="price-tag text-left text-base font-bold tabular-nums text-givit-ember">
-              {priceLabel}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="price-tag text-left text-base font-bold tabular-nums text-givit-ember">{priceLabel}</p>
+              {salePrice ? <p className="text-xs text-muted-foreground line-through">{formatMoney(product.price_cents)}</p> : null}
+            </div>
             <p className="text-left text-[10px] text-muted-foreground">
               {marketplaceProduct.brand ? `${marketplaceProduct.brand} · ` : ""}
-              {marketplaceProduct.gift_match_score ?? 90}% gift fit
+              Gift Match Score: {marketplaceProduct.gift_match_score ?? 90}/100
             </p>
           </div>
         </div>

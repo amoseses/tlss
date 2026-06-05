@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, Bookmark, Brain, Gift, Search, ShieldCheck, Sparkles, Trophy, Wand2 } from "lucide-react";
 
+import { GiftCalendar } from "@/components/personalization/gift-calendar";
+import { RecentlyViewedRail } from "@/components/personalization/recently-viewed";
 import { ProductCard } from "@/components/product/product-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ import {
 export default function HomePage() {
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
   const featured = MARKETPLACE_PRODUCTS.slice(0, 4);
+  const deals = MARKETPLACE_PRODUCTS.filter((p) => p.sale_price_cents && p.gift_match_score >= 88).slice(0, 8);
   const tech = MARKETPLACE_PRODUCTS.filter((p) => ["tech", "gaming", "writing", "home"].includes(p.category?.slug ?? "")).slice(0, 8);
 
   return (
@@ -35,7 +38,7 @@ export default function HomePage() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-7 text-white/65 md:text-lg">
-              Givit is being built as the perfect gift-giving AI and a Pinterest-style place to save gift ideas all year. Browse the best items from across the web, ranked by Givit instead of brand deals, then click through to the original retailer when you are ready.
+              Givit is becoming the gift-giving AI that asks smart questions, scores every match, remembers what people view, and helps shoppers save gift ideas all year. Browse the best items from across the web, ranked by Givit instead of brand deals, then click through to the original retailer when you are ready.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -73,7 +76,7 @@ export default function HomePage() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-givit-sand text-lg">🎁</div>
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-1 text-sm font-semibold">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">{product.price_range} · {product.gift_match_score}% fit</p>
+                      <p className="text-xs text-muted-foreground">{product.price_range} · Gift Match Score {product.gift_match_score}/100</p>
                     </div>
                   </Link>
                 ))}
@@ -86,9 +89,9 @@ export default function HomePage() {
       <section className="border-b border-border/50 bg-givit-sand/40">
         <div className="container grid gap-6 py-10 sm:grid-cols-3">
           {[
-            { icon: Brain, title: "AI gift finder next", desc: "The custom LLM flow will ask relationship, occasion, budget, interests, and survey-style questions for high-accuracy matches." },
-            { icon: Trophy, title: "Marketplace now", desc: "Products work like Amazon detail pages, but the button sends shoppers to the original product instead of adding to cart." },
-            { icon: Bookmark, title: "Pinterest behavior", desc: "People can save products into a local wishlist now, with shareable gift boards and accounts planned next." },
+            { icon: Brain, title: "Questionnaire analysis", desc: "The AI asks recipient, relationship, occasion, budget, interests, style, and avoid-list questions before ranking." },
+            { icon: Trophy, title: "Gift Match Score", desc: "Each result is scored on interests, uniqueness, price fit, quality, sentiment, novelty, and previous overlap." },
+            { icon: Bookmark, title: "Wishlists + calendar", desc: "Save shareable lists, track life events, and use reminders to bring shoppers back before gift deadlines." },
           ].map((item) => (
             <div key={item.title} className="flex gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-white shadow-sm">
@@ -125,8 +128,8 @@ export default function HomePage() {
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Gift boards</p>
-            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Pinterest for gift giving</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Browse collections, save products, and keep gift ideas ready months before you need them.</p>
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Shareable wishlists and curated gift boards</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Browse collections, save products, and send a Christmas-list-style wishlist to the people you love.</p>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -140,6 +143,32 @@ export default function HomePage() {
         </div>
       </section>
 
+
+      <section className="container py-8 md:py-12">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-600">Deals engine</p>
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">On sale and highly ranked by Givit</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">The deals section only promotes discounted products that still clear a high Gift Match Score, so cheap does not outrank useful.</p>
+          </div>
+          <Link href="/products?sort=popular" className="givit-link text-sm font-medium">Shop ranked deals →</Link>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4">
+          {deals.map((p) => {
+            const s = ratings[p.id];
+            const avg = s?.avg_rating != null ? Number.parseFloat(String(s.avg_rating)) : null;
+            return <ProductCard key={p.id} product={p} images={p.images} avgRating={avg ?? undefined} reviewCount={s?.review_count ?? 0} compact />;
+          })}
+        </div>
+      </section>
+
+      <section className="container py-4">
+        <RecentlyViewedRail />
+      </section>
+
+      <section className="container py-8 md:py-12">
+        <GiftCalendar />
+      </section>
       <section className="container py-8 md:py-12">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
           <div>

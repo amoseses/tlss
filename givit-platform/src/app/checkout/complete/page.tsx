@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { completeCheckoutAction } from "@/app/actions/checkout";
@@ -25,9 +26,9 @@ export default async function CheckoutCompletePage({ searchParams }: Props) {
       <PageShell narrow>
         <p className="text-center text-sm">
           Your payment is processing. Refresh your{" "}
-          <a href="/orders" className="text-primary underline">
+          <Link href="/orders" className="text-primary underline">
             order history
-          </a>{" "}
+          </Link>{" "}
           in a moment.
         </p>
       </PageShell>

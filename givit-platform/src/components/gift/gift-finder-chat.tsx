@@ -1,23 +1,41 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, ShoppingCart, Star, ExternalLink, ThumbsDown, ThumbsUp } from "lucide-react";
+import { AlertTriangle, ExternalLink, Send, Sparkles, Star, ThumbsDown, ThumbsUp, Wand2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+
+import { WishlistButton } from "@/components/product/wishlist-button";
+
+type GiftScore = {
+  total: number;
+  factors: {
+    interests: number;
+    uniqueness: number;
+    priceFit: number;
+    quality: number;
+    reviewSentiment: number;
+    novelty: number;
+    previousOverlap: number;
+  };
+};
 
 type GiftResult = {
   id: string;
   slug: string;
   name: string;
   price_cents: number;
+  sale_price_cents?: number | null;
   description: string | null;
   image_url: string | null;
   avg_rating: number | null;
   review_count: number;
   match_reason: string;
+  avoidance_warning?: string | null;
   gift_tags: string[];
   rank_label?: string;
   learning_tags?: string[];
+  gift_score?: GiftScore;
 };
 
 type Message = {
@@ -27,19 +45,32 @@ type Message = {
   loading?: boolean;
 };
 
+type Questionnaire = {
+  recipient: string;
+  relationship: string;
+  occasion: string;
+  budget: string;
+  interests: string;
+  style: string;
+  avoid: string;
+};
+
 const GREETING: Message = {
   role: "assistant",
-  content: "👋 Hi! I'm GIVIT AI. Answer the gift questionnaire in one message — who it's for, the occasion, budget, interests, style, and anything to avoid — and I'll rank marketplace gifts for you. Then tell me if the picks worked so I can adapt.",
+  content: "👋 Hi! I’m Givit AI. Answer a few basics and I’ll run a Gift Match Score, explain why each item fits, and warn you about gifts to avoid.",
 };
 
 const QUICK_PROMPTS = [
-  { label: "For Mom 🌸", prompt: "Gift for my mom who loves cooking and gardening, birthday, $50 budget" },
-  { label: "For Dad 🔧", prompt: "Birthday gift for my dad who likes tools and outdoors, under $75" },
-  { label: "For Friend 🎉", prompt: "Fun gift for a close friend, any occasion, $30-$50" },
-  { label: "For Partner 💝", prompt: "Romantic anniversary gift for my partner, $100 budget" },
-  { label: "For Kids 🧸", prompt: "Gift for a 7 year old who loves art and crafts, $25 budget" },
-  { label: "Pens ✍️", prompt: "Questionnaire: gift for a teacher who loves pens and journaling, thank-you gift, under $30, avoid anything too bulky" },
+  { label: "For Mom 🌸", prompt: "Gift for my mom, birthday, $50 budget, loves cooking and gardening, thoughtful style, avoid clutter" },
+  { label: "For Dad 🔧", prompt: "Gift for my dad, birthday, under $75, likes tools, coffee, and outdoors, practical style, avoid clothes" },
+  { label: "For Friend 🎉", prompt: "Gift for a close friend, just because, $30-$50, likes fun design and cozy nights, avoid generic mugs" },
+  { label: "For Partner 💝", prompt: "Romantic anniversary gift for my partner, $100 budget, likes travel, coffee, and keepsakes, avoid anything too cheesy" },
+  { label: "Graduation 🎓", prompt: "Graduation gift for a student, $80 budget, likes tech, studying, and travel, avoid fragile items" },
+  { label: "Pens ✍️", prompt: "Gift for a teacher who loves pens and journaling, thank-you gift, under $30, avoid anything bulky" },
 ];
+
+const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Graduation", "Wedding", "Holiday", "Housewarming", "Thank you"];
+const STYLES = ["Practical", "Sentimental", "Unique", "Luxury", "Cozy", "Funny", "Minimal", "Experience-like"];
 
 type LearningProfile = {
   productWeights: Record<string, number>;
@@ -85,6 +116,18 @@ function formatMoney(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
 
+function buildQuestionnairePrompt(form: Questionnaire) {
+  return [
+    `Recipient: ${form.recipient || "not specified"}`,
+    `Relationship: ${form.relationship || "not specified"}`,
+    `Occasion: ${form.occasion || "not specified"}`,
+    `Budget: ${form.budget || "flexible"}`,
+    `Interests: ${form.interests || "not specified"}`,
+    `Style: ${form.style || "balanced"}`,
+    `Avoid: ${form.avoid || "none listed"}`,
+  ].join(". ");
+}
+
 function TypingIndicator() {
   return (
     <div className="flex items-end gap-3">
@@ -101,81 +144,75 @@ function TypingIndicator() {
 }
 
 function GiftCard({ result, index }: { result: GiftResult; index: number }) {
+  const score = result.gift_score?.total ?? 90;
+  const displayPrice = result.sale_price_cents ?? result.price_cents;
+
   return (
     <div
-      className="slide-up givit-panel overflow-hidden hover:-translate-y-0.5 transition-transform duration-200"
+      className="slide-up givit-panel overflow-hidden transition-transform duration-200 hover:-translate-y-0.5"
       style={{ animationDelay: `${index * 60}ms`, opacity: 0 }}
     >
-      <div className="relative aspect-[4/3] bg-givit-sand overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden bg-givit-sand">
         {result.image_url ? (
-          <Image
-            src={result.image_url}
-            alt={result.name}
-            fill
-            className="object-cover"
-            unoptimized
-          />
+          <Image src={result.image_url} alt={result.name} fill className="object-cover" unoptimized />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-4xl">🎁</span>
-          </div>
+          <div className="absolute inset-0 flex items-center justify-center"><span className="text-4xl">🎁</span></div>
         )}
-        {result.rank_label ? (
-          <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
-            {result.rank_label}
-          </div>
+        <div className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
+          Gift Match Score: {score}/100
+        </div>
+        {result.sale_price_cents ? (
+          <div className="absolute right-2 top-2 rounded-full bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white shadow-sm">Sale</div>
         ) : null}
-        {/* Match reason badge */}
         <div className="absolute bottom-2 left-2 right-2">
-          <p className="rounded-lg bg-black/60 px-2 py-1 text-[10px] text-white/90 backdrop-blur-sm line-clamp-1">
-            ✨ {result.match_reason}
-          </p>
+          <p className="line-clamp-1 rounded-lg bg-black/60 px-2 py-1 text-[10px] text-white/90 backdrop-blur-sm">✨ {result.match_reason}</p>
         </div>
       </div>
 
       <div className="p-3">
-        <p className="font-semibold text-sm text-foreground line-clamp-2 leading-snug">
-          {result.name}
-        </p>
+        <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">{result.name}</p>
+
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <p className="font-bold text-givit-ember">{formatMoney(displayPrice)}</p>
+          {result.sale_price_cents ? <p className="text-xs text-muted-foreground line-through">{formatMoney(result.price_cents)}</p> : null}
+        </div>
 
         {result.avg_rating && result.review_count > 0 && (
           <div className="mt-1 flex items-center gap-1">
             <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-            <span className="text-xs text-muted-foreground">
-              {Number(result.avg_rating).toFixed(1)} ({result.review_count})
-            </span>
+            <span className="text-xs text-muted-foreground">{Number(result.avg_rating).toFixed(1)} ({result.review_count})</span>
           </div>
         )}
 
+        {result.avoidance_warning ? (
+          <div className="mt-2 flex gap-1.5 rounded-xl bg-amber-50 p-2 text-[11px] leading-4 text-amber-800">
+            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+            <span>{result.avoidance_warning}</span>
+          </div>
+        ) : null}
+
+        {result.gift_score ? (
+          <div className="mt-2 grid grid-cols-2 gap-1 text-[10px] text-muted-foreground">
+            <span>Interests {result.gift_score.factors.interests}</span>
+            <span>Price {result.gift_score.factors.priceFit}</span>
+            <span>Quality {result.gift_score.factors.quality}</span>
+            <span>Novelty {result.gift_score.factors.novelty}</span>
+          </div>
+        ) : null}
+
         {result.gift_tags.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
+          <div className="mt-2 flex flex-wrap gap-1">
             {result.gift_tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="rounded-full bg-givit-sand px-2 py-0.5 text-[10px] font-medium text-muted-foreground capitalize">
-                {tag}
-              </span>
+              <span key={tag} className="rounded-full bg-givit-sand px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">{tag}</span>
             ))}
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-lg font-bold text-givit-ember">
-            {formatMoney(result.price_cents)}
-          </p>
-          <div className="flex items-center gap-1.5">
-            <Link
-              href={`/products/${result.slug}`}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-            <Link
-              href={`/products/${result.slug}`}
-              className="inline-flex items-center gap-1 rounded-full bg-givit-ember px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-givit-ember-hover"
-            >
-              <ShoppingCart className="h-3 w-3" />
-              Add
-            </Link>
-          </div>
+        <div className="mt-3 grid gap-2">
+          <Link href={`/products/${result.slug}`} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-givit-ember px-3 text-xs font-semibold text-white transition hover:bg-givit-ember-hover">
+            <ExternalLink className="h-3.5 w-3.5" /> View product
+          </Link>
+          <WishlistButton compact item={{ slug: result.slug, name: result.name, href: `/products/${result.slug}`, image: result.image_url ?? undefined, price: formatMoney(displayPrice) }} />
         </div>
       </div>
     </div>
@@ -186,6 +223,7 @@ export function GiftFinderChat() {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState<Questionnaire>({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -194,12 +232,11 @@ export function GiftFinderChat() {
   }, [messages]);
 
   async function sendMessage(text: string) {
-    if (!text.trim() || loading) return;
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
 
-    const userMsg: Message = { role: "user", content: text };
-    const loadingMsg: Message = { role: "assistant", content: "", loading: true };
-
-    setMessages((prev) => [...prev, userMsg, loadingMsg]);
+    const userMessage: Message = { role: "user", content: trimmed };
+    setMessages((prev) => [...prev, userMessage, { role: "assistant", content: "", loading: true }]);
     setInput("");
     setLoading(true);
 
@@ -207,34 +244,26 @@ export function GiftFinderChat() {
       const res = await fetch("/api/gift-recommend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: text, learningProfile: readLearningProfile() }),
+        body: JSON.stringify({ query: trimmed, learningProfile: readLearningProfile() }),
       });
-
       const data = await res.json();
-
-      setMessages((prev) => {
-        const withoutLoading = prev.filter((m) => !m.loading);
-        const aiMsg: Message = {
-          role: "assistant",
-          content: data.message || `I found ${data.results?.length ?? 0} great gift options for you! Here are my top picks:`,
-          results: data.results || [],
-        };
-        return [...withoutLoading, aiMsg];
-      });
+      if (!res.ok) throw new Error(data?.error ?? "Recommendation failed");
+      setMessages((prev) => [
+        ...prev.slice(0, -1),
+        { role: "assistant", content: data.message, results: data.results ?? [] },
+      ]);
     } catch {
-      setMessages((prev) => {
-        const withoutLoading = prev.filter((m) => !m.loading);
-        return [...withoutLoading, {
-          role: "assistant",
-          content: "Sorry, I ran into an issue finding gifts. Please try again!",
-        }];
-      });
+      setMessages((prev) => [
+        ...prev.slice(0, -1),
+        { role: "assistant", content: "I hit a snag while ranking gifts. Try again with recipient, occasion, budget, interests, and avoid-list details." },
+      ]);
     } finally {
       setLoading(false);
+      inputRef.current?.focus();
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage(input);
@@ -248,126 +277,112 @@ export function GiftFinderChat() {
       {
         role: "assistant",
         content: satisfied
-          ? "Great — I saved those positive signals. Future rankings will lean toward gifts like these. ✅"
-          : "Got it — I saved that these were not quite right. Tell me what to change, and I will rerank away from these patterns.",
+          ? "Great — I saved those positive signals. Future Gift Match Scores will lean toward gifts like these. ✅"
+          : "Got it — I saved that these were not quite right. Add what felt wrong and I’ll rerank away from those patterns.",
       },
     ]);
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      {/* Quick prompts (only shown before any user message) */}
-      {messages.length === 1 && (
-        <div className="mb-4 flex flex-wrap gap-2 justify-center">
-          {QUICK_PROMPTS.map((qp) => (
-            <button
-              key={qp.label}
-              onClick={() => sendMessage(qp.prompt)}
-              className="rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-givit-ember/40 hover:bg-givit-sand hover:text-givit-ember"
-            >
-              {qp.label}
-            </button>
-          ))}
+    <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <aside className="givit-panel h-fit p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-givit-ember text-white"><Wand2 className="h-4 w-4" /></div>
+          <div>
+            <h2 className="font-serif text-xl font-bold text-givit-ink">Gift analysis questionnaire</h2>
+            <p className="text-xs text-muted-foreground">Basic answers, better rankings.</p>
+          </div>
         </div>
-      )}
 
-      {/* Chat window */}
-      <div className="givit-panel flex flex-col overflow-hidden">
-        {/* Messages */}
-        <div className="flex flex-col gap-5 overflow-y-auto p-5" style={{ maxHeight: "60vh" }}>
-          {messages.map((msg, i) => (
-            <div key={i}>
-              {msg.role === "user" ? (
-                <div className="flex justify-end">
-                  <div className="chat-bubble-user max-w-[80%] text-sm leading-relaxed">
-                    {msg.content}
-                  </div>
-                </div>
-              ) : msg.loading ? (
-                <TypingIndicator />
-              ) : (
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-end gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-givit-ember">
-                      <Sparkles className="h-3.5 w-3.5 text-white" />
+        <div className="space-y-3">
+          <Field label="Who is it for?" value={form.recipient} placeholder="Mom, partner, boss, niece..." onChange={(recipient) => setForm((prev) => ({ ...prev, recipient }))} />
+          <Field label="Relationship" value={form.relationship} placeholder="Close, formal, long-distance..." onChange={(relationship) => setForm((prev) => ({ ...prev, relationship }))} />
+          <div className="grid gap-1.5">
+            <label className="text-xs font-bold text-givit-ink">Occasion</label>
+            <select value={form.occasion} onChange={(e) => setForm((prev) => ({ ...prev, occasion: e.target.value }))} className="h-10 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+              {OCCASIONS.map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </div>
+          <Field label="Budget" value={form.budget} placeholder="Under $75" onChange={(budget) => setForm((prev) => ({ ...prev, budget }))} />
+          <Field label="Interests" value={form.interests} placeholder="Coffee, running, books, skincare..." onChange={(interests) => setForm((prev) => ({ ...prev, interests }))} />
+          <div className="grid gap-1.5">
+            <label className="text-xs font-bold text-givit-ink">Gift style</label>
+            <select value={form.style} onChange={(e) => setForm((prev) => ({ ...prev, style: e.target.value }))} className="h-10 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+              {STYLES.map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </div>
+          <Field label="Avoid" value={form.avoid} placeholder="Clothes, alcohol, clutter, duplicates..." onChange={(avoid) => setForm((prev) => ({ ...prev, avoid }))} />
+          <button type="button" onClick={() => sendMessage(buildQuestionnairePrompt(form))} className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-givit-ember text-sm font-bold text-white transition hover:bg-givit-ember-hover">
+            Analyze gifts <Sparkles className="h-4 w-4" />
+          </button>
+        </div>
+      </aside>
+
+      <div>
+        {messages.length === 1 && (
+          <div className="mb-4 flex flex-wrap justify-center gap-2">
+            {QUICK_PROMPTS.map((qp) => (
+              <button key={qp.label} onClick={() => sendMessage(qp.prompt)} className="rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-givit-ember/40 hover:bg-givit-sand hover:text-givit-ember">{qp.label}</button>
+            ))}
+          </div>
+        )}
+
+        <div className="givit-panel flex flex-col overflow-hidden">
+          <div className="flex flex-col gap-5 overflow-y-auto p-5" style={{ maxHeight: "65vh" }}>
+            {messages.map((msg, i) => (
+              <div key={i}>
+                {msg.role === "user" ? (
+                  <div className="flex justify-end"><div className="chat-bubble-user max-w-[80%] text-sm leading-relaxed">{msg.content}</div></div>
+                ) : msg.loading ? (
+                  <TypingIndicator />
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-end gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-givit-ember"><Sparkles className="h-3.5 w-3.5 text-white" /></div>
+                      {msg.content && <div className="chat-bubble-ai max-w-[85%] text-sm leading-relaxed">{msg.content}</div>}
                     </div>
-                    {msg.content && (
-                      <div className="chat-bubble-ai max-w-[85%] text-sm leading-relaxed">
-                        {msg.content}
+
+                    {msg.results && msg.results.length > 0 && (
+                      <div className="ml-0 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {msg.results.map((result, idx) => <GiftCard key={result.id} result={result} index={idx} />)}
+                        <div className="rounded-2xl border border-border/60 bg-white p-3 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">
+                          <div className="mb-2 font-semibold text-givit-ink">Did these feel right?</div>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={() => handleFeedback(msg.results ?? [], true)} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700 transition hover:bg-emerald-100"><ThumbsUp className="h-3.5 w-3.5" /> Satisfied</button>
+                            <button type="button" onClick={() => handleFeedback(msg.results ?? [], false)} className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-700 transition hover:bg-rose-100"><ThumbsDown className="h-3.5 w-3.5" /> Not yet</button>
+                          </div>
+                        </div>
                       </div>
                     )}
+
+                    {msg.results && msg.results.length === 0 && (
+                      <div className="ml-11 rounded-2xl border border-border/40 bg-givit-sand p-4 text-sm text-muted-foreground">No exact matches found. Try different keywords, a different budget, or <Link href="/products" className="givit-link font-medium">browse all products</Link>.</div>
+                    )}
                   </div>
-
-                  {/* Gift results grid */}
-                  {msg.results && msg.results.length > 0 && (
-                    <div className="ml-11 grid grid-cols-2 gap-3 sm:grid-cols-3 stagger-children">
-                      {msg.results.map((result, idx) => (
-                        <GiftCard key={result.id} result={result} index={idx} />
-                      ))}
-                      <div className="col-span-2 flex flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-white p-3 text-xs text-muted-foreground sm:col-span-3">
-                        <span className="font-semibold text-givit-ink">Did these feel right?</span>
-                        <button
-                          type="button"
-                          onClick={() => handleFeedback(msg.results ?? [], true)}
-                          className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700 transition hover:bg-emerald-100"
-                        >
-                          <ThumbsUp className="h-3.5 w-3.5" /> Satisfied
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleFeedback(msg.results ?? [], false)}
-                          className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-700 transition hover:bg-rose-100"
-                        >
-                          <ThumbsDown className="h-3.5 w-3.5" /> Not yet
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {msg.results && msg.results.length === 0 && (
-                    <div className="ml-11 rounded-2xl bg-givit-sand border border-border/40 p-4 text-sm text-muted-foreground">
-                      No exact matches found. Try different keywords, a different budget, or{" "}
-                      <Link href="/products" className="givit-link font-medium">browse all products</Link>.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input bar */}
-        <div className="border-t border-border/60 p-3">
-          <div className="flex items-end gap-2">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Questionnaire: for my sister, birthday, loves pens and art, under $40, avoid tech..."
-              rows={1}
-              className="flex-1 resize-none rounded-2xl border border-border/60 bg-muted/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              style={{ maxHeight: "120px" }}
-              onInput={(e) => {
-                const t = e.currentTarget;
-                t.style.height = "auto";
-                t.style.height = Math.min(t.scrollHeight, 120) + "px";
-              }}
-            />
-            <button
-              onClick={() => sendMessage(input)}
-              disabled={!input.trim() || loading}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-givit-ember text-white transition-all hover:bg-givit-ember-hover disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+                )}
+              </div>
+            ))}
+            <div ref={bottomRef} />
           </div>
-          <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
-            Questionnaire tip: recipient + occasion + budget + interests + avoid list · Press Enter to send
-          </p>
+
+          <div className="border-t border-border/60 p-3">
+            <div className="flex items-end gap-2">
+              <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="Add more context or ask for a rerank..." rows={1} className="flex-1 resize-none rounded-2xl border border-border/60 bg-muted/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20" style={{ maxHeight: "120px" }} />
+              <button onClick={() => sendMessage(input)} disabled={!input.trim() || loading} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-givit-ember text-white transition-all hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40"><Send className="h-4 w-4" /></button>
+            </div>
+            <p className="mt-1.5 text-center text-[10px] text-muted-foreground">AI considers interests, uniqueness, price fit, quality, review sentiment, novelty, previous overlap, and avoidance warnings.</p>
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Field({ label, value, placeholder, onChange }: { label: string; value: string; placeholder: string; onChange: (value: string) => void }) {
+  return (
+    <div className="grid gap-1.5">
+      <label className="text-xs font-bold text-givit-ink">{label}</label>
+      <input value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="h-10 rounded-xl border border-border bg-white px-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-givit-ember/20" />
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Bookmark, ExternalLink, Share2, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { ExternalLink, Share2, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 
 import { Breadcrumbs, PageShell } from "@/components/layout/page-shell";
 import { ProductGrid } from "@/components/product/product-grid";
 import { StarRating } from "@/components/product/star-rating";
+import { RecentlyViewedRail, RecentlyViewedTracker } from "@/components/personalization/recently-viewed";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,11 +42,13 @@ export default async function ProductDetailPage({ params }: Props) {
   const reviewCount = stats?.review_count ?? 0;
   const images = [...product.images].sort((a, b) => a.sort_order - b.sort_order);
   const mainSrc = resolveProductImageSrc(product.id, images);
+  const displayPrice = product.sale_price_cents ? formatMoney(product.sale_price_cents) : product.price_range ?? formatMoney(product.price_cents);
   const related = getRelatedMarketplaceProducts(product);
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
 
   return (
     <PageShell wide>
+      <RecentlyViewedTracker item={{ slug: product.slug, name: product.name, href: `/products/${product.slug}`, image: mainSrc, price: displayPrice }} />
       <Breadcrumbs>
         <Link href="/" className="givit-link">Home</Link>
         <span className="mx-1.5">›</span>
@@ -120,11 +123,13 @@ export default async function ProductDetailPage({ params }: Props) {
                   <Badge variant="outline">Aggregated marketplace signal</Badge>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  Givit's free marketplace does not sell inventory directly. Review count and score represent the curated signal Givit uses to rank items, combining customer sentiment, durability, usefulness, and gift fit.
+                  Givit&apos;s free marketplace does not sell inventory directly. Review count and score represent the curated signal Givit uses to rank items, combining customer sentiment, durability, usefulness, and gift fit.
                 </p>
               </div>
             </TabsContent>
           </Tabs>
+
+          <RecentlyViewedRail />
 
           {related.length > 0 ? (
             <section className="givit-section">
@@ -174,7 +179,7 @@ function ProductInfo({
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <StarRating value={avg} count={reviewCount} />
         <span className="rounded-full bg-givit-sand px-2 py-1 text-xs font-bold text-givit-ember">
-          {product.gift_match_score}% gift match
+          Gift Match Score: {product.gift_match_score}/100
         </span>
       </div>
 
@@ -182,7 +187,10 @@ function ProductInfo({
 
       <div>
         <p className="text-sm text-muted-foreground">Typical price range</p>
-        <p className="price-deal text-3xl tabular-nums">{product.price_range}</p>
+        <div className="flex flex-wrap items-end gap-2">
+          <p className="price-deal text-3xl tabular-nums">{product.sale_price_cents ? formatMoney(product.sale_price_cents) : product.price_range}</p>
+          {product.sale_price_cents ? <p className="pb-1 text-sm text-muted-foreground line-through">{formatMoney(product.price_cents)}</p> : null}
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">Approx. {formatMoney(product.price_cents)} · final price is set by the retailer.</p>
       </div>
 
