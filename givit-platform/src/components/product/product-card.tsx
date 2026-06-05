@@ -17,6 +17,7 @@ type Props = {
   reviewCount?: number;
   compact?: boolean;
   featured?: boolean;
+  rankLabel?: string;
 };
 
 export function ProductCard({
@@ -26,10 +27,14 @@ export function ProductCard({
   reviewCount,
   compact = false,
   featured = false,
+  rankLabel,
 }: Props) {
   const src = resolveProductImageSrc(product.id, images);
   const marketplaceProduct = product as Product & Partial<MarketplaceProduct>;
   const priceLabel = marketplaceProduct.price_range ?? formatMoney(product.price_cents);
+  const rankingLabel = rankLabel ?? (marketplaceProduct.category?.name
+    ? `#${marketplaceProduct.category_rank ?? marketplaceProduct.rank ?? 1} in ${marketplaceProduct.category.name}`
+    : `#${marketplaceProduct.rank ?? 1} in Marketplace`);
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-2 transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/30 hover:shadow-lg hover:shadow-black/5">
@@ -53,8 +58,8 @@ export function ProductCard({
             }
             unoptimized={isUnsplashUrl(src)}
           />
-          <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
-            #{marketplaceProduct.rank ?? "GIVIT"}
+          <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
+            <span className="line-clamp-1">{rankingLabel}</span>
           </div>
           <div className="absolute inset-x-0 bottom-0 translate-y-full transition-transform duration-200 group-hover:translate-y-0">
             <div className="flex items-center justify-center gap-1.5 bg-givit-ember/90 py-2 text-white backdrop-blur-sm">

@@ -162,12 +162,12 @@ export default function HomePage() {
           <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/8" />
           <div className="relative max-w-3xl">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/65">Built for part two</p>
-            <h2 className="mb-2 font-serif text-2xl font-bold md:text-3xl">The AI finder will become the front door.</h2>
+            <h2 className="mb-2 font-serif text-2xl font-bold md:text-3xl">Givit AI is now the front door.</h2>
             <p className="mb-6 text-sm leading-6 text-white/75">
-              This first phase sets up the homepage, free marketplace, product pages, wishlists, rankings, collections, and search structure so the custom gift-giving LLM can recommend against a clean, curated product catalog later.
+              The gift finder now asks a quick questionnaire, ranks matches against the curated marketplace, and learns from satisfaction feedback so future recommendations adapt to each shopper.
             </p>
             <Button asChild className="rounded-full bg-white px-6 text-givit-ember hover:bg-white/90">
-              <Link href="/gift"><Gift className="h-4 w-4" /> Open Givit AI placeholder</Link>
+              <Link href="/gift"><Gift className="h-4 w-4" /> Open Givit AI</Link>
             </Button>
           </div>
         </div>

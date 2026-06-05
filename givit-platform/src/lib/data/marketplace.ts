@@ -6,6 +6,7 @@ export type MarketplaceProduct = Product & {
   brand: string;
   price_range: string;
   rank: number;
+  category_rank: number;
   gift_match_score: number;
   tested_badge: string;
   interests: string[];
@@ -84,6 +85,13 @@ const SEED_PRODUCTS: SeedProduct[] = [
   { slug: "casper-original-pillow", name: "Casper Original Pillow", brand: "Casper", category: "home", price: 6500, priceRange: "$55-$80", retailer: "Casper", affiliateUrl: "https://casper.com/pillows/original-casper-pillow.html", image: img("photo-1505693416388-ac5ce068fe85"), rank: 27, score: 82, interests: ["sleep", "home", "wellness"], occasions: ["housewarming", "self care", "birthday"], recipients: ["partner", "parent", "homebody"], summary: "A supportive pillow upgrade for someone who would not splurge on bedding themselves.", why: "Sleep improvements are practical, personal, and used every night.", badge: "Comfort upgrade" },
   { slug: "tile-mate", name: "Tile Mate Bluetooth Tracker", brand: "Tile", category: "tech", price: 2499, priceRange: "$20-$35", retailer: "Tile", affiliateUrl: "https://www.tile.com/product/black-mate", image: img("photo-1516321318423-f06f85e504b3"), rank: 28, score: 81, interests: ["organization", "travel", "tech"], occasions: ["stocking stuffer", "back to school", "travel"], recipients: ["student", "parent", "commuter"], summary: "A small tracker for keys, bags, and everyday things that go missing.", why: "Excellent affordable alternative when Apple-only tracking is not ideal.", badge: "Under $35" },
   { slug: "hydro-flask-wide-mouth", name: "Hydro Flask Wide Mouth Bottle", brand: "Hydro Flask", category: "outdoor", price: 4495, priceRange: "$35-$55", retailer: "Hydro Flask", affiliateUrl: "https://www.hydroflask.com/32-oz-wide-mouth", image: img("photo-1523362628745-0c100150b504"), rank: 29, score: 81, interests: ["outdoor", "fitness", "school"], occasions: ["graduation", "back to school", "birthday"], recipients: ["student", "hiker", "gym friend"], summary: "A dependable insulated bottle for school, hikes, commutes, and workouts.", why: "Durable, personalizable, and broadly useful across ages.", badge: "Practical pick" },
+
+  { slug: "pilot-g2-gel-pen-pack", name: "Pilot G2 Premium Gel Pen Set", brand: "Pilot", category: "writing", price: 1299, priceRange: "$10-$20", retailer: "Pilot Pen", affiliateUrl: "https://www.pilotpen.us/categories/gel-ink-rolling-ball-pens/g2/", image: img("photo-1583585089259-09147d1c36d2"), rank: 31, score: 84, interests: ["pens", "writing", "school", "office"], occasions: ["back to school", "stocking stuffer", "teacher appreciation"], recipients: ["student", "teacher", "coworker", "writer"], summary: "A reliable everyday gel pen set for notes, planning, studying, and desk drawers.", why: "An affordable pen gift with broad appeal and a reputation for smooth everyday writing.", badge: "Best everyday pen" },
+  { slug: "sharpie-s-gel-metal-barrel", name: "Sharpie S-Gel Metal Barrel Pen", brand: "Sharpie", category: "writing", price: 899, priceRange: "$8-$15", retailer: "Sharpie", affiliateUrl: "https://www.sharpie.com/pens/s-gel/", image: img("photo-1598301257982-0cf014dabbcd"), rank: 32, score: 83, interests: ["pens", "office", "journaling", "writing"], occasions: ["coworker gift", "graduation", "stocking stuffer"], recipients: ["coworker", "student", "planner", "writer"], summary: "A polished metal gel pen that feels upgraded without becoming expensive.", why: "Great for searchers who want a pen gift under $15 that still feels intentional.", badge: "Budget upgrade" },
+  { slug: "uni-ball-jetstream-4-and-1", name: "Uni Jetstream 4&1 Multi Pen", brand: "Uni-ball", category: "writing", price: 2299, priceRange: "$20-$30", retailer: "Uni-ball", affiliateUrl: "https://www.unibrands.co/products/jetstream", image: img("photo-1517971071642-34a2d3ecc9cd"), rank: 33, score: 86, interests: ["pens", "planning", "school", "office"], occasions: ["graduation", "back to school", "birthday"], recipients: ["student", "teacher", "professional", "planner"], summary: "A multi-color pen plus mechanical pencil in one streamlined everyday writer.", why: "Useful for planners, students, and anyone who color-codes notes.", badge: "Planner favorite" },
+  { slug: "sakura-pigma-micron-set", name: "Sakura Pigma Micron Fineliner Set", brand: "Sakura", category: "writing", price: 1799, priceRange: "$15-$25", retailer: "Sakura", affiliateUrl: "https://www.sakuraofamerica.com/product/pigma-micron/", image: img("photo-1517842645767-c639042777db"), rank: 34, score: 85, interests: ["pens", "art", "journaling", "drawing"], occasions: ["birthday", "graduation", "holiday"], recipients: ["artist", "journaler", "student", "designer"], summary: "Archival fineliners for sketching, bullet journaling, notes, and clean line work.", why: "A safer creative gift because multiple nib sizes make it useful even when you do not know their exact style.", badge: "Creative pick" },
+  { slug: "lamy-safari-fountain-pen", name: "LAMY Safari Fountain Pen", brand: "LAMY", category: "writing", price: 2999, priceRange: "$25-$40", retailer: "LAMY", affiliateUrl: "https://www.lamy.com/en/lamy-safari/", image: img("photo-1503602642458-232111445657"), rank: 35, score: 87, interests: ["pens", "writing", "journaling", "design"], occasions: ["graduation", "birthday", "retirement"], recipients: ["writer", "student", "designer", "professional"], summary: "A beginner-friendly fountain pen with iconic design and a smoother writing ritual.", why: "Excellent first fountain pen for someone curious about nicer writing tools.", badge: "Starter fountain pen" },
+  { slug: "leuchtturm1917-notebook-pen-loop", name: "Leuchtturm1917 Notebook + Pen Loop", brand: "Leuchtturm1917", category: "writing", price: 2895, priceRange: "$25-$35", retailer: "Leuchtturm1917", affiliateUrl: "https://www.leuchtturm1917.us/", image: img("photo-1531346878377-a5be20888e57"), rank: 36, score: 82, interests: ["pens", "journaling", "writing", "planning"], occasions: ["new job", "graduation", "birthday"], recipients: ["journaler", "student", "professional", "writer"], summary: "A dotted notebook setup that pairs well with favorite pens for planning and reflection.", why: "Makes a pen search more giftable by turning writing supplies into a complete kit.", badge: "Complete desk kit" },
   { slug: "brooklinen-super-plush-robe", name: "Brooklinen Super-Plush Robe", brand: "Brooklinen", category: "home", price: 9900, priceRange: "$85-$120", retailer: "Brooklinen", affiliateUrl: "https://www.brooklinen.com/products/super-plush-robe", image: img("photo-1604014237800-1c9102c219da"), rank: 30, score: 80, interests: ["self care", "home", "spa"], occasions: ["mother's day", "anniversary", "christmas"], recipients: ["partner", "parent", "homebody"], summary: "A soft hotel-style robe for slow mornings and self-care routines.", why: "Feels luxurious while staying safer than scent, skincare, or clothing sizes.", badge: "Cozy classic" },
 ];
 
@@ -114,6 +122,7 @@ export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = SEED_PRODUCTS.map((see
     brand: seed.brand,
     price_range: seed.priceRange,
     rank: seed.rank,
+    category_rank: SEED_PRODUCTS.filter((candidate) => candidate.category === seed.category && candidate.rank <= seed.rank).length,
     gift_match_score: seed.score,
     tested_badge: seed.badge,
     interests: seed.interests,
@@ -195,7 +204,7 @@ export const GIFT_COLLECTIONS = [
     title: "Perfect Pens For Writers",
     description: "Pens, notebooks, and desk upgrades for people who think better on paper.",
     query: "pens",
-    productSlugs: ["pilot-custom-823", "moleskine-classic-notebook", "ember-temperature-control-mug", "sony-wh-1000xm5"],
+    productSlugs: ["pilot-custom-823", "lamy-safari-fountain-pen", "uni-ball-jetstream-4-and-1", "sakura-pigma-micron-set"],
   },
   {
     slug: "future-christmas-gifts",
@@ -219,3 +228,14 @@ export const GIFT_COLLECTIONS = [
     productSlugs: ["apple-airtags-4-pack", "anker-737-power-bank", "tile-mate", "backbone-one-controller"],
   },
 ];
+
+
+export function getMarketplaceProductCategoryRank(product: MarketplaceProduct) {
+  return product.category_rank;
+}
+
+export function formatMarketplaceRankLabel(product: MarketplaceProduct, context?: { query?: string; categoryName?: string; position?: number }) {
+  const rank = context?.position ?? product.category_rank;
+  const label = context?.query?.trim() || context?.categoryName?.trim() || product.category?.name || "Marketplace";
+  return `#${rank} in ${label}`;
+}

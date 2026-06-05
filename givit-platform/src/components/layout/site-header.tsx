@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Gift, Heart, Sparkles } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
+import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteHeaderShell } from "@/components/layout/site-header-shell";
 import { SiteNavMenu } from "@/components/layout/site-nav-menu";
 import { MARKETPLACE_CATEGORIES } from "@/lib/data/marketplace";
@@ -54,16 +55,10 @@ export async function SiteHeader() {
             </span>
           </Link>
 
-          {/* AI Search / nav link */}
-          <Link
-            href="/gift"
-            className="flex-1 max-w-xl group"
-          >
-            <div className="flex items-center gap-2 rounded-full bg-white/10 border border-white/10 px-4 py-2 text-sm text-white/60 transition-all group-hover:bg-white/15 group-hover:text-white/80 group-hover:border-white/20">
-              <Sparkles className="h-4 w-4 text-givit-coral shrink-0" />
-              <span>Find your perfect gift with Givit AI...</span>
-            </div>
-          </Link>
+          {/* Marketplace search */}
+          <div className="hidden min-w-0 flex-1 max-w-xl md:flex">
+            <HeaderSearch />
+          </div>
 
           {/* Right actions */}
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
