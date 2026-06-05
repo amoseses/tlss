@@ -26,6 +26,10 @@ const TAG_MAP: Record<string, string[]> = {
   artist: ["artist", "art", "drawing", "creative"],
   traveler: ["traveler", "travel", "tech", "organization"],
   gamer: ["gamer", "gaming", "tech", "entertainment"],
+  boss: ["professional", "office", "coffee", "neutral"],
+  niece: ["kid", "creative", "art", "toys"],
+  nephew: ["kid", "gaming", "creative", "toys"],
+  grandparents: ["home", "comfort", "reading", "family"],
 
   cooking: ["kitchen", "food", "dessert", "cooking"],
   gardening: ["garden", "plants", "outdoor", "nature"],
@@ -50,6 +54,10 @@ const TAG_MAP: Record<string, string[]> = {
   graduation: ["graduation", "milestone", "school", "professional"],
   wedding: ["wedding", "home", "romantic"],
   retirement: ["retirement", "writing", "experience", "keepsake"],
+  sentimental: ["keepsake", "romantic", "family"],
+  practical: ["useful", "office", "home", "travel"],
+  luxury: ["premium", "self care", "design"],
+  unique: ["unique", "novelty", "creative"],
 };
 
 type LearningProfile = {
@@ -105,7 +113,46 @@ function productTokens(product: MarketplaceProduct) {
     .toLowerCase();
 }
 
-function scoreProduct(product: MarketplaceProduct, query: string, tags: string[], budget: number | null, learningProfile: LearningProfile) {
+function extractAvoidTerms(query: string) {
+  const lower = query.toLowerCase();
+  const avoidMatch = lower.match(/(?:avoid|no|not|dont|don\'t|without)[:\s]+([^.;]+)/);
+  if (!avoidMatch) return [];
+  return avoidMatch[1].split(/,| and | or |\//).map((term) => term.trim()).filter((term) => term.length > 2);
+}
+
+function giftScoreFactors(product: MarketplaceProduct, query: string, tags: string[], budget: number | null, learningProfile: LearningProfile, avoidTerms: string[]) {
+  const text = productTokens(product);
+  const tagHits = tags.filter((tag) => text.includes(tag)).length;
+  const rating = MARKETPLACE_RATINGS.get(product.id);
+  const avg = rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) : 4.5;
+  const reviewCount = rating?.review_count ?? 100;
+  const priceFit = budget ? (product.price_cents <= budget * 100 ? 100 : Math.max(20, 100 - Math.round(((product.price_cents - budget * 100) / (budget * 100)) * 80))) : 72;
+  const previousOverlap = Math.max(0, Math.min(100, 74 + ((learningProfile.productWeights?.[product.slug] ?? 0) * 8)));
+  const avoidPenalty = avoidTerms.some((term) => text.includes(term)) ? 18 : 0;
+  return {
+    interests: Math.max(35, Math.min(100, 52 + tagHits * 11 - avoidPenalty)),
+    uniqueness: Math.max(40, Math.min(100, product.gift_match_score - product.category_rank + (text.includes("unique") ? 5 : 0))),
+    priceFit,
+    quality: Math.round(Math.min(100, avg * 20)),
+    reviewSentiment: Math.max(45, Math.min(100, Math.round(avg * 17 + Math.log10(reviewCount + 1) * 7))),
+    novelty: Math.max(42, Math.min(100, 96 - product.rank * 0.12 + (text.includes("new") ? 4 : 0))),
+    previousOverlap,
+  };
+}
+
+function totalGiftScore(factors: ReturnType<typeof giftScoreFactors>) {
+  return Math.round(
+    factors.interests * 0.28 +
+    factors.uniqueness * 0.14 +
+    factors.priceFit * 0.16 +
+    factors.quality * 0.15 +
+    factors.reviewSentiment * 0.12 +
+    factors.novelty * 0.09 +
+    factors.previousOverlap * 0.06,
+  );
+}
+
+function scoreProduct(product: MarketplaceProduct, query: string, tags: string[], budget: number | null, learningProfile: LearningProfile, avoidTerms: string[]) {
   const text = productTokens(product);
   const queryTerms = query.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length > 2);
   const exactTermHits = queryTerms.filter((term) => text.includes(term)).length;
@@ -119,6 +166,8 @@ function scoreProduct(product: MarketplaceProduct, query: string, tags: string[]
     : 0.65;
   const productBoost = learningProfile.productWeights?.[product.slug] ?? 0;
   const tagBoost = product.interests.reduce((total, tag) => total + (learningProfile.tagWeights?.[tag] ?? 0), 0);
+  const avoidPenalty = avoidTerms.some((term) => text.includes(term)) ? 1.35 : 0;
+  const dealBoost = product.sale_price_cents && product.gift_match_score >= 88 ? 0.28 : 0;
 
   return (
     product.gift_match_score / 100 +
@@ -127,9 +176,18 @@ function scoreProduct(product: MarketplaceProduct, query: string, tags: string[]
     ratingScore * 0.5 +
     budgetScore * 0.65 +
     productBoost * 0.8 +
-    tagBoost * 0.25 -
+    tagBoost * 0.25 +
+    dealBoost -
+    avoidPenalty -
     product.category_rank * 0.015
   );
+}
+
+function generateAvoidanceWarning(product: MarketplaceProduct, avoidTerms: string[]) {
+  const text = productTokens(product);
+  const matched = avoidTerms.find((term) => text.includes(term));
+  if (!matched) return null;
+  return `Gift Avoidance Engine: this may conflict with “${matched},” so only choose it if that avoid-list item is flexible.`;
 }
 
 function generateMatchReason(product: MarketplaceProduct, tags: string[], budget: number | null) {
@@ -146,7 +204,7 @@ function generateAIMessage(query: string, count: number, budget: number | null, 
 
   const budgetLabel = budget ? ` under $${budget}` : "";
   const learningLabel = usedLearning ? " I also adjusted the ranking using what you liked before." : "";
-  return `I ranked ${count} gift ideas${budgetLabel} from the Givit marketplace based on your questionnaire.${learningLabel} Tell me if these feel right and I will keep learning.`;
+  return `I ranked ${count} gift ideas${budgetLabel} using Givit’s Gift Match Score: recipient interests, uniqueness, price fit, quality, review sentiment, novelty, and previous-gift overlap.${learningLabel} I also ran the Gift Avoidance Engine against anything you said to avoid.`;
 }
 
 export async function POST(req: NextRequest) {
@@ -161,12 +219,13 @@ export async function POST(req: NextRequest) {
     const learningProfile = (body.learningProfile ?? {}) as LearningProfile;
     const tags = extractTags(query);
     const budget = extractBudget(query);
+    const avoidTerms = extractAvoidTerms(query);
     const usedLearning = Boolean(
       Object.keys(learningProfile.productWeights ?? {}).length || Object.keys(learningProfile.tagWeights ?? {}).length,
     );
 
     const results = MARKETPLACE_PRODUCTS
-      .map((product) => ({ product, score: scoreProduct(product, query, tags, budget, learningProfile) }))
+      .map((product) => ({ product, score: scoreProduct(product, query, tags, budget, learningProfile, avoidTerms) }))
       .filter(({ score }) => score > 1.25 || tags.length === 0)
       .sort((a, b) => b.score - a.score || a.product.rank - b.product.rank)
       .slice(0, 6)
@@ -177,15 +236,21 @@ export async function POST(req: NextRequest) {
           slug: product.slug,
           name: product.name,
           price_cents: product.price_cents,
+          sale_price_cents: product.sale_price_cents ?? null,
           description: product.ai_summary,
           image_url: resolveProductImageSrc(product.id, product.images),
           avg_rating: rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) : null,
           review_count: rating?.review_count ?? 0,
           match_reason: generateMatchReason(product, tags, budget),
+          avoidance_warning: generateAvoidanceWarning(product, avoidTerms),
           gift_tags: product.interests,
           category: product.category?.name ?? "Marketplace",
           rank_label: `#${index + 1} in ${query.trim()}`,
           learning_tags: [...product.interests, ...product.recipients, ...product.occasions].slice(0, 8),
+          gift_score: (() => {
+            const factors = giftScoreFactors(product, query, tags, budget, learningProfile, avoidTerms);
+            return { total: totalGiftScore(factors), factors };
+          })(),
         };
       });
 
@@ -194,6 +259,7 @@ export async function POST(req: NextRequest) {
       results,
       tags,
       budget,
+      avoidTerms,
       questionnaire_hint: "Best results include recipient, relationship, occasion, budget, interests, and what to avoid.",
     });
   } catch (err) {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Bookmark, Compass, Search, SlidersHorizontal, Sparkles, Trophy } from "lucide-react";
 
 import { Breadcrumbs, PageShell } from "@/components/layout/page-shell";
+import { RecentlyViewedRail } from "@/components/personalization/recently-viewed";
 import { ProductGrid } from "@/components/product/product-grid";
 import { WishlistRail } from "@/components/product/wishlist-button";
 import { Badge } from "@/components/ui/badge";
@@ -202,6 +203,8 @@ export default async function ProductsPage({ searchParams }: Props) {
               </p>
             )}
           </div>
+
+          <div className="mt-6"><RecentlyViewedRail compact /></div>
 
           <section className="mt-6 grid gap-4 md:grid-cols-2">
             {GIFT_COLLECTIONS.map((collection) => (
