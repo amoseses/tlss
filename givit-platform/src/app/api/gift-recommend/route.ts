@@ -1,218 +1,200 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 
-// Tag extraction — maps natural language to product gift_tags
+import {
+  MARKETPLACE_PRODUCTS,
+  MARKETPLACE_RATINGS,
+  type MarketplaceProduct,
+} from "@/lib/data/marketplace";
+import { resolveProductImageSrc } from "@/lib/product-photo";
+
+// Keyword extraction maps questionnaire language to the curated marketplace facets.
 const TAG_MAP: Record<string, string[]> = {
-  // Relationships
-  mom: ["home", "comfort", "self-care", "cooking", "gardening"],
-  mother: ["home", "comfort", "self-care", "cooking"],
-  dad: ["tools", "outdoors", "tech", "sports", "grilling"],
-  father: ["tools", "outdoors", "tech", "sports"],
-  friend: ["fun", "lifestyle", "giftable", "unique"],
-  partner: ["romantic", "luxury", "self-care", "experience"],
-  husband: ["tech", "outdoors", "sports", "tools"],
-  wife: ["jewelry", "beauty", "self-care", "home"],
-  kid: ["toys", "educational", "creative", "fun"],
-  child: ["toys", "educational", "creative", "fun"],
-  coworker: ["desk", "coffee", "snacks", "lifestyle", "neutral"],
-  grandma: ["comfort", "home", "garden", "crafts"],
-  grandpa: ["outdoors", "history", "tools", "comfort"],
-  sister: ["beauty", "fashion", "lifestyle", "fun"],
-  brother: ["tech", "sports", "gaming", "outdoors"],
+  mom: ["parent", "home", "self care", "kitchen", "reading", "plants"],
+  mother: ["parent", "home", "self care", "kitchen", "reading", "plants"],
+  dad: ["parent", "tools", "outdoor", "tech", "sports", "coffee"],
+  father: ["parent", "tools", "outdoor", "tech", "sports", "coffee"],
+  friend: ["friend", "fun", "unique", "lifestyle", "creative"],
+  partner: ["partner", "romantic", "home", "self care", "travel"],
+  husband: ["partner", "tech", "outdoor", "fitness", "gaming"],
+  wife: ["partner", "beauty", "home", "self care", "reading"],
+  kid: ["kid", "toys", "creative", "gaming", "art"],
+  child: ["kid", "toys", "creative", "gaming", "art"],
+  coworker: ["coworker", "desk setup", "coffee", "office", "neutral"],
+  teacher: ["teacher", "pens", "school", "coffee", "writing"],
+  student: ["student", "school", "writing", "tech", "travel"],
+  writer: ["writer", "writing", "journaling", "pens"],
+  artist: ["artist", "art", "drawing", "creative"],
+  traveler: ["traveler", "travel", "tech", "organization"],
+  gamer: ["gamer", "gaming", "tech", "entertainment"],
 
-  // Interests
-  cooking: ["kitchen", "baking", "food", "gourmet", "cooking"],
-  gardening: ["garden", "plants", "outdoors", "nature"],
-  fitness: ["gym", "health", "yoga", "sports", "fitness"],
-  tech: ["gadgets", "electronics", "tech"],
-  reading: ["books", "education", "cozy"],
-  art: ["painting", "creative", "design", "crafts"],
+  cooking: ["kitchen", "food", "dessert", "cooking"],
+  gardening: ["garden", "plants", "outdoor", "nature"],
+  fitness: ["fitness", "wellness", "running", "hydration"],
+  tech: ["tech", "gadgets", "electronics"],
+  reading: ["reading", "books", "cozy"],
+  art: ["art", "creative", "drawing", "crafts"],
   music: ["music", "audio", "entertainment"],
   travel: ["travel", "adventure", "outdoor"],
   gaming: ["gaming", "entertainment", "tech"],
-  yoga: ["yoga", "wellness", "self-care", "fitness"],
-  coffee: ["coffee", "kitchen", "gourmet"],
+  coffee: ["coffee", "kitchen", "desk setup"],
   outdoors: ["outdoor", "adventure", "nature", "sports"],
-  beauty: ["beauty", "self-care", "skincare"],
-  fashion: ["fashion", "accessories", "style"],
+  beauty: ["beauty", "self care", "skincare"],
+  pens: ["pens", "writing", "journaling", "office", "school"],
+  pen: ["pens", "writing", "journaling", "office", "school"],
+  journaling: ["journaling", "writing", "pens", "planning"],
 
-  // Occasions
-  birthday: ["giftable", "celebration", "fun"],
-  anniversary: ["romantic", "luxury", "memorable"],
-  christmas: ["holiday", "cozy", "giftable"],
+  birthday: ["birthday", "giftable", "fun"],
+  anniversary: ["anniversary", "romantic", "keepsake"],
+  christmas: ["christmas", "holiday", "cozy"],
   holiday: ["holiday", "cozy", "giftable"],
-  graduation: ["milestone", "professional", "achievement"],
-  wedding: ["home", "luxury", "romantic"],
-  "mother's day": ["home", "comfort", "self-care", "cooking"],
-  "father's day": ["tools", "outdoors", "tech", "sports"],
+  graduation: ["graduation", "milestone", "school", "professional"],
+  wedding: ["wedding", "home", "romantic"],
+  retirement: ["retirement", "writing", "experience", "keepsake"],
 };
 
-function extractTags(query: string): string[] {
+type LearningProfile = {
+  productWeights?: Record<string, number>;
+  tagWeights?: Record<string, number>;
+};
+
+function extractTags(query: string) {
   const lower = query.toLowerCase();
   const tags = new Set<string>();
 
   for (const [keyword, mappedTags] of Object.entries(TAG_MAP)) {
-    if (lower.includes(keyword)) {
-      mappedTags.forEach((t) => tags.add(t));
-    }
+    if (lower.includes(keyword)) mappedTags.forEach((tag) => tags.add(tag));
   }
 
   return Array.from(tags);
 }
 
-function extractBudget(query: string): number | null {
-  // Match patterns: "$50", "50 dollars", "under $100", "up to 75", "budget of $40-60"
+function extractBudget(query: string) {
   const patterns = [
     /\$(\d+)/g,
     /(\d+)\s*(?:dollars?|bucks?)/gi,
     /(?:under|below|max|maximum|up to|budget(?:\s+of)?)\s*\$?(\d+)/gi,
-    /(\d+)\s*-\s*\$?(\d+)/g, // range — take the higher end
+    /(\d+)\s*-\s*\$?(\d+)/g,
   ];
 
   const found: number[] = [];
   for (const pattern of patterns) {
-    const matches = [...query.matchAll(pattern)];
-    for (const m of matches) {
-      const n = parseInt(m[2] ?? m[1]);
-      if (!isNaN(n) && n > 0 && n < 10000) found.push(n);
+    for (const match of query.matchAll(pattern)) {
+      const amount = Number.parseInt(match[2] ?? match[1] ?? "", 10);
+      if (!Number.isNaN(amount) && amount > 0 && amount < 10000) found.push(amount);
     }
   }
 
   return found.length > 0 ? Math.max(...found) : null;
 }
 
-function generateMatchReason(product: Record<string, unknown>, tags: string[]): string {
-  const productTags = (product.gift_tags as string[]) || [];
-  const matched = productTags.filter((t) => tags.includes(t));
-
-  if (matched.length > 0) {
-    const readable = matched.slice(0, 2).map((t) => t.replace(/-/g, " "));
-    return `Great match for ${readable.join(" & ")}`;
-  }
-  return "Top-rated gift pick";
+function productTokens(product: MarketplaceProduct) {
+  return [
+    product.name,
+    product.brand,
+    product.retailer,
+    product.category?.name,
+    product.ai_summary,
+    product.why_we_picked_it,
+    product.tested_badge,
+    ...product.interests,
+    ...product.occasions,
+    ...product.recipients,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 }
 
-function generateAIMessage(query: string, count: number, budget: number | null): string {
-  const lq = query.toLowerCase();
+function scoreProduct(product: MarketplaceProduct, query: string, tags: string[], budget: number | null, learningProfile: LearningProfile) {
+  const text = productTokens(product);
+  const queryTerms = query.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length > 2);
+  const exactTermHits = queryTerms.filter((term) => text.includes(term)).length;
+  const tagHits = tags.filter((tag) => text.includes(tag)).length;
+  const rating = MARKETPLACE_RATINGS.get(product.id);
+  const ratingScore = rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) / 5 : 0.8;
+  const budgetScore = budget
+    ? product.price_cents <= budget * 100
+      ? 1
+      : Math.max(0, 1 - (product.price_cents - budget * 100) / (budget * 100))
+    : 0.65;
+  const productBoost = learningProfile.productWeights?.[product.slug] ?? 0;
+  const tagBoost = product.interests.reduce((total, tag) => total + (learningProfile.tagWeights?.[tag] ?? 0), 0);
 
-  const relationship = Object.keys(TAG_MAP).find(
-    (k) => ["mom", "dad", "friend", "partner", "husband", "wife", "sister", "brother", "grandma", "grandpa", "coworker"].includes(k) && lq.includes(k)
+  return (
+    product.gift_match_score / 100 +
+    exactTermHits * 0.55 +
+    tagHits * 0.85 +
+    ratingScore * 0.5 +
+    budgetScore * 0.65 +
+    productBoost * 0.8 +
+    tagBoost * 0.25 -
+    product.category_rank * 0.015
   );
+}
 
-  const budgetStr = budget ? ` under $${budget}` : "";
-  const forStr = relationship ? ` for ${relationship}` : "";
+function generateMatchReason(product: MarketplaceProduct, tags: string[], budget: number | null) {
+  const matched = product.interests.filter((interest) => tags.includes(interest));
+  if (matched.length > 0) return `Matched on ${matched.slice(0, 2).join(" + ")}`;
+  if (budget && product.price_cents <= budget * 100) return `Fits the $${budget} budget`;
+  return product.why_we_picked_it;
+}
 
+function generateAIMessage(query: string, count: number, budget: number | null, usedLearning: boolean) {
   if (count === 0) {
-    return `I couldn't find exact matches${forStr}${budgetStr}. Try broadening your budget or describing their interests differently.`;
+    return "I could not find a strong match yet. Try adding who it is for, the occasion, budget, and 2-3 interests.";
   }
 
-  const openers = [
-    `Here are my top ${count} gift picks${forStr}${budgetStr} — I think any of these would be a hit! 🎁`,
-    `I found ${count} great options${forStr}${budgetStr}. Here's what I'd recommend:`,
-    `Based on what you told me, here are ${count} gifts${forStr}${budgetStr} that our buyers love:`,
-  ];
-
-  return openers[Math.floor(Math.random() * openers.length)];
+  const budgetLabel = budget ? ` under $${budget}` : "";
+  const learningLabel = usedLearning ? " I also adjusted the ranking using what you liked before." : "";
+  return `I ranked ${count} gift ideas${budgetLabel} from the Givit marketplace based on your questionnaire.${learningLabel} Tell me if these feel right and I will keep learning.`;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { query } = await req.json();
+    const body = await req.json();
+    const query = body?.query;
+
     if (!query || typeof query !== "string") {
       return NextResponse.json({ error: "Query required" }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const learningProfile = (body.learningProfile ?? {}) as LearningProfile;
     const tags = extractTags(query);
     const budget = extractBudget(query);
+    const usedLearning = Boolean(
+      Object.keys(learningProfile.productWeights ?? {}).length || Object.keys(learningProfile.tagWeights ?? {}).length,
+    );
 
-    // Build Supabase query
-    let dbQuery = supabase
-      .from("products")
-      .select(`
-        id,
-        slug,
-        name,
-        price_cents,
-        description,
-        gift_tags,
-        occasion_tags,
-        relationship_tags,
-        images:product_images(storage_path, sort_order)
-      `)
-      .eq("is_published", true)
-      .gt("stock", 0);
-
-    // Budget filter — allow 20% over budget for flexibility
-    if (budget) {
-      dbQuery = dbQuery.lte("price_cents", budget * 120);
-    }
-
-    const { data: products, error } = await dbQuery.limit(50);
-
-    if (error) {
-      console.error("Supabase error:", error);
-      return NextResponse.json({ error: "Database error" }, { status: 500 });
-    }
-
-    // Score products
-    type ScoredProduct = {
-      product: Record<string, unknown>;
-      score: number;
-    };
-
-    const scored: ScoredProduct[] = (products ?? []).map((product) => {
-      const productTags = [
-        ...((product.gift_tags as string[]) || []),
-        ...((product.occasion_tags as string[]) || []),
-        ...((product.relationship_tags as string[]) || []),
-      ];
-
-      const tagOverlap = tags.length > 0
-        ? productTags.filter((t) => tags.includes(t)).length / Math.max(tags.length, 1)
-        : 0;
-
-      const budgetScore = budget
-        ? Math.max(0, 1 - Math.abs(product.price_cents as number - budget * 100) / (budget * 100))
-        : 0.5;
-
-      const score = 0.6 * tagOverlap + 0.4 * budgetScore;
-
-      return { product: product as Record<string, unknown>, score };
-    });
-
-    // Sort by score, take top 6
-    scored.sort((a, b) => b.score - a.score);
-    const top = scored.slice(0, 6);
-
-    // Format results
-    const results = top.map(({ product }) => {
-      const images = (product.images as Array<{ storage_path: string; sort_order: number }>) || [];
-      images.sort((a, b) => a.sort_order - b.sort_order);
-      const firstImage = images[0];
-      const imageUrl = firstImage
-        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${firstImage.storage_path}`
-        : null;
-
-      return {
-        id: product.id,
-        slug: product.slug,
-        name: product.name,
-        price_cents: product.price_cents,
-        description: product.description,
-        image_url: imageUrl,
-        avg_rating: null, // can join rating stats if needed
-        review_count: 0,
-        match_reason: generateMatchReason(product, tags),
-        gift_tags: (product.gift_tags as string[]) || [],
-      };
-    });
+    const results = MARKETPLACE_PRODUCTS
+      .map((product) => ({ product, score: scoreProduct(product, query, tags, budget, learningProfile) }))
+      .filter(({ score }) => score > 1.25 || tags.length === 0)
+      .sort((a, b) => b.score - a.score || a.product.rank - b.product.rank)
+      .slice(0, 6)
+      .map(({ product }, index) => {
+        const rating = MARKETPLACE_RATINGS.get(product.id);
+        return {
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          price_cents: product.price_cents,
+          description: product.ai_summary,
+          image_url: resolveProductImageSrc(product.id, product.images),
+          avg_rating: rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) : null,
+          review_count: rating?.review_count ?? 0,
+          match_reason: generateMatchReason(product, tags, budget),
+          gift_tags: product.interests,
+          category: product.category?.name ?? "Marketplace",
+          rank_label: `#${index + 1} in ${query.trim()}`,
+          learning_tags: [...product.interests, ...product.recipients, ...product.occasions].slice(0, 8),
+        };
+      });
 
     return NextResponse.json({
-      message: generateAIMessage(query, results.length, budget),
+      message: generateAIMessage(query, results.length, budget, usedLearning),
       results,
       tags,
       budget,
+      questionnaire_hint: "Best results include recipient, relationship, occasion, budget, interests, and what to avoid.",
     });
   } catch (err) {
     console.error("Gift recommend error:", err);

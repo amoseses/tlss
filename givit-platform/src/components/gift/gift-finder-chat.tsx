@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, ShoppingCart, Star, ExternalLink } from "lucide-react";
+import { Sparkles, Send, ShoppingCart, Star, ExternalLink, ThumbsDown, ThumbsUp } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -16,6 +16,8 @@ type GiftResult = {
   review_count: number;
   match_reason: string;
   gift_tags: string[];
+  rank_label?: string;
+  learning_tags?: string[];
 };
 
 type Message = {
@@ -27,7 +29,7 @@ type Message = {
 
 const GREETING: Message = {
   role: "assistant",
-  content: "👋 Hi! I'm GIVIT's AI gift assistant. Tell me about the person you're shopping for — their relationship to you, interests, the occasion, and your budget. I'll find the perfect gift.",
+  content: "👋 Hi! I'm GIVIT AI. Answer the gift questionnaire in one message — who it's for, the occasion, budget, interests, style, and anything to avoid — and I'll rank marketplace gifts for you. Then tell me if the picks worked so I can adapt.",
 };
 
 const QUICK_PROMPTS = [
@@ -36,7 +38,48 @@ const QUICK_PROMPTS = [
   { label: "For Friend 🎉", prompt: "Fun gift for a close friend, any occasion, $30-$50" },
   { label: "For Partner 💝", prompt: "Romantic anniversary gift for my partner, $100 budget" },
   { label: "For Kids 🧸", prompt: "Gift for a 7 year old who loves art and crafts, $25 budget" },
+  { label: "Pens ✍️", prompt: "Questionnaire: gift for a teacher who loves pens and journaling, thank-you gift, under $30, avoid anything too bulky" },
 ];
+
+type LearningProfile = {
+  productWeights: Record<string, number>;
+  tagWeights: Record<string, number>;
+};
+
+const LEARNING_KEY = "givit-ai-learning-profile";
+
+function readLearningProfile(): LearningProfile {
+  if (typeof window === "undefined") return { productWeights: {}, tagWeights: {} };
+  try {
+    const raw = window.localStorage.getItem(LEARNING_KEY);
+    if (!raw) return { productWeights: {}, tagWeights: {} };
+    const parsed = JSON.parse(raw) as Partial<LearningProfile>;
+    return {
+      productWeights: parsed.productWeights ?? {},
+      tagWeights: parsed.tagWeights ?? {},
+    };
+  } catch {
+    return { productWeights: {}, tagWeights: {} };
+  }
+}
+
+function writeLearningProfile(profile: LearningProfile) {
+  window.localStorage.setItem(LEARNING_KEY, JSON.stringify(profile));
+}
+
+function applyFeedback(results: GiftResult[], satisfied: boolean) {
+  const profile = readLearningProfile();
+  const direction = satisfied ? 1 : -1;
+
+  for (const result of results) {
+    profile.productWeights[result.slug] = Math.max(-3, Math.min(3, (profile.productWeights[result.slug] ?? 0) + direction * 0.5));
+    for (const tag of result.learning_tags ?? result.gift_tags) {
+      profile.tagWeights[tag] = Math.max(-3, Math.min(3, (profile.tagWeights[tag] ?? 0) + direction * 0.25));
+    }
+  }
+
+  writeLearningProfile(profile);
+}
 
 function formatMoney(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -77,6 +120,11 @@ function GiftCard({ result, index }: { result: GiftResult; index: number }) {
             <span className="text-4xl">🎁</span>
           </div>
         )}
+        {result.rank_label ? (
+          <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
+            {result.rank_label}
+          </div>
+        ) : null}
         {/* Match reason badge */}
         <div className="absolute bottom-2 left-2 right-2">
           <p className="rounded-lg bg-black/60 px-2 py-1 text-[10px] text-white/90 backdrop-blur-sm line-clamp-1">
@@ -159,7 +207,7 @@ export function GiftFinderChat() {
       const res = await fetch("/api/gift-recommend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: text }),
+        body: JSON.stringify({ query: text, learningProfile: readLearningProfile() }),
       });
 
       const data = await res.json();
@@ -191,6 +239,19 @@ export function GiftFinderChat() {
       e.preventDefault();
       sendMessage(input);
     }
+  }
+
+  function handleFeedback(results: GiftResult[], satisfied: boolean) {
+    applyFeedback(results, satisfied);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: satisfied
+          ? "Great — I saved those positive signals. Future rankings will lean toward gifts like these. ✅"
+          : "Got it — I saved that these were not quite right. Tell me what to change, and I will rerank away from these patterns.",
+      },
+    ]);
   }
 
   return (
@@ -243,6 +304,23 @@ export function GiftFinderChat() {
                       {msg.results.map((result, idx) => (
                         <GiftCard key={result.id} result={result} index={idx} />
                       ))}
+                      <div className="col-span-2 flex flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-white p-3 text-xs text-muted-foreground sm:col-span-3">
+                        <span className="font-semibold text-givit-ink">Did these feel right?</span>
+                        <button
+                          type="button"
+                          onClick={() => handleFeedback(msg.results ?? [], true)}
+                          className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                        >
+                          <ThumbsUp className="h-3.5 w-3.5" /> Satisfied
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleFeedback(msg.results ?? [], false)}
+                          className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-700 transition hover:bg-rose-100"
+                        >
+                          <ThumbsDown className="h-3.5 w-3.5" /> Not yet
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -267,7 +345,7 @@ export function GiftFinderChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Gift for my mom who loves gardening, $50 budget..."
+              placeholder="Questionnaire: for my sister, birthday, loves pens and art, under $40, avoid tech..."
               rows={1}
               className="flex-1 resize-none rounded-2xl border border-border/60 bg-muted/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
               style={{ maxHeight: "120px" }}
@@ -286,7 +364,7 @@ export function GiftFinderChat() {
             </button>
           </div>
           <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
-            Press Enter to send · Shift+Enter for newline
+            Questionnaire tip: recipient + occasion + budget + interests + avoid list · Press Enter to send
           </p>
         </div>
       </div>

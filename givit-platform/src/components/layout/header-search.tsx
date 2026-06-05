@@ -15,7 +15,7 @@ function HeaderSearchField() {
         name="q"
         key={q}
         defaultValue={q}
-        placeholder="Search products, gifts, artisan goods..."
+        placeholder="Search the marketplace: pens, coffee, tech..."
         className="min-w-0 flex-1 rounded-l-full border-0 bg-white/10 px-5 py-2.5 text-sm text-white outline-none placeholder:text-white/50"
         autoComplete="off"
       />
@@ -38,7 +38,7 @@ export function HeaderSearch() {
           <input
             type="search"
             name="q"
-            placeholder="Search products, gifts, artisan goods..."
+            placeholder="Search the marketplace: pens, coffee, tech..."
             className="min-w-0 flex-1 rounded-l-full border-0 bg-white/10 px-5 py-2.5 text-sm text-white outline-none placeholder:text-white/50"
             autoComplete="off"
           />

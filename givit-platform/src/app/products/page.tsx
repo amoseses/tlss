@@ -189,13 +189,13 @@ export default async function ProductsPage({ searchParams }: Props) {
               {occasion ? <span className="text-muted-foreground"> for {occasion}</span> : null}
             </p>
             <Link href="/gift" className="inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
-              <Sparkles className="h-4 w-4" /> AI gift finder coming next
+              <Sparkles className="h-4 w-4" /> Ask Givit AI
             </Link>
           </div>
 
           <div className="givit-section">
             {list.length > 0 ? (
-              <ProductGrid products={list} ratings={ratings} compact />
+              <ProductGrid products={list} ratings={ratings} compact rankContext={q ? { query: q } : activeCategory ? { categoryName: activeCategory.name } : undefined} />
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No products match your filters. <Link href="/products" className="givit-link">Clear filters</Link>
