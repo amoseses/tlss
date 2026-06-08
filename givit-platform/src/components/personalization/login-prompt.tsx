@@ -27,7 +27,7 @@ export function LoginPrompt() {
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-givit-ember text-white"><Gift className="h-5 w-5" /></div>
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Welcome to Givit</p>
-              <h2 className="font-serif text-2xl font-bold text-givit-ink">Save smarter gift ideas.</h2>
+              <h2 className="font-serif text-2xl font-bold text-givit-ink">Log in to start gift notifications.</h2>
             </div>
           </div>
           <button
@@ -43,11 +43,11 @@ export function LoginPrompt() {
           </button>
         </div>
         <p className="mt-4 text-sm leading-6 text-muted-foreground">
-          Create an account to keep wishlists, gift calendars, recently viewed items, AI learning preferences, and sale alerts synced across devices.
+          Log in first so Givit can save your notification setup, dates, delivery addresses, payment token, survey reminders, and approval queue on your account.
         </p>
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
-          <Button asChild className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover"><Link href="/login">Log in</Link></Button>
-          <Button asChild variant="outline" className="rounded-full"><Link href="/signup">Create account</Link></Button>
+          <Button asChild className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover"><Link href="/login?next=/concierge">Log in</Link></Button>
+          <Button asChild variant="outline" className="rounded-full"><Link href="/signup?next=/concierge">Create account</Link></Button>
         </div>
         <button
           type="button"
@@ -57,7 +57,7 @@ export function LoginPrompt() {
           }}
           className="mt-3 w-full text-center text-xs font-semibold text-muted-foreground hover:text-givit-ember"
         >
-          Continue as guest
+          Set up notifications as guest
         </button>
       </div>
     </div>
