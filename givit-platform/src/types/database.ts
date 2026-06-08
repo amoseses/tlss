@@ -177,3 +177,111 @@ export type GiftFeedback = {
   action: "click" | "positive" | "negative" | "purchase";
   created_at: string;
 };
+
+export type GiftDeliveryPreference = "ship" | "email" | "either";
+export type GiftNotificationChannel = "push" | "email" | "sms" | "in_app";
+export type GiftNotificationStatus = "scheduled" | "sent" | "approved" | "skipped" | "failed";
+export type GiftApprovalStatus = "draft" | "needs_approval" | "approved" | "regenerating" | "ordered" | "skipped" | "cancelled";
+export type GiftApprovalItemType = "gift" | "card" | "flowers" | "experience" | "shipping" | "service";
+export type GiftFulfillmentTaskType = "seller_order" | "affiliate_checkout" | "card_writer" | "florist" | "ticket_transfer" | "shipment";
+export type GiftFulfillmentStatus = "queued" | "running" | "blocked" | "complete" | "failed";
+
+export type GiftRecipient = {
+  id: string;
+  user_id: string;
+  name: string;
+  relationship: string | null;
+  email: string | null;
+  phone: string | null;
+  default_budget_cents: number;
+  interests: string[];
+  avoid_terms: string[];
+  notes: string | null;
+  ship_to_name: string | null;
+  ship_to_line1: string | null;
+  ship_to_line2: string | null;
+  ship_to_city: string | null;
+  ship_to_state: string | null;
+  ship_to_zip: string | null;
+  ship_to_country: string;
+  delivery_preference: GiftDeliveryPreference;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GiftOccasion = {
+  id: string;
+  user_id: string;
+  recipient_id: string;
+  occasion: string;
+  occasion_date: string;
+  repeats_yearly: boolean;
+  approval_lead_days: number;
+  shipping_buffer_days: number;
+  status: "active" | "paused" | "completed";
+  created_at: string;
+  updated_at: string;
+};
+
+export type GiftNotification = {
+  id: string;
+  user_id: string;
+  recipient_id: string | null;
+  occasion_id: string | null;
+  title: string;
+  body: string;
+  channel: GiftNotificationChannel;
+  scheduled_for: string;
+  sent_at: string | null;
+  status: GiftNotificationStatus;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type GiftApproval = {
+  id: string;
+  user_id: string;
+  recipient_id: string;
+  occasion_id: string | null;
+  recommendation_id: string | null;
+  status: GiftApprovalStatus;
+  headline: string;
+  rationale: string | null;
+  card_message: string | null;
+  approval_token: string;
+  approved_at: string | null;
+  regenerated_at: string | null;
+  stripe_payment_intent_id: string | null;
+  total_cents: number;
+  estimated_delivery_date: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GiftApprovalItem = {
+  id: string;
+  approval_id: string;
+  product_id: string | null;
+  seller_id: string | null;
+  item_type: GiftApprovalItemType;
+  title: string;
+  description: string | null;
+  price_cents: number;
+  external_url: string | null;
+  fulfillment_status: "pending" | "ordered" | "fulfilled" | "failed" | "cancelled";
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type GiftFulfillmentTask = {
+  id: string;
+  approval_id: string;
+  item_id: string | null;
+  task_type: GiftFulfillmentTaskType;
+  provider: string | null;
+  status: GiftFulfillmentStatus;
+  run_after: string;
+  completed_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};

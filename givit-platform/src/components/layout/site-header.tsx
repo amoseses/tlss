@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Gift, Heart, Sparkles } from "lucide-react";
+import { Bell, Gift, Heart, Sparkles } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
 import { HeaderSearch } from "@/components/layout/header-search";
@@ -70,6 +70,13 @@ export async function SiteHeader() {
             </Link>
 
             <Link
+              href="/concierge"
+              className="hidden items-center gap-1 rounded-full px-3 py-2 text-sm font-medium transition-colors hover:bg-white/10 md:flex"
+            >
+              <Bell className="h-4 w-4" /> Concierge
+            </Link>
+
+            <Link
               href="/products"
               aria-label="Wishlist and marketplace"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10"
@@ -125,8 +132,15 @@ export async function SiteHeader() {
               </Link>
             ))}
             <Link
+              href="/concierge"
+              className="shrink-0 ml-auto flex items-center gap-1 rounded-full border border-givit-coral/30 bg-givit-ember/20 px-3 py-1 text-xs font-semibold text-givit-coral transition-colors hover:bg-givit-ember/30 whitespace-nowrap"
+            >
+              <Bell className="h-3 w-3" />
+              Autopilot
+            </Link>
+            <Link
               href="/gift"
-              className="shrink-0 ml-auto flex items-center gap-1 rounded-full bg-givit-ember/20 border border-givit-coral/30 px-3 py-1 text-xs font-semibold text-givit-coral transition-colors hover:bg-givit-ember/30 whitespace-nowrap"
+              className="shrink-0 flex items-center gap-1 rounded-full bg-givit-ember/20 border border-givit-coral/30 px-3 py-1 text-xs font-semibold text-givit-coral transition-colors hover:bg-givit-ember/30 whitespace-nowrap"
             >
               <Sparkles className="h-3 w-3" />
               Givit AI

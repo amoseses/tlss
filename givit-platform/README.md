@@ -39,6 +39,7 @@ supabase/migrations/20250509000009_manager_console.sql
 supabase/migrations/20250509000010_product_sales_stats.sql
 supabase/migrations/20250509000011_commerce_checkout.sql
 supabase/migrations/20250601000000_givit_platform.sql   ← GIVIT additions
+supabase/migrations/20260608000000_gift_concierge_automation.sql   ← automated gifting/notifications
 ```
 
 ### 4. Configure Supabase Auth
@@ -71,7 +72,8 @@ Open → http://localhost:3000
 | Route | What it is |
 |---|---|
 | `/` | Home — hero, featured gifts, best sellers |
-| `/gift` | **AI Gift Finder** — the core product |
+| `/gift` | **AI Gift Finder** — product ranking and questionnaire flow |
+| `/concierge` | **Gift Concierge** — automated gift setup, notifications, approval queue, cards, add-ons, shipping, and experiences |
 | `/products` | Full product catalog with search/filter |
 | `/products/[slug]` | Product detail, reviews, add to cart |
 | `/cart` | Cart |
@@ -130,3 +132,12 @@ To promote yourself:
 ```sql
 UPDATE public.profiles SET role = 'admin' WHERE email = 'you@example.com';
 ```
+
+
+---
+
+## Gift Concierge Automation
+
+The first-round autopilot system lives at `/concierge`. It lets a user set up recipients, dates, budgets, interests, avoid-lists, address/delivery preferences, notification preferences, and Stripe-safe payment readiness. Givit then creates approval bundles with a main gift, handwritten card message, flowers/add-ons, shipping, or tickets/experiences, and waits for user approval before any charge/order.
+
+Setup and production rollout details are documented in [`docs/gift-concierge-setup.md`](docs/gift-concierge-setup.md).
