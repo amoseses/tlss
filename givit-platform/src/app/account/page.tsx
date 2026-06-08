@@ -35,6 +35,16 @@ export default async function AccountPage() {
         }
       />
 
+      <div className="border-givit-ember/20 bg-givit-sand/60 givit-panel mx-auto mb-6 max-w-md p-5 text-center">
+        <p className="text-sm font-medium">Automated gifting setup</p>
+        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+          Add important people, dates, approval notifications, shipping defaults, and Stripe-safe payment readiness.
+        </p>
+        <Button asChild className="mt-3 bg-givit-ember text-white hover:bg-givit-ember-hover" size="sm">
+          <Link href="/concierge">Open gift concierge</Link>
+        </Button>
+      </div>
+
       {!isSeller ? (
         <div className="border-primary/20 bg-primary/5 givit-panel mx-auto max-w-md p-5 text-center">
           <p className="text-sm font-medium">Sell on GIVIT</p>

@@ -57,7 +57,7 @@ type Questionnaire = {
 
 const GREETING: Message = {
   role: "assistant",
-  content: "👋 Hi! I’m Givit AI. Answer a few basics and I’ll run a Gift Match Score, explain why each item fits, and warn you about gifts to avoid.",
+  content: "👋 Hi! I’m Givit AI. Answer a few basics and I’ll run a Gift Match Score, explain why each item fits, warn you about gifts to avoid, and help turn it into a full concierge bundle with card, add-ons, shipping, or tickets.",
 };
 
 const QUICK_PROMPTS = [
@@ -213,6 +213,9 @@ function GiftCard({ result, index }: { result: GiftResult; index: number }) {
             <ExternalLink className="h-3.5 w-3.5" /> View product
           </Link>
           <WishlistButton compact item={{ slug: result.slug, name: result.name, href: `/products/${result.slug}`, image: result.image_url ?? undefined, price: formatMoney(displayPrice) }} />
+          <Link href="/concierge" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-givit-ember/30 px-3 text-xs font-semibold text-givit-ember transition hover:bg-givit-ember/10">
+            Build full bundle
+          </Link>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Bookmark, Brain, Gift, Search, ShieldCheck, Sparkles, Trophy, Wand2 } from "lucide-react";
+import { ArrowRight, Bell, Brain, CreditCard, Gift, PackageCheck, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
 
 import { GiftCalendar } from "@/components/personalization/gift-calendar";
 import { RecentlyViewedRail } from "@/components/personalization/recently-viewed";
@@ -28,36 +28,36 @@ export default function HomePage() {
           <div className="max-w-4xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-givit-coral/30 bg-givit-ember/10 px-3 py-1.5 text-xs font-semibold text-givit-coral">
               <Sparkles className="h-3 w-3" />
-              Givit AI + free best-item marketplace
+              Givit AI + autopilot gift approvals
             </div>
 
             <h1 className="font-serif text-4xl font-bold leading-tight text-white md:text-6xl lg:text-7xl">
-              Find your perfect gift.
+              Set up gifts once.
               <br />
-              <span className="italic text-givit-coral">Stop wasting money online.</span>
+              <span className="italic text-givit-coral">Only approve when it is ready.</span>
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-7 text-white/65 md:text-lg">
-              Givit is becoming the gift-giving AI that asks smart questions, scores every match, remembers what people view, and helps shoppers save gift ideas all year. Browse the best items from across the web, ranked by Givit instead of brand deals, then click through to the original retailer when you are ready.
+              Givit is becoming the autopilot for gift giving: add important people and dates, save checkout/shipping defaults safely, get phone-style approval reminders, and let AI build the gift, handwritten card, flowers, tickets, or seller-made item before you approve the order.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild className="h-12 rounded-full bg-givit-ember px-6 text-sm font-semibold text-white hover:bg-givit-ember-hover">
-                <Link href="/gift">
-                  <Wand2 className="h-4 w-4" /> Find your perfect gift <ArrowRight className="h-4 w-4" />
+                <Link href="/concierge">
+                  <Bell className="h-4 w-4" /> Set up gift autopilot <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-12 rounded-full border-white/20 bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10">
-                <Link href="/products">
-                  <Search className="h-4 w-4" /> Browse marketplace
+                <Link href="/gift">
+                  <Wand2 className="h-4 w-4" /> Try Givit AI
                 </Link>
               </Button>
             </div>
 
             <div className="mt-8 grid gap-3 text-xs text-white/55 sm:grid-cols-3">
-              <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-givit-coral" /> No paid brand ranking</div>
-              <div className="flex items-center gap-2"><Bookmark className="h-4 w-4 text-givit-coral" /> Save ideas to wishlists</div>
-              <div className="flex items-center gap-2"><Trophy className="h-4 w-4 text-givit-coral" /> Admin-ranked best picks</div>
+              <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-givit-coral" /> Approval before every charge</div>
+              <div className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-givit-coral" /> Stripe tokenized payment setup</div>
+              <div className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-givit-coral" /> Shipping, cards, flowers, tickets</div>
             </div>
           </div>
 
@@ -65,8 +65,8 @@ export default function HomePage() {
             <div className="rounded-[1.5rem] bg-white p-4 text-givit-ink">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Gift match preview</p>
-                  <h2 className="font-serif text-2xl font-bold">For a coffee-loving traveler</h2>
+                  <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Approval preview</p>
+                  <h2 className="font-serif text-2xl font-bold">For Mom’s birthday</h2>
                 </div>
                 <Badge className="bg-givit-ember text-white">96%</Badge>
               </div>
@@ -89,9 +89,9 @@ export default function HomePage() {
       <section className="border-b border-border/50 bg-givit-sand/40">
         <div className="container grid gap-6 py-10 sm:grid-cols-3">
           {[
-            { icon: Brain, title: "Questionnaire analysis", desc: "The AI asks recipient, relationship, occasion, budget, interests, style, and avoid-list questions before ranking." },
-            { icon: Trophy, title: "Gift Match Score", desc: "Each result is scored on interests, uniqueness, price fit, quality, sentiment, novelty, and previous overlap." },
-            { icon: Bookmark, title: "Wishlists + calendar", desc: "Save shareable lists, track life events, and use reminders to bring shoppers back before gift deadlines." },
+            { icon: Brain, title: "Short AI questionnaire", desc: "The AI asks recipient, occasion, budget, interests, and avoid-list questions before building a complete bundle." },
+            { icon: Bell, title: "Notification system", desc: "Push, email, SMS, and in-app reminders are scheduled around approval windows and shipping buffers." },
+            { icon: PackageCheck, title: "Approval-to-order", desc: "Approve once to charge through Stripe, order cards, route seller items, buy add-ons, or deliver tickets digitally." },
           ].map((item) => (
             <div key={item.title} className="flex gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-white shadow-sm">
@@ -190,13 +190,13 @@ export default function HomePage() {
         <div className="relative overflow-hidden rounded-3xl bg-givit-ember px-8 py-10 text-white md:px-12">
           <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/8" />
           <div className="relative max-w-3xl">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/65">Built for part two</p>
-            <h2 className="mb-2 font-serif text-2xl font-bold md:text-3xl">Givit AI is now the front door.</h2>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/65">Automated gifting</p>
+            <h2 className="mb-2 font-serif text-2xl font-bold md:text-3xl">From reminder to doorstep without losing user control.</h2>
             <p className="mb-6 text-sm leading-6 text-white/75">
-              The gift finder now asks a quick questionnaire, ranks matches against the curated marketplace, and learns from satisfaction feedback so future recommendations adapt to each shopper.
+              The concierge dashboard demonstrates setup, notifications, approval queues, regeneration, Stripe-safe payment readiness, shipping buffers, tickets, flowers, cards, and homemade seller bundles.
             </p>
             <Button asChild className="rounded-full bg-white px-6 text-givit-ember hover:bg-white/90">
-              <Link href="/gift"><Gift className="h-4 w-4" /> Open Givit AI</Link>
+              <Link href="/concierge"><Gift className="h-4 w-4" /> Open concierge setup</Link>
             </Button>
           </div>
         </div>
