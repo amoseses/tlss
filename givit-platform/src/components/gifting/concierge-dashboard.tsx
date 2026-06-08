@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Bell, CalendarPlus, Check, CreditCard, RotateCcw, Send, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Bell, CalendarPlus, Check, CreditCard, ExternalLink, PlayCircle, Send, ShieldCheck, ToggleLeft, ToggleRight, X } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -13,18 +13,26 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AUTOMATION_RULES,
+  CONCIERGE_AUTOMATION_CONFIG,
   CONCIERGE_STEPS,
   CONCIERGE_STORAGE_KEY,
   DEFAULT_CONCIERGE_STATE,
+  SURVEY_LEAD_DAYS,
+  createAddressLabel,
   deliveryIcon,
   formatCents,
   formatConciergeDate,
+  getApprovalDate,
   getBundleTotal,
   getDaysUntil,
+  getEstimatedDeliveryDate,
+  getSurveyDate,
   iconForBundleItem,
+  type ConciergeNotification,
   type ConciergeRecipient,
   type ConciergeState,
   type GiftApproval,
+  type GiftBundleItem,
 } from "@/lib/gifting/concierge";
 
 function readState(): ConciergeState {
@@ -38,46 +46,110 @@ function readState(): ConciergeState {
   }
 }
 
+function centsFromBudget(value: string) {
+  const amount = Number(value.replace(/[^\d.]/g, ""));
+  return Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 7500;
+}
+
 function createRecipient(formData: FormData): ConciergeRecipient {
-  const id = `rec-${Date.now()}`;
+  const addressParts = {
+    addressLine1: String(formData.get("addressLine1") ?? "").trim(),
+    city: String(formData.get("city") ?? "").trim(),
+    state: String(formData.get("state") ?? "").trim(),
+    postalCode: String(formData.get("postalCode") ?? "").trim(),
+    country: String(formData.get("country") ?? "US").trim() || "US",
+  };
+  const deliveryPreference = String(formData.get("deliveryPreference") ?? "ship") as ConciergeRecipient["deliveryPreference"];
+
   return {
-    id,
-    name: String(formData.get("name") ?? "").trim() || "New recipient",
-    relationship: String(formData.get("relationship") ?? "").trim() || "Important person",
-    occasion: String(formData.get("occasion") ?? "").trim() || "Gift occasion",
-    occasionDate: String(formData.get("occasionDate") ?? "").trim() || new Date().toISOString().slice(0, 10),
-    budget: String(formData.get("budget") ?? "").trim() || "$75",
-    interests: String(formData.get("interests") ?? "").trim() || "thoughtful, useful, memorable",
-    avoid: String(formData.get("avoid") ?? "").trim() || "",
-    addressLabel: String(formData.get("addressLabel") ?? "").trim() || "Default address",
-    deliveryPreference: "either",
+    id: `rec-${Date.now()}`,
+    name: String(formData.get("name") ?? "").trim(),
+    relationship: String(formData.get("relationship") ?? "").trim(),
+    occasion: String(formData.get("occasion") ?? "").trim(),
+    occasionDate: String(formData.get("occasionDate") ?? "").trim(),
+    budget: String(formData.get("budget") ?? "").trim(),
+    interests: String(formData.get("interests") ?? "").trim(),
+    avoid: String(formData.get("avoid") ?? "").trim(),
+    addressLine1: addressParts.addressLine1,
+    addressLine2: String(formData.get("addressLine2") ?? "").trim(),
+    city: addressParts.city,
+    state: addressParts.state,
+    postalCode: addressParts.postalCode,
+    country: addressParts.country,
+    addressLabel: createAddressLabel(addressParts),
+    deliveryPreference: ["ship", "email", "either"].includes(deliveryPreference) ? deliveryPreference : "ship",
+    surveyStatus: "scheduled",
   };
 }
 
-function createApproval(recipient: ConciergeRecipient): GiftApproval {
-  const deliveryDate = new Date(recipient.occasionDate);
-  deliveryDate.setDate(deliveryDate.getDate() - 4);
-  const hasExperienceSignal = /ticket|game|music|concert|experience|travel|sports/i.test(recipient.interests);
+function createSurveyNotification(recipient: ConciergeRecipient): ConciergeNotification {
   return {
-    id: `approval-${recipient.id}`,
+    id: `survey-${recipient.id}`,
+    recipientId: recipient.id,
+    title: `Givit survey for ${recipient.name}`,
+    body: `Five weeks before ${recipient.occasion}, answer the Givit survey so AI can pick the best gift box, card, flowers/add-ons, or experience.`,
+    scheduledFor: getSurveyDate(recipient.occasionDate),
+    channel: "in_app",
+    status: "scheduled",
+    kind: "survey",
+  };
+}
+
+function createApprovalNotification(recipient: ConciergeRecipient, approval: GiftApproval): ConciergeNotification {
+  return {
+    id: `approval-${approval.id}`,
+    recipientId: recipient.id,
+    title: `Approve ${recipient.name}'s gift box`,
+    body: "Review the full AI gift box. Givit will not charge or order until you approve it.",
+    scheduledFor: getApprovalDate(recipient.occasionDate),
+    channel: "in_app",
+    status: "scheduled",
+    kind: "approval",
+  };
+}
+
+function chooseBundleItems(recipient: ConciergeRecipient, surveyAnswers: string): GiftBundleItem[] {
+  const budgetCents = centsFromBudget(recipient.budget);
+  const hasExperienceSignal = /ticket|game|music|concert|experience|travel|sports|show|event/i.test(`${recipient.interests} ${surveyAnswers}`);
+  const wantsFlowers = /flower|romantic|mom|mother|anniversary|birthday|garden|bright|bouquet/i.test(`${recipient.relationship} ${recipient.occasion} ${recipient.interests} ${surveyAnswers}`);
+  const mainGiftCents = Math.max(2500, Math.round(budgetCents * (hasExperienceSignal ? 0.78 : wantsFlowers ? 0.55 : 0.7)));
+  const items: GiftBundleItem[] = hasExperienceSignal
+    ? [
+        { label: "Experience", description: "AI-selected digital tickets, local experience, or event credit matched to the survey answers and delivery date.", priceCents: mainGiftCents, type: "experience" },
+        { label: "Card", description: "Personal note delivered digitally or handwritten by the admin/card queue.", priceCents: 700, type: "card" },
+        { label: "Service", description: "Ordering coordination, approval tracking, and fulfillment routing.", priceCents: 995, type: "service" },
+      ]
+    : [
+        { label: "Main gift", description: "AI-selected marketplace, handmade seller, or approved external-site item based on the Givit survey.", priceCents: mainGiftCents, type: "gift" },
+        { label: "Card", description: "Handwritten card with AI-drafted message sent through the admin/card queue.", priceCents: 700, type: "card" },
+        { label: wantsFlowers ? "Flowers" : "Add-on", description: wantsFlowers ? "Bouquet selected for the occasion and delivery window." : "Small add-on chosen to make the gift box feel complete.", priceCents: wantsFlowers ? 2400 : 1400, type: "flowers" },
+        { label: "Shipping", description: "Tracked delivery with a buffer before the occasion.", priceCents: 995, type: "shipping" },
+      ];
+
+  return items;
+}
+
+function createApproval(recipient: ConciergeRecipient, surveyAnswers: string): GiftApproval {
+  const items = chooseBundleItems(recipient, surveyAnswers);
+  const fulfillmentTasks = items.map((item) => {
+    if (item.type === "card") return "Send card copy to the admin/card queue.";
+    if (item.type === "flowers") return CONCIERGE_AUTOMATION_CONFIG.providers.flowers === "provider" ? "Place florist-provider order after approval." : "Send flower/add-on order to the admin queue.";
+    if (item.type === "experience") return "Reserve ticket or digital experience through the approved fulfillment queue.";
+    if (item.type === "shipping") return CONCIERGE_AUTOMATION_CONFIG.providers.shipping === "shippo" ? "Create Shippo shipment after seller/provider order." : "Create shipment task for operations.";
+    if (CONCIERGE_AUTOMATION_CONFIG.providers.externalCheckout === "browser_agent") return "Run approved external checkout browser agent after payment succeeds.";
+    return "Send seller or external-site order to the admin queue.";
+  });
+
+  return {
+    id: `approval-${recipient.id}-${Date.now()}`,
     recipientId: recipient.id,
     status: "needs_approval",
-    headline: hasExperienceSignal ? `${recipient.occasion} experience bundle for ${recipient.name}` : `Complete ${recipient.occasion.toLowerCase()} gift bundle for ${recipient.name}`,
-    rationale: `Built from ${recipient.relationship}, ${recipient.budget}, and interests: ${recipient.interests}. Givit includes a main option, card copy, add-ons, delivery buffer, and regeneration path before charging.`,
-    message: `${recipient.name}, I wanted this to feel personal and useful. Hope this makes your ${recipient.occasion.toLowerCase()} feel special.` ,
-    estimatedDelivery: deliveryDate.toISOString().slice(0, 10),
-    items: hasExperienceSignal
-      ? [
-          { label: "Experience", description: "Digital tickets or experience credit matched to their schedule", priceCents: 8500, type: "experience" },
-          { label: "Card", description: "Handwritten note mailed separately or digital note for tickets", priceCents: 700, type: "card" },
-          { label: "Service", description: "Fulfillment and delivery coordination", priceCents: 995, type: "shipping" },
-        ]
-      : [
-          { label: "Main gift", description: "Curated marketplace or homemade seller item", priceCents: 4200, type: "gift" },
-          { label: "Card", description: "Handwritten message with premium stationery", priceCents: 700, type: "card" },
-          { label: "Flowers/Add-on", description: "Optional bouquet, treat, or practical add-on", priceCents: 2400, type: "flowers" },
-          { label: "Shipping", description: "Tracked shipping with occasion buffer", priceCents: 995, type: "shipping" },
-        ],
+    headline: `${recipient.name}'s ${recipient.occasion} gift box`,
+    rationale: `The Givit survey combined ${recipient.relationship}, budget ${recipient.budget}, interests (${recipient.interests}), avoid list (${recipient.avoid || "none"}), and answers (${surveyAnswers}) to choose a complete bundle that can arrive before ${formatConciergeDate(recipient.occasionDate)}.`,
+    message: `${recipient.name}, this was picked to feel personal to what you enjoy. I hope it makes your ${recipient.occasion.toLowerCase()} feel thoughtful, easy, and special.`,
+    estimatedDelivery: getEstimatedDeliveryDate(recipient.occasionDate),
+    items,
+    fulfillmentTasks,
   };
 }
 
@@ -94,6 +166,7 @@ export function ConciergeDashboard() {
     if (typeof window !== "undefined" && "Notification" in window) return window.Notification.permission;
     return "unsupported";
   });
+  const [surveyAnswersByRecipient, setSurveyAnswersByRecipient] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -103,7 +176,7 @@ export function ConciergeDashboard() {
 
   const setupScore = useMemo(() => {
     let score = 0;
-    if (state.profile.automationEnabled) score += 25;
+    if (state.profile.serviceConfirmed && state.profile.automationEnabled) score += 25;
     if (state.profile.addressStatus === "ready") score += 25;
     if (state.profile.paymentStatus === "ready") score += 25;
     if (state.recipients.length > 0) score += 25;
@@ -120,41 +193,72 @@ export function ConciergeDashboard() {
     setNotificationPermission(permission);
     if (permission === "granted") {
       new window.Notification("Givit notifications are ready", {
-        body: "We will remind you before approval deadlines. Demo schedules are also shown in-app.",
+        body: `Your Givit survey reminders are scheduled ${SURVEY_LEAD_DAYS} days before each date.`,
       });
       toast.success("Push notifications enabled.");
     }
   }
 
-  function markPaymentReady() {
-    setState((current) => ({ ...current, profile: { ...current.profile, paymentStatus: "ready" } }));
-    toast.success("Payment setup marked ready. In production this is a Stripe SetupIntent flow.");
+  function toggleService() {
+    setState((current) => ({
+      ...current,
+      profile: {
+        ...current.profile,
+        automationEnabled: !current.profile.automationEnabled,
+        serviceConfirmed: true,
+      },
+    }));
+  }
+
+  function markPaymentReady(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const stripePaymentMethodId = String(formData.get("stripePaymentMethodId") ?? "").trim();
+    if (!stripePaymentMethodId) {
+      toast.error("Save a Stripe payment method ID from the card setup flow before enabling ordering.");
+      return;
+    }
+    setState((current) => ({ ...current, profile: { ...current.profile, paymentStatus: "ready", stripePaymentMethodId } }));
+    toast.success("Payment method token saved. Raw card numbers stay in Stripe, not Givit.");
   }
 
   function addRecipient(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const recipient = createRecipient(new FormData(form));
-    const approval = createApproval(recipient);
+    if (!recipient.name || !recipient.occasion || !recipient.occasionDate || !recipient.budget || !recipient.addressLine1) {
+      toast.error("Name, occasion, date, budget, and delivery address are required.");
+      return;
+    }
+    const notification = createSurveyNotification(recipient);
     setState((current) => ({
       ...current,
+      profile: { ...current.profile, addressStatus: "ready" },
       recipients: [...current.recipients, recipient],
-      approvals: [approval, ...current.approvals],
-      notifications: [
-        {
-          id: `notif-${recipient.id}`,
-          recipientId: recipient.id,
-          title: `Approve ${recipient.name}'s ${recipient.occasion} gift`,
-          body: "Givit prepared a complete bundle and needs your approval before it charges or orders.",
-          scheduledFor: approval.estimatedDelivery,
-          channel: "in_app",
-          status: "scheduled",
-        },
-        ...current.notifications,
-      ],
+      notifications: [notification, ...current.notifications],
     }));
     form.reset();
-    toast.success("Recipient added and first approval bundle generated.");
+    toast.success(`Saved ${recipient.name}. Givit survey notification scheduled for ${formatConciergeDate(notification.scheduledFor)}.`);
+  }
+
+  function submitSurvey(recipient: ConciergeRecipient) {
+    const answers = surveyAnswersByRecipient[recipient.id]?.trim();
+    if (!answers) {
+      toast.error("Add survey answers before generating the gift box.");
+      return;
+    }
+    const approval = createApproval(recipient, answers);
+    const approvalNotification = createApprovalNotification(recipient, approval);
+    setState((current) => ({
+      ...current,
+      recipients: current.recipients.map((item) => item.id === recipient.id ? { ...item, surveyStatus: "completed" } : item),
+      approvals: [approval, ...current.approvals],
+      notifications: [
+        approvalNotification,
+        ...current.notifications.map((notification) => notification.id === `survey-${recipient.id}` ? { ...notification, status: "sent" as const } : notification),
+      ],
+    }));
+    toast.success("Givit survey completed and AI gift box generated for approval.");
   }
 
   function updateApproval(id: string, status: GiftApproval["status"]) {
@@ -162,36 +266,31 @@ export function ConciergeDashboard() {
       ...current,
       approvals: current.approvals.map((approval) => approval.id === id ? { ...approval, status } : approval),
       notifications: current.notifications.map((notification) =>
-        notification.recipientId === current.approvals.find((approval) => approval.id === id)?.recipientId
+        notification.recipientId === current.approvals.find((approval) => approval.id === id)?.recipientId && notification.kind === "approval"
           ? { ...notification, status: status === "approved" ? "approved" : notification.status }
           : notification,
       ),
     }));
-    toast.success(status === "approved" ? "Approved. The production flow would charge through Stripe and place the orders." : "Bundle queued for regeneration.");
-  }
-
-  function resetDemo() {
-    setState(DEFAULT_CONCIERGE_STATE);
-    toast.success("Concierge demo reset.");
+    toast.success(status === "approved" ? "Approved. Stripe charging and fulfillment tasks can now run." : "Bundle queued for regeneration.");
   }
 
   return (
     <div className="space-y-8">
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-[2rem] bg-givit-ink p-6 text-white md:p-8">
-          <Badge className="mb-4 bg-givit-ember text-white">Givit Autopilot</Badge>
+          <Badge className="mb-4 bg-givit-ember text-white">Givit notification autopilot</Badge>
           <h1 className="font-serif text-3xl font-bold leading-tight md:text-5xl">
-            Set it up once. Approve gifts when Givit is ready to send.
+            Log in, turn on reminders, and approve the final gift box.
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-white/70 md:text-base">
-            Add dates, people, payment setup, addresses, and notification preferences. Givit generates a complete order plan — gift, handwritten card, flowers or add-ons, shipping, or tickets — then waits for approval before charging.
+            Add dates, names, a Stripe payment token, delivery address, and service preference. Five weeks before each date, Givit sends a survey notification, creates the full gift box, and waits for approval before it charges or orders.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button onClick={requestNotifications} className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
-              <Bell className="h-4 w-4" /> Enable phone-style alerts
+              <Bell className="h-4 w-4" /> Enable notifications
             </Button>
             <Button asChild variant="outline" className="rounded-full border-white/20 bg-transparent text-white hover:bg-white/10">
-              <Link href="/gift"><Sparkles className="h-4 w-4" /> Try gift AI</Link>
+              <Link href="/login?next=/concierge"><ExternalLink className="h-4 w-4" /> Log in first</Link>
             </Button>
           </div>
         </div>
@@ -205,18 +304,22 @@ export function ConciergeDashboard() {
             <div className="h-3 overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-givit-ember transition-all" style={{ width: `${setupScore}%` }} />
             </div>
+            <Button onClick={toggleService} variant={state.profile.automationEnabled ? "default" : "outline"} className={state.profile.automationEnabled ? "w-full bg-emerald-600 text-white hover:bg-emerald-700" : "w-full"}>
+              {state.profile.automationEnabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />} Service {state.profile.automationEnabled ? "on" : "off"}
+            </Button>
+            <form onSubmit={markPaymentReady} className="space-y-2">
+              <Label htmlFor="stripePaymentMethodId">Stripe payment method ID</Label>
+              <Input id="stripePaymentMethodId" name="stripePaymentMethodId" placeholder="pm_... from Stripe Elements" defaultValue={state.profile.stripePaymentMethodId} />
+              <Button type="submit" variant="outline" className="w-full"><CreditCard className="h-4 w-4" /> Save payment token</Button>
+            </form>
             <div className="grid gap-2 text-sm">
-              <div className="flex items-center justify-between"><span>Payment method token</span><Badge variant="outline">{state.profile.paymentStatus.replace("_", " ")}</Badge></div>
+              <div className="flex items-center justify-between"><span>Payment token</span><Badge variant="outline">{state.profile.paymentStatus.replace("_", " ")}</Badge></div>
               <div className="flex items-center justify-between"><span>Address defaults</span><Badge variant="outline">{state.profile.addressStatus}</Badge></div>
               <div className="flex items-center justify-between"><span>Push permission</span><Badge variant="outline">{notificationPermission}</Badge></div>
               <div className="flex items-center justify-between"><span>People tracked</span><Badge variant="outline">{state.recipients.length}</Badge></div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Button onClick={markPaymentReady} variant="outline"><CreditCard className="h-4 w-4" /> Simulate Stripe setup</Button>
-              <Button onClick={resetDemo} variant="ghost"><RotateCcw className="h-4 w-4" /> Reset demo</Button>
-            </div>
             <p className="rounded-2xl bg-givit-sand p-3 text-xs leading-5 text-muted-foreground">
-              Production note: collect cards with Stripe Elements/SetupIntents. Store only Stripe IDs in Supabase; raw card data never touches the app database.
+              Config: survey lead {CONCIERGE_AUTOMATION_CONFIG.surveyLeadDays} days, approval lead {CONCIERGE_AUTOMATION_CONFIG.approvalLeadDays} days, checkout route {CONCIERGE_AUTOMATION_CONFIG.providers.externalCheckout}.
             </p>
           </CardContent>
         </Card>
@@ -243,21 +346,27 @@ export function ConciergeDashboard() {
       <section className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><CalendarPlus className="h-5 w-5 text-givit-ember" /> Add a person/date</CardTitle>
+            <CardTitle className="flex items-center gap-2"><CalendarPlus className="h-5 w-5 text-givit-ember" /> Add date, person, card, and address</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={addRecipient} className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="name">Name</Label><Input id="name" name="name" placeholder="Avery" /></div>
-                <div className="space-y-2"><Label htmlFor="relationship">Relationship</Label><Input id="relationship" name="relationship" placeholder="Sister, friend, client" /></div>
-                <div className="space-y-2"><Label htmlFor="occasion">Occasion</Label><Input id="occasion" name="occasion" placeholder="Birthday" /></div>
-                <div className="space-y-2"><Label htmlFor="occasionDate">Date</Label><Input id="occasionDate" name="occasionDate" type="date" /></div>
-                <div className="space-y-2"><Label htmlFor="budget">Budget</Label><Input id="budget" name="budget" placeholder="$75" /></div>
-                <div className="space-y-2"><Label htmlFor="addressLabel">Address / delivery</Label><Input id="addressLabel" name="addressLabel" placeholder="Home, email, office" /></div>
+                <div className="space-y-2"><Label htmlFor="name">Person&apos;s name</Label><Input id="name" name="name" required /></div>
+                <div className="space-y-2"><Label htmlFor="relationship">Relationship</Label><Input id="relationship" name="relationship" required /></div>
+                <div className="space-y-2"><Label htmlFor="occasion">Occasion</Label><Input id="occasion" name="occasion" required /></div>
+                <div className="space-y-2"><Label htmlFor="occasionDate">Date</Label><Input id="occasionDate" name="occasionDate" type="date" required /></div>
+                <div className="space-y-2"><Label htmlFor="budget">Budget</Label><Input id="budget" name="budget" inputMode="decimal" required /></div>
+                <div className="space-y-2"><Label htmlFor="deliveryPreference">Delivery preference</Label><select id="deliveryPreference" name="deliveryPreference" className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="ship">Ship</option><option value="email">Email/digital</option><option value="either">Either</option></select></div>
+                <div className="space-y-2 sm:col-span-2"><Label htmlFor="addressLine1">Street address</Label><Input id="addressLine1" name="addressLine1" required /></div>
+                <div className="space-y-2 sm:col-span-2"><Label htmlFor="addressLine2">Apartment, suite, or delivery note</Label><Input id="addressLine2" name="addressLine2" /></div>
+                <div className="space-y-2"><Label htmlFor="city">City</Label><Input id="city" name="city" required /></div>
+                <div className="space-y-2"><Label htmlFor="state">State</Label><Input id="state" name="state" required /></div>
+                <div className="space-y-2"><Label htmlFor="postalCode">ZIP / postal code</Label><Input id="postalCode" name="postalCode" required /></div>
+                <div className="space-y-2"><Label htmlFor="country">Country</Label><Input id="country" name="country" defaultValue="US" required /></div>
               </div>
-              <div className="space-y-2"><Label htmlFor="interests">Interests</Label><Textarea id="interests" name="interests" placeholder="coffee, travel, baseball, handmade home goods" /></div>
-              <div className="space-y-2"><Label htmlFor="avoid">Avoid</Label><Input id="avoid" name="avoid" placeholder="clutter, sizes, fragile items" /></div>
-              <Button type="submit" className="w-full bg-givit-ember text-white hover:bg-givit-ember-hover"><Send className="h-4 w-4" /> Save and generate approval</Button>
+              <div className="space-y-2"><Label htmlFor="interests">Known interests</Label><Textarea id="interests" name="interests" required /></div>
+              <div className="space-y-2"><Label htmlFor="avoid">Avoid</Label><Input id="avoid" name="avoid" /></div>
+              <Button type="submit" className="w-full bg-givit-ember text-white hover:bg-givit-ember-hover"><Send className="h-4 w-4" /> Save and schedule five-week survey</Button>
             </form>
           </CardContent>
         </Card>
@@ -275,15 +384,20 @@ export function ConciergeDashboard() {
                         <h3 className="font-semibold">{recipient.name}</h3>
                         <p className="text-sm text-muted-foreground">{recipient.relationship} · {recipient.occasion}</p>
                       </div>
-                      <Badge className={days <= 21 ? "bg-givit-ember text-white" : ""}>{days} days</Badge>
+                      <Badge className={days <= 35 ? "bg-givit-ember text-white" : ""}>{days} days</Badge>
                     </div>
                     <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><DeliveryIcon className="h-4 w-4 text-givit-ember" /> {recipient.addressLabel}</div>
-                    <p className="mt-3 text-xs leading-5 text-muted-foreground"><strong>Likes:</strong> {recipient.interests}</p>
-                    {recipient.avoid ? <p className="mt-1 text-xs leading-5 text-muted-foreground"><strong>Avoid:</strong> {recipient.avoid}</p> : null}
+                    <p className="mt-3 text-xs leading-5 text-muted-foreground"><strong>Survey:</strong> {recipient.surveyStatus} · scheduled {formatConciergeDate(getSurveyDate(recipient.occasionDate))}</p>
+                    <div className="mt-3 space-y-2">
+                      <Label htmlFor={`survey-${recipient.id}`}>Givit survey answers</Label>
+                      <Textarea id={`survey-${recipient.id}`} value={surveyAnswersByRecipient[recipient.id] ?? ""} onChange={(event) => setSurveyAnswersByRecipient((current) => ({ ...current, [recipient.id]: event.target.value }))} />
+                      <Button type="button" onClick={() => submitSurvey(recipient)} variant="outline" className="w-full"><PlayCircle className="h-4 w-4" /> Generate gift box</Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
             })}
+            {state.recipients.length === 0 ? <p className="rounded-2xl border border-dashed border-givit-ember/30 bg-givit-sand/40 p-4 text-sm text-muted-foreground">No saved people yet. Add a real recipient above to schedule the five-week Givit survey.</p> : null}
           </div>
         </div>
       </section>
@@ -325,8 +439,12 @@ export function ConciergeDashboard() {
                     <div className="rounded-2xl bg-muted/50 p-4">
                       <p className="text-xs font-bold uppercase tracking-wide text-givit-ember">Card message</p>
                       <p className="mt-2 text-sm leading-6">“{approval.message}”</p>
+                      <p className="mt-4 text-xs font-bold uppercase tracking-wide text-givit-ember">Fulfillment after approval</p>
+                      <ul className="mt-2 space-y-1 text-xs leading-5 text-muted-foreground">
+                        {approval.fulfillmentTasks.map((task) => <li key={task}>• {task}</li>)}
+                      </ul>
                       <div className="mt-4 grid gap-2 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
-                        <Button onClick={() => updateApproval(approval.id, "approved")} className="bg-emerald-600 text-white hover:bg-emerald-700"><Check className="h-4 w-4" /> Approve</Button>
+                        <Button onClick={() => updateApproval(approval.id, "approved")} disabled={!state.profile.automationEnabled || state.profile.paymentStatus !== "ready"} className="bg-emerald-600 text-white hover:bg-emerald-700"><Check className="h-4 w-4" /> Approve</Button>
                         <Button onClick={() => updateApproval(approval.id, "regenerating")} variant="outline"><X className="h-4 w-4" /> Regenerate</Button>
                       </div>
                     </div>
@@ -335,6 +453,7 @@ export function ConciergeDashboard() {
               </Card>
             );
           })}
+          {state.approvals.length === 0 ? <p className="rounded-2xl border border-dashed border-givit-ember/30 bg-givit-sand/40 p-4 text-sm text-muted-foreground">Approval boxes appear after the Givit survey is completed from a notification.</p> : null}
         </div>
 
         <div className="space-y-4">
@@ -345,12 +464,13 @@ export function ConciergeDashboard() {
                 const recipient = state.recipients.find((item) => item.id === notification.recipientId);
                 return (
                   <div key={notification.id} className="rounded-2xl border p-3">
-                    <div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold">{notification.title}</p><Badge variant="outline">{notification.channel}</Badge></div>
+                    <div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold">{notification.title}</p><Badge variant="outline">{notification.kind}</Badge></div>
                     <p className="mt-1 text-xs text-muted-foreground">{recipient?.name ?? "Recipient"} · {formatConciergeDate(notification.scheduledFor)} · {notification.status}</p>
                     <p className="mt-2 text-xs leading-5 text-muted-foreground">{notification.body}</p>
                   </div>
                 );
               })}
+              {state.notifications.length === 0 ? <p className="text-sm text-muted-foreground">No notifications scheduled yet.</p> : null}
             </CardContent>
           </Card>
           <Card>

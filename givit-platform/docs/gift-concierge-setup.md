@@ -5,10 +5,14 @@ This document describes the first-round automated gifting system: user onboardin
 ## What shipped in this round
 
 - `/concierge` interactive setup dashboard for the full autopilot flow.
+- First-visit login prompt points users to `/login?next=/concierge` before notification setup.
 - Browser push-style notification permission request plus an in-app notification schedule.
-- Recipient/date setup form with budget, interests, avoid-list, address/delivery preference, and instant approval bundle generation.
-- Approval queue with complete bundles: main gift, handwritten card, flowers/add-ons, shipping, or digital experience/tickets.
+- Recipient/date setup form with required real names, dates, budget, delivery address, interests, avoid-list, and delivery preference; the empty default state contains no example people or demo bundles.
+- Service on/off confirmation before automation can approve fulfillment.
+- Givit survey notifications are scheduled 35 days (five weeks) before each occasion.
+- Survey answers generate approval bundles: main gift, handwritten card, flowers/add-ons, shipping, or digital experience/tickets.
 - Regenerate and approve states so the user remains in control before Givit charges or orders anything.
+- Provider configuration in `.env.local.example` for survey lead time, approval lead time, shipping buffer, Shippo, florist provider, admin order queue, and external checkout agent gating.
 - Supabase migration for persistent recipients, occasions, notifications, approvals, approval items, and fulfillment tasks.
 - Account and site navigation entry points.
 
@@ -40,7 +44,7 @@ supabase/migrations/20260608000000_gift_concierge_automation.sql
 npm run dev
 ```
 
-6. Open `http://localhost:3000/concierge`.
+6. Open `http://localhost:3000/concierge`. The root layout also shows a first-visit login prompt that links to `/login?next=/concierge`.
 
 ## Production integration plan
 
@@ -64,9 +68,22 @@ npm run dev
 - Store per-recipient delivery details in `gift_recipients`.
 - Use `delivery_preference` to decide between physical shipping, digital delivery, or either.
 
-### 4. Notification system
+### 4. Concierge automation configuration
 
-- Schedule records in `gift_notifications` when an occasion is created or updated.
+Set these environment variables before enabling production automation:
+
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_GIFT_SURVEY_LEAD_DAYS` | Defaults to `35`, scheduling the Givit survey five weeks before the occasion. |
+| `NEXT_PUBLIC_GIFT_APPROVAL_LEAD_DAYS` | Defaults to `10`, controlling the final approval reminder before the gift deadline. |
+| `NEXT_PUBLIC_GIFT_SHIPPING_BUFFER_DAYS` | Defaults to `5`, setting the target delivery buffer before the date. |
+| `NEXT_PUBLIC_ENABLE_EXTERNAL_CHECKOUT_AGENT` | Enables an approved browser-agent checkout route only when provider credentials, retailer allow-listing, and legal review are complete. |
+| `GIFT_EXTERNAL_CHECKOUT_ALLOWLIST` | Server-side allow-list for sites the external checkout worker may use. |
+| `GIFT_ADMIN_ORDER_QUEUE_EMAIL` | Admin queue destination for card, flower, or outside-site purchases that cannot be safely automated. |
+
+### 5. Notification system
+
+- Schedule records in `gift_notifications` when an occasion is created or updated. The first notification is the Givit survey, scheduled exactly five weeks (`35` days by default) before the occasion date.
 - A cron worker should query `gift_notifications` where `status = 'scheduled'` and `scheduled_for <= now()`.
 - Send via the selected channel:
   - `push`: Web Push or native wrapper provider.
@@ -75,7 +92,7 @@ npm run dev
   - `in_app`: show the notification in the account/concierge UI.
 - Deep link notification taps to `/concierge` or a future `/concierge/approvals/[id]` route.
 
-### 5. AI bundle generation
+### 6. AI bundle generation
 
 - Use existing `/api/gift-recommend` output as the main product ranking source.
 - Add bundle orchestration that expands a recommendation into:
@@ -86,7 +103,7 @@ npm run dev
   - shipping and delivery buffer.
 - Persist the proposed bundle in `gift_approvals` and `gift_approval_items` with `status = 'needs_approval'`.
 
-### 6. Approval and regeneration
+### 7. Approval and regeneration
 
 - The user can approve, regenerate, skip, or cancel.
 - Approval should:
@@ -96,7 +113,7 @@ npm run dev
   4. Create `gift_fulfillment_tasks`.
 - Regeneration should keep the occasion/recipient context and record the user’s rejection reason.
 
-### 7. Fulfillment tasks
+### 8. Fulfillment tasks
 
 Use `gift_fulfillment_tasks.task_type` to fan out work:
 
@@ -109,7 +126,7 @@ Use `gift_fulfillment_tasks.task_type` to fan out work:
 | `ticket_transfer` | Email/mobile ticket delivery. |
 | `shipment` | Shippo label/rate/tracking workflow. |
 
-### 8. Homemade seller support
+### 9. Homemade seller support
 
 - Seller-created products remain normal marketplace products.
 - AI should consider seller handling time, inventory, and shipping buffer before recommending handmade goods.
