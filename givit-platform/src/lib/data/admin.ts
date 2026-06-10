@@ -97,3 +97,51 @@ export const getAdminOrderDetail = cache(async (orderId: string) => {
     items: items as OrderItem[],
   };
 });
+
+export type AdminGiftApprovalRow = {
+  id: string;
+  status: string;
+  headline: string;
+  card_message: string | null;
+  total_cents: number;
+  estimated_delivery_date: string | null;
+  approved_at: string | null;
+  recipient: {
+    name: string;
+    ship_to_name: string | null;
+    ship_to_line1: string | null;
+    ship_to_line2: string | null;
+    ship_to_city: string | null;
+    ship_to_state: string | null;
+    ship_to_zip: string | null;
+    ship_to_country: string;
+  } | null;
+  gift_approval_items: {
+    id: string;
+    item_type: string;
+    title: string;
+    description: string | null;
+    external_url: string | null;
+    fulfillment_status: string;
+  }[];
+  gift_fulfillment_tasks: {
+    id: string;
+    task_type: string;
+    provider: string | null;
+    status: string;
+  }[];
+};
+
+export const getAdminGiftApprovals = cache(async () => {
+  const supabase = await createClient();
+  const { role } = await getViewerRole(supabase);
+  if (role !== "admin") return [];
+
+  const { data, error } = await supabase
+    .from("gift_approvals")
+    .select("id, status, headline, card_message, total_cents, estimated_delivery_date, approved_at, recipient:gift_recipients(name, ship_to_name, ship_to_line1, ship_to_line2, ship_to_city, ship_to_state, ship_to_zip, ship_to_country), gift_approval_items(id, item_type, title, description, external_url, fulfillment_status), gift_fulfillment_tasks(id, task_type, provider, status)")
+    .in("status", ["paid_pending_fulfillment", "ordered", "shipped", "delivered"])
+    .order("approved_at", { ascending: false });
+  if (error) throw error;
+  return data as unknown as AdminGiftApprovalRow[];
+});

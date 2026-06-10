@@ -55,3 +55,22 @@ export async function updateOrderStatusAction(orderId: string, status: OrderStat
   revalidatePath("/orders");
   revalidatePath(`/orders/${orderId}`);
 }
+
+export async function updateGiftFulfillmentStatusAction(approvalId: string, status: string) {
+  const { supabase, role } = await requireStaff();
+  if (role !== "admin") throw new Error("Only admins can update concierge fulfillment.");
+  const allowed = ["paid_pending_fulfillment", "ordered", "shipped", "delivered"];
+  if (!allowed.includes(status)) throw new Error("Invalid concierge fulfillment status");
+
+  const { error } = await supabase
+    .from("gift_approvals")
+    .update({ status })
+    .eq("id", approvalId);
+  if (error) throw error;
+
+  const taskStatus = status === "delivered" ? "complete" : status === "paid_pending_fulfillment" ? "queued" : "running";
+  await supabase.from("gift_fulfillment_tasks").update({ status: taskStatus, completed_at: status === "delivered" ? new Date().toISOString() : null }).eq("approval_id", approvalId);
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/concierge");
+}

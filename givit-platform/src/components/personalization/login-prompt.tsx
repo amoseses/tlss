@@ -57,7 +57,7 @@ export function LoginPrompt() {
           }}
           className="mt-3 w-full text-center text-xs font-semibold text-muted-foreground hover:text-givit-ember"
         >
-          Set up notifications as guest
+          Skip onboarding for now
         </button>
       </div>
     </div>
