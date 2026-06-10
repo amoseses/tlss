@@ -5,7 +5,7 @@ import { getSupabasePublishableEnv } from "@/lib/supabase/env";
 
 const authRoutes = ["/login", "/signup"];
 
-const protectedPrefixes = ["/account", "/orders"];
+const protectedPrefixes = ["/account", "/orders", "/concierge"];
 
 const adminPrefix = "/admin";
 const managerPrefix = "/manager";

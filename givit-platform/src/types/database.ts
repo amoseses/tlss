@@ -21,6 +21,10 @@ export type Profile = {
   ship_from_country: string;
   stripe_connect_account_id: string | null;
   stripe_connect_charges_enabled: boolean;
+  stripe_customer_id: string | null;
+  stripe_default_payment_method_id: string | null;
+  gift_automation_enabled: boolean;
+  concierge_onboarding_completed: boolean;
   created_at: string;
 };
 
@@ -181,7 +185,7 @@ export type GiftFeedback = {
 export type GiftDeliveryPreference = "ship" | "email" | "either";
 export type GiftNotificationChannel = "push" | "email" | "sms" | "in_app";
 export type GiftNotificationStatus = "scheduled" | "sent" | "approved" | "skipped" | "failed";
-export type GiftApprovalStatus = "draft" | "needs_approval" | "approved" | "regenerating" | "ordered" | "skipped" | "cancelled";
+export type GiftApprovalStatus = "draft" | "needs_approval" | "approved" | "paid_pending_fulfillment" | "ordered" | "shipped" | "delivered" | "regenerating" | "skipped" | "cancelled" | "payment_failed";
 export type GiftApprovalItemType = "gift" | "card" | "flowers" | "experience" | "shipping" | "service";
 export type GiftFulfillmentTaskType = "seller_order" | "affiliate_checkout" | "card_writer" | "florist" | "ticket_transfer" | "shipment";
 export type GiftFulfillmentStatus = "queued" | "running" | "blocked" | "complete" | "failed";
@@ -205,6 +209,7 @@ export type GiftRecipient = {
   ship_to_zip: string | null;
   ship_to_country: string;
   delivery_preference: GiftDeliveryPreference;
+  automation_enabled: boolean;
   created_at: string;
   updated_at: string;
 };

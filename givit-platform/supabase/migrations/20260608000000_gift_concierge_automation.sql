@@ -14,7 +14,9 @@ alter table public.profiles
   add column if not exists default_ship_to_zip text,
   add column if not exists default_ship_to_country text default 'US',
   add column if not exists gift_automation_enabled boolean not null default false,
-  add column if not exists gift_approval_lead_days integer not null default 10;
+  add column if not exists gift_approval_lead_days integer not null default 10,
+  add column if not exists concierge_onboarding_completed boolean not null default false,
+  add column if not exists stripe_default_payment_method_id text;
 
 create table if not exists public.gift_recipients (
   id uuid primary key default gen_random_uuid(),
@@ -35,6 +37,7 @@ create table if not exists public.gift_recipients (
   ship_to_zip text,
   ship_to_country text not null default 'US',
   delivery_preference text not null default 'ship' check (delivery_preference in ('ship', 'email', 'either')),
+  automation_enabled boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -74,7 +77,7 @@ create table if not exists public.gift_approvals (
   recipient_id uuid not null references public.gift_recipients(id) on delete cascade,
   occasion_id uuid references public.gift_occasions(id) on delete set null,
   recommendation_id uuid references public.gift_recommendations(id) on delete set null,
-  status text not null default 'draft' check (status in ('draft', 'needs_approval', 'approved', 'regenerating', 'ordered', 'skipped', 'cancelled')),
+  status text not null default 'draft' check (status in ('draft', 'needs_approval', 'approved', 'paid_pending_fulfillment', 'ordered', 'shipped', 'delivered', 'regenerating', 'skipped', 'cancelled', 'payment_failed')),
   headline text not null,
   rationale text,
   card_message text,
@@ -186,6 +189,43 @@ begin
           and approvals.user_id = auth.uid()
       )
     );
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create policy "gift recipients admin access" on public.gift_recipients
+    for select using (exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin'));
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create policy "gift occasions admin access" on public.gift_occasions
+    for select using (exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin'));
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create policy "gift approvals admin access" on public.gift_approvals
+    for all using (exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin'))
+    with check (exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin'));
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create policy "gift approval items admin access" on public.gift_approval_items
+    for select using (exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin'));
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create policy "gift fulfillment tasks admin access" on public.gift_fulfillment_tasks
+    for all using (exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin'))
+    with check (exists (select 1 from public.profiles where profiles.id = auth.uid() and profiles.role = 'admin'));
 exception when duplicate_object then null;
 end $$;
 
