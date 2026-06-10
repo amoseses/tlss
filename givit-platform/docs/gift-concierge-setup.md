@@ -139,3 +139,27 @@ Use `gift_fulfillment_tasks.task_type` to fan out work:
 - Always preserve enough buffer for shipping and seller handling.
 - Always show a full itemized bundle total before approval.
 - Always support regeneration if the user dislikes a recommendation.
+
+## Admin + Supabase checklist for this build
+
+1. **Run all migrations** in `supabase/migrations`, especially:
+   - `20260608000000_gift_concierge_automation.sql`
+   - `20260610000000_gift_concierge_upgrade.sql`
+2. **Create your admin account** in the app, then set your profile role in Supabase SQL editor:
+
+```sql
+update public.profiles
+set role = 'admin'
+where email = 'YOUR_ADMIN_EMAIL@example.com';
+```
+
+3. **Product admin** lives at `/admin/products`. Admins can see all products, create products, edit listings, publish/draft, and upload product images to the `product-images` storage bucket.
+4. **Gift fulfillment admin** lives at `/admin/orders`. Approved concierge gifts appear after Stripe charges the saved card and the app creates `gift_fulfillment_tasks`.
+5. **Storage bucket**: create a public bucket named `product-images` if it does not already exist. Product images uploaded in admin are stored there.
+6. **Stripe env vars** required for card setup and approval charging:
+   - `STRIPE_SECRET_KEY`
+   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+   - `STRIPE_WEBHOOK_SECRET` if using webhooks
+7. **Cron notification endpoint**: call `POST /api/cron/gift-notifications` on a schedule. If `CRON_SECRET` is set, send `Authorization: Bearer <CRON_SECRET>`.
+8. **Concierge timing**: leave `NEXT_PUBLIC_GIFT_SURVEY_LEAD_DAYS=35` for five weeks, or set `42` for six weeks.
+9. **Optional providers**: set `NEXT_PUBLIC_SHIPPO_ENABLED=true`, `NEXT_PUBLIC_FLORIST_PROVIDER_ENABLED=true`, or `NEXT_PUBLIC_ENABLE_EXTERNAL_CHECKOUT_AGENT=true` only after those provider credentials and allow-lists are ready. Otherwise the admin queue handles fulfillment manually.

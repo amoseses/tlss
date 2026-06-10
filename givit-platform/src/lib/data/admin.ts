@@ -26,13 +26,18 @@ async function getViewerRole(supabase: Awaited<ReturnType<typeof createClient>>)
 
 export const getAdminProducts = cache(async () => {
   const supabase = await createClient();
-  const { user } = await getViewerRole(supabase);
+  const { user, role } = await getViewerRole(supabase);
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("products")
     .select(productSelect)
-    .eq("seller_id", user.id)
     .order("updated_at", { ascending: false });
+
+  if (role !== "admin") {
+    query = query.eq("seller_id", user.id);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data as (Product & {
     category: Category | null;
@@ -42,14 +47,18 @@ export const getAdminProducts = cache(async () => {
 
 export const getAdminProduct = cache(async (id: string) => {
   const supabase = await createClient();
-  const { user } = await getViewerRole(supabase);
+  const { user, role } = await getViewerRole(supabase);
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("products")
     .select(productSelect)
-    .eq("id", id)
-    .eq("seller_id", user.id)
-    .single();
+    .eq("id", id);
+
+  if (role !== "admin") {
+    query = query.eq("seller_id", user.id);
+  }
+
+  const { data, error } = await query.single();
   if (error) throw error;
   return data as Product & {
     category: Category | null;

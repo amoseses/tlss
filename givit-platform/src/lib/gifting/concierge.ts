@@ -126,16 +126,16 @@ export const CONCIERGE_AUTOMATION_CONFIG: ConciergeAutomationConfig = {
 export const CONCIERGE_STEPS = [
   { title: "Onboard dates and recipients", description: "Save recipients, addresses, occasions, and automation preferences in Supabase under the signed-in user's account.", status: "ready", icon: HeartHandshake },
   { title: "Tokenize payment", description: "Stripe Elements creates a SetupIntent so Givit stores only customer/payment-method IDs.", status: "ready", icon: CreditCard },
-  { title: "Schedule five-week surveys", description: "Each active occasion receives an in-app survey notification exactly 35 days before the next occurrence.", status: "ready", icon: Bell },
+  { title: "Schedule five-week surveys", description: "Each active occasion gets a gift questionnaire 5–6 weeks before the date.", status: "ready", icon: Bell },
   { title: "Generate AI gift box", description: "The survey expands catalog recommendations into a structured bundle with product, card, flowers/add-ons, shipping, and fee lines.", status: "ready", icon: Sparkles },
   { title: "Approve and fulfill", description: "Approval charges the saved Stripe method, marks the order Paid - Pending Fulfillment, and queues admin fulfillment tasks.", status: "ready", icon: PackageCheck },
 ];
 
 export const AUTOMATION_RULES = [
-  "Users can skip onboarding, but the profile dashboard keeps concierge setup editable.",
-  "A global profile toggle and per-recipient toggle must both be on before automation sends due survey prompts.",
-  "The Givit survey notification is scheduled exactly five weeks before the occasion date.",
-  "Givit never stores raw card data and never charges until Approve and Order is clicked.",
+  "Users can skip onboarding and edit setup later.",
+  "Global and recipient toggles must both be on before prompts send.",
+  "The Givit questionnaire is scheduled 5–6 weeks before the occasion date.",
+  "Givit never stores raw card data and charges only after approval.",
   "All reads and writes are scoped by user_id and protected by Supabase RLS policies.",
 ];
 
