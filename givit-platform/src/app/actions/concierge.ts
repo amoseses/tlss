@@ -142,7 +142,7 @@ export async function generateGiftApprovalAction(formData: FormData) {
     occasionDate: occasion.occasion_date,
     interests: recipient.interests ?? [],
     avoidTerms: recipient.avoid_terms ?? [],
-    budgetCents: recipient.default_budget_cents,
+    budgetCents: parseBudgetCents(formData.get("budget") || String(recipient.default_budget_cents / 100)),
     style: String(formData.get("style") ?? ""),
     surveyAnswers: String(formData.get("survey_answers") ?? ""),
     deliveryPreference: recipient.delivery_preference,
@@ -204,6 +204,34 @@ export async function generateGiftApprovalAction(formData: FormData) {
     })));
     if (error) throw error;
   }
+}
+
+export async function removeGiftApprovalItemAction(approvalId: string, itemId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Sign in required.");
+
+  const { data: approval, error: approvalError } = await supabase
+    .from("gift_approvals")
+    .select("id, status, gift_approval_items(id, price_cents)")
+    .eq("id", approvalId)
+    .eq("user_id", user.id)
+    .single();
+  if (approvalError || !approval) throw approvalError ?? new Error("Approval not found.");
+  if (approval.status !== "needs_approval") throw new Error("Only pending approvals can be edited.");
+
+  const items = (approval.gift_approval_items ?? []) as Array<{ id: string; price_cents: number }>;
+  if (items.length <= 1) throw new Error("A gift box needs at least one item.");
+  if (!items.some((item) => item.id === itemId)) throw new Error("Item not found.");
+
+  const { error: deleteError } = await supabase.from("gift_approval_items").delete().eq("id", itemId).eq("approval_id", approvalId);
+  if (deleteError) throw deleteError;
+
+  const totalCents = items.filter((item) => item.id !== itemId).reduce((total, item) => total + item.price_cents, 0);
+  const { error: updateError } = await supabase.from("gift_approvals").update({ total_cents: totalCents }).eq("id", approvalId).eq("user_id", user.id);
+  if (updateError) throw updateError;
+
+  revalidatePath("/concierge");
 }
 
 export async function approveGiftApprovalAction(approvalId: string) {

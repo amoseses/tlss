@@ -23,7 +23,7 @@ export default async function AdminProductsPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
-          <p className="text-muted-foreground text-sm">All SKUs including drafts.</p>
+          <p className="text-muted-foreground text-sm">All marketplace products and drafts. Admins can add, edit, publish, and manage images here.</p>
         </div>
         <Button asChild>
           <Link href="/admin/products/new">Add product</Link>

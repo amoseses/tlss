@@ -41,9 +41,17 @@ export default function GivitAiPage() {
     setLoading(false);
   }
 
+  function removeItem(indexToRemove: number) {
+    setBox((current) => {
+      if (!current || current.items.length <= 1) return current;
+      const items = current.items.filter((_, index) => index !== indexToRemove);
+      return { ...current, items, total_cents: items.reduce((total, item) => total + item.price_cents, 0) };
+    });
+  }
+
   return (
     <PageShell>
-      <PageHeader title="GivIt AI" description="A free standalone survey that uses the same recommendation engine as concierge automation, without saved payment, auto-purchasing, or admin fulfillment." />
+      <PageHeader title="GivIt AI" description="Fast gift ideas from the same catalog the concierge uses." />
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-givit-ember" /> Quick gift survey</CardTitle></CardHeader>
@@ -58,7 +66,7 @@ export default function GivitAiPage() {
               <TextArea label="Interests" name="interests" placeholder="coffee, travel, gardening" />
               <TextArea label="Avoid" name="avoidTerms" placeholder="alcohol, wool, duplicate gifts" />
               <Field label="Style" name="style" placeholder="cozy, luxury, practical, funny" />
-              <TextArea label="Anything else?" name="surveyAnswers" placeholder="Tell GivIt about hobbies, colors, sizes, constraints, or the story behind the occasion." />
+              <TextArea label="Anything else?" name="surveyAnswers" placeholder="Hobbies, sizes, colors, constraints." />
               <input type="hidden" value={regenerationNote} name="regenerationNote" />
               <Button disabled={loading} className="w-fit bg-givit-ember text-white hover:bg-givit-ember-hover">{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}Get recommendation</Button>
             </form>
@@ -68,13 +76,13 @@ export default function GivitAiPage() {
         <Card>
           <CardHeader><CardTitle>Recommended gift box</CardTitle></CardHeader>
           <CardContent>
-            {!box ? <p className="text-sm text-muted-foreground">Complete the survey to generate a structured gift box.</p> : (
+            {!box ? <p className="text-sm text-muted-foreground">Answer a few things to build a gift box.</p> : (
               <div className="space-y-4">
                 <div><h2 className="font-serif text-2xl font-bold">{box.headline}</h2><p className="mt-2 text-sm text-muted-foreground">{box.rationale}</p></div>
                 <div className="rounded-2xl bg-muted/50 p-4 text-sm">Card text: “{box.card_message}”</div>
-                <div className="space-y-2">{box.items.map((item, index) => <div key={`${item.title}-${index}`} className="flex justify-between gap-3 rounded-2xl border p-3 text-sm"><div><p className="font-medium">{item.title}</p><p className="text-muted-foreground">{item.description}</p>{item.external_url ? <a href={item.external_url} target="_blank" className="text-primary hover:underline">Source URL</a> : null}</div><span className="font-medium tabular-nums">{formatCents(item.price_cents)}</span></div>)}</div>
+                <div className="space-y-2">{box.items.map((item, index) => <div key={`${item.title}-${index}`} className="flex justify-between gap-3 rounded-2xl border p-3 text-sm"><div><p className="font-medium">{item.title}</p><p className="text-muted-foreground">{item.description}</p>{item.external_url ? <a href={item.external_url} target="_blank" className="text-primary hover:underline">Source URL</a> : null}{box.items.length > 1 ? <button type="button" className="mt-1 block text-xs text-destructive hover:underline" onClick={() => removeItem(index)}>Remove item</button> : null}</div><span className="font-medium tabular-nums">{formatCents(item.price_cents)}</span></div>)}</div>
                 <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-lg font-bold">Total estimate: {formatCents(box.total_cents)}</p><Button variant="outline" onClick={() => { setRegenerationNote(`regen-${Date.now()}`); document.querySelector<HTMLButtonElement>('button[type="submit"]')?.click(); }}>Re-generate</Button></div>
-                <p className="text-xs text-muted-foreground">Want automated reminders, saved addresses, approval charging, and fulfillment tracking? <Link href="/signup?next=/concierge" className="text-primary hover:underline">Create a concierge account</Link>.</p>
+                <p className="text-xs text-muted-foreground">Want reminders, saved details, approval charging, and admin fulfillment? <Link href="/signup?next=/concierge" className="text-primary hover:underline">Create a concierge account</Link>.</p>
               </div>
             )}
           </CardContent>
