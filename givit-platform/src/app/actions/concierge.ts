@@ -50,10 +50,12 @@ export async function saveConciergeRecipientAction(formData: FormData) {
   const name = requireString(formData, "name");
   const occasion = requireString(formData, "occasion");
   const occasionDate = requireString(formData, "occasion_date");
-  const shipToLine1 = requireString(formData, "ship_to_line1");
-  const shipToCity = requireString(formData, "ship_to_city");
-  const shipToState = requireString(formData, "ship_to_state").toUpperCase();
-  const shipToZip = requireString(formData, "ship_to_zip");
+  const deliveryPreference = String(formData.get("delivery_preference") ?? "ship");
+  const requiresShipping = deliveryPreference === "ship";
+  const shipToLine1 = requiresShipping ? requireString(formData, "ship_to_line1") : String(formData.get("ship_to_line1") ?? "").trim();
+  const shipToCity = requiresShipping ? requireString(formData, "ship_to_city") : String(formData.get("ship_to_city") ?? "").trim();
+  const shipToState = (requiresShipping ? requireString(formData, "ship_to_state") : String(formData.get("ship_to_state") ?? "").trim()).toUpperCase();
+  const shipToZip = requiresShipping ? requireString(formData, "ship_to_zip") : String(formData.get("ship_to_zip") ?? "").trim();
 
   const { data: recipient, error: recipientError } = await supabase
     .from("gift_recipients")
@@ -68,13 +70,13 @@ export async function saveConciergeRecipientAction(formData: FormData) {
       avoid_terms: splitList(formData.get("avoid_terms")),
       notes: String(formData.get("notes") ?? "").trim() || null,
       ship_to_name: name,
-      ship_to_line1: shipToLine1,
+      ship_to_line1: shipToLine1 || null,
       ship_to_line2: String(formData.get("ship_to_line2") ?? "").trim() || null,
-      ship_to_city: shipToCity,
-      ship_to_state: shipToState,
-      ship_to_zip: shipToZip,
+      ship_to_city: shipToCity || null,
+      ship_to_state: shipToState || null,
+      ship_to_zip: shipToZip || null,
       ship_to_country: String(formData.get("ship_to_country") ?? "US").trim() || "US",
-      delivery_preference: String(formData.get("delivery_preference") ?? "ship"),
+      delivery_preference: deliveryPreference,
       automation_enabled: formData.get("recipient_automation_enabled") === "on",
     })
     .select("id")

@@ -102,27 +102,33 @@ function ConciergeRecipientFields({ compact = false }: { compact?: boolean }) {
   return (
     <form action={saveConciergeRecipientAction} className="grid gap-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Name" name="name" required />
+        <Field label="Person" name="name" required />
         <Field label="Important date" name="occasion_date" type="date" required />
         <input type="hidden" name="relationship" value="recipient" />
         <input type="hidden" name="occasion" value="Important date" />
         <input type="hidden" name="budget" value="75" />
-        <input type="hidden" name="delivery_preference" value="ship" />
+        <input type="hidden" name="delivery_preference" value={compact ? "either" : "ship"} />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Street" name="ship_to_line1" required />
-        <Field label="Apt" name="ship_to_line2" />
-        <Field label="City" name="ship_to_city" required />
-        <Field label="State" name="ship_to_state" placeholder="CA" required />
-        <Field label="ZIP" name="ship_to_zip" required />
-        <Field label="Country" name="ship_to_country" defaultValue="US" required />
-      </div>
-      {!compact ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextAreaField label="Interests" name="interests" placeholder="coffee, gardening, travel" />
-          <TextAreaField label="Avoid" name="avoid_terms" placeholder="alcohol, wool, duplicates" />
-        </div>
-      ) : null}
+      {compact ? (
+        <p className="rounded-2xl border border-givit-ember/20 bg-givit-ember/5 p-3 text-sm text-muted-foreground">
+          Address, card, interests, and gift notes come later. This page only saves the person and date.
+        </p>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Street" name="ship_to_line1" required />
+            <Field label="Apt" name="ship_to_line2" />
+            <Field label="City" name="ship_to_city" required />
+            <Field label="State" name="ship_to_state" placeholder="CA" required />
+            <Field label="ZIP" name="ship_to_zip" required />
+            <Field label="Country" name="ship_to_country" defaultValue="US" required />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextAreaField label="Interests" name="interests" placeholder="coffee, gardening, travel" />
+            <TextAreaField label="Avoid" name="avoid_terms" placeholder="alcohol, wool, duplicates" />
+          </div>
+        </>
+      )}
       <label className="flex items-center gap-3 text-sm"><input type="checkbox" name="recipient_automation_enabled" defaultChecked className="h-4 w-4 accent-givit-ember" /> Concierge on for this person</label>
       <Button className="w-fit bg-givit-ember text-white hover:bg-givit-ember-hover">Save</Button>
     </form>
@@ -166,8 +172,8 @@ function ConciergeSetupWizard({ onClose, enabled, paymentReady, stripePublishabl
           ) : null}
           {step === 1 ? (
             <div className="space-y-5">
-              <h3 className="font-serif text-2xl font-bold">Who and when?</h3>
-              <p className="text-sm text-muted-foreground">Just name the person and date now. You can add interests during the 5–6 week gift questionnaire.</p>
+              <h3 className="font-serif text-2xl font-bold">Important dates and people</h3>
+              <p className="text-sm text-muted-foreground">Add only the person and date here. No address, payment, or extra details on this page.</p>
               <ConciergeRecipientFields compact />
             </div>
           ) : null}
@@ -176,7 +182,7 @@ function ConciergeSetupWizard({ onClose, enabled, paymentReady, stripePublishabl
               <div>
                 <h3 className="font-serif text-2xl font-bold">Shipping details</h3>
                 <p className="mt-2 text-sm text-muted-foreground">Shipping saves on the recipient record. Add another person if needed.</p>
-                <div className="mt-4"><ConciergeRecipientFields compact /></div>
+                <div className="mt-4"><ConciergeRecipientFields /></div>
               </div>
               <PaymentCard stripePublishableKey={stripePublishableKey} paymentReady={paymentReady} />
             </div>

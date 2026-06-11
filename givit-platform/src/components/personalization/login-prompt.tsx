@@ -43,7 +43,7 @@ export function LoginPrompt() {
           </button>
         </div>
         <p className="mt-4 text-sm leading-6 text-muted-foreground">
-          Log in first so Givit can save your notification setup, dates, delivery addresses, payment token, survey reminders, and approval queue on your account.
+          Log in so Givit can save your people, dates, reminders, and approval queue on your account.
         </p>
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
           <Button asChild className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover"><Link href="/login?next=/concierge">Log in</Link></Button>

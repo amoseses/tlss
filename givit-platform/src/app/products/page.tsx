@@ -27,7 +27,7 @@ const OCCASIONS = [
 ];
 
 type Props = {
-  searchParams: Promise<{ category?: string; q?: string; sort?: string; occasion?: string }>;
+  searchParams: Promise<{ category?: string; q?: string; sort?: string; occasion?: string; min?: string; max?: string }>;
 };
 
 export default async function ProductsPage({ searchParams }: Props) {
@@ -35,11 +35,17 @@ export default async function ProductsPage({ searchParams }: Props) {
   const categorySlug = sp.category?.trim() || undefined;
   const q = sp.q?.trim() || undefined;
   const occasion = sp.occasion?.trim().toLowerCase() || undefined;
+  const minPrice = Number.parseFloat(sp.min ?? "");
+  const maxPrice = Number.parseFloat(sp.max ?? "");
+  const minCents = Number.isFinite(minPrice) && minPrice > 0 ? Math.round(minPrice * 100) : undefined;
+  const maxCents = Number.isFinite(maxPrice) && maxPrice > 0 ? Math.round(maxPrice * 100) : undefined;
 
   const categories = MARKETPLACE_CATEGORIES;
   const list = getMarketplaceProducts({ categorySlug, q }).filter((product) => {
-    if (!occasion) return true;
-    return product.occasions.some((item) => item.toLowerCase().includes(occasion));
+    if (occasion && !product.occasions.some((item) => item.toLowerCase().includes(occasion))) return false;
+    if (minCents && product.price_cents < minCents) return false;
+    if (maxCents && product.price_cents > maxCents) return false;
+    return true;
   });
 
   if (sp.sort === "price_asc") list.sort((a, b) => a.price_cents - b.price_cents);
@@ -66,17 +72,17 @@ export default async function ProductsPage({ searchParams }: Props) {
         ) : null}
       </Breadcrumbs>
 
-      <section className="mb-6 overflow-hidden rounded-3xl bg-givit-ink p-6 text-white md:p-8">
+      <section className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-givit-ember via-rose-500 to-amber-400 p-6 text-white shadow-xl md:p-8">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
           <div>
             <Badge className="mb-4 rounded-full bg-givit-ember/20 text-givit-coral">
-              <Trophy className="mr-1 h-3.5 w-3.5" /> Admin-ranked free marketplace
+              <Trophy className="mr-1 h-3.5 w-3.5" /> Gift-first marketplace
             </Badge>
             <h1 className="font-serif text-3xl font-bold md:text-5xl">
-              Browse the best gifts without brand deals steering the list.
+              Find brighter, better gifts fast.
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-white/70 md:text-base">
-              Givit works like a discovery marketplace: search products, categories, interests, and occasions; save ideas to a wishlist; then click through to the original retailer when you are ready to buy. No cart or shipping flow needed here.
+              Search by recipient, occasion, budget, or category. Save favorites and jump to the retailer when you are ready.
             </p>
             <form action="/products" className="mt-6 flex max-w-2xl overflow-hidden rounded-full bg-white text-givit-ink shadow-xl">
               <input
@@ -129,18 +135,31 @@ export default async function ProductsPage({ searchParams }: Props) {
             </div>
 
             <div>
-              <h2 className="text-sm font-bold text-givit-ink">SEO occasion pages</h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {OCCASIONS.map((item) => (
-                  <Link
-                    key={item}
-                    href={`/products?occasion=${encodeURIComponent(item.toLowerCase())}`}
-                    className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:border-givit-ember hover:text-givit-ember"
-                  >
-                    {item}
-                  </Link>
-                ))}
-              </div>
+              <h2 className="text-sm font-bold text-givit-ink">Product filters</h2>
+              <form method="get" className="mt-3 space-y-3">
+                {q ? <input type="hidden" name="q" value={q} /> : null}
+                <div className="grid gap-1.5">
+                  <label className="text-xs font-bold text-givit-ink" htmlFor="side-occasion">Occasion</label>
+                  <select id="side-occasion" name="occasion" defaultValue={occasion ?? ""} className="border-input bg-background h-10 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <option value="">Any occasion</option>
+                    {OCCASIONS.map((item) => <option key={item} value={item.toLowerCase()}>{item}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="grid gap-1.5">
+                    <label className="text-xs font-bold text-givit-ink" htmlFor="side-min">Min $</label>
+                    <input id="side-min" name="min" inputMode="decimal" defaultValue={sp.min ?? ""} className="border-input bg-background h-10 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <label className="text-xs font-bold text-givit-ink" htmlFor="side-max">Max $</label>
+                    <input id="side-max" name="max" inputMode="decimal" defaultValue={sp.max ?? ""} className="border-input bg-background h-10 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                  </div>
+                </div>
+                <input type="hidden" name="category" value={categorySlug ?? ""} />
+                <input type="hidden" name="sort" value={sp.sort ?? "ranked"} />
+                <Button type="submit" className="w-full rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">Apply filters</Button>
+                <Link href="/products" className="block text-center text-xs font-semibold text-givit-ember hover:underline">Clear all filters</Link>
+              </form>
             </div>
           </div>
         </aside>
@@ -153,6 +172,8 @@ export default async function ProductsPage({ searchParams }: Props) {
             <form method="get" className="flex flex-col gap-3 sm:flex-row sm:items-end">
               {q ? <input type="hidden" name="q" value={q} /> : null}
               {occasion ? <input type="hidden" name="occasion" value={occasion} /> : null}
+              {sp.min ? <input type="hidden" name="min" value={sp.min} /> : null}
+              {sp.max ? <input type="hidden" name="max" value={sp.max} /> : null}
               <div className="grid gap-1.5 sm:w-48">
                 <label className="text-xs font-bold text-givit-ink" htmlFor="category">
                   Category
@@ -188,6 +209,7 @@ export default async function ProductsPage({ searchParams }: Props) {
               <span className="font-semibold text-givit-ink">{list.length} ranked gift ideas</span>
               {q ? <span className="text-muted-foreground"> for &ldquo;{q}&rdquo;</span> : null}
               {occasion ? <span className="text-muted-foreground"> for {occasion}</span> : null}
+              {minCents || maxCents ? <span className="text-muted-foreground"> within budget</span> : null}
             </p>
             <Link href="/gift" className="inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
               <Sparkles className="h-4 w-4" /> Ask Givit AI

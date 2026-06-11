@@ -59,7 +59,7 @@
   --font-sans: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", Georgia, ui-serif, serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --background: #fdfaf7;
+  --background: #fff8fb;
   --foreground: #1a1208;
   --card: #ffffff;
   --card-foreground: #1a1208;
@@ -70,26 +70,26 @@
   --primary: #e85d26;
   --primary-foreground: #ffffff;
 
-  --secondary: #fef3ec;
+  --secondary: #fff0f6;
   --secondary-foreground: #7c3010;
-  --muted: #f5ede4;
+  --muted: #fff1df;
   --muted-foreground: #8a7060;
-  --accent: #fde8d4;
+  --accent: #ffe8a3;
   --accent-foreground: #6d2d0e;
 
   --destructive: #dc2626;
-  --border: #e8d8c8;
-  --input: #e8d8c8;
+  --border: #f4d6c5;
+  --input: #f4d6c5;
   --ring: #e85d26;
 
   /* GIVIT brand palette */
   --givit-ink: #1a1208;
-  --givit-ember: #e85d26;
-  --givit-ember-hover: #c94d1a;
-  --givit-coral: #f5967c;
-  --givit-sand: #f0e4d4;
-  --givit-mist: #fdf8f3;
-  --givit-page: #fdfaf7;
+  --givit-ember: #ff5a3d;
+  --givit-ember-hover: #e84426;
+  --givit-coral: #ffb000;
+  --givit-sand: #fff0c7;
+  --givit-mist: #fff8fb;
+  --givit-page: #fff8fb;
 
   --chart-1: #e85d26;
   --chart-2: #f5967c;

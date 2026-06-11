@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 type ImportResult = Awaited<ReturnType<typeof importProductsFromSheetAction>>;
 
-export function AdminProductSheetImporter() {
+export function AdminProductSheetImporter({ compact = false }: { compact?: boolean }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -39,12 +39,12 @@ export function AdminProductSheetImporter() {
   }
 
   return (
-    <section className="rounded-lg border bg-card p-5 shadow-sm">
+    <section id="import-products" className="rounded-2xl border bg-card p-5 shadow-sm">
       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Bulk import from Google Sheets</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Sheet upload</h2>
           <p className="text-muted-foreground mt-1 max-w-3xl text-sm">
-            Paste a shared Google Sheet URL or CSV. Include columns such as <code>product_link</code>, <code>image_link</code>, <code>name</code>, <code>price</code>, <code>category</code>, and tag columns. Givit will scrape missing title, description, price, and image metadata from each product link.
+            Upload a shared Google Sheet or paste CSV rows. Admins can import product links, images, prices, categories, and gift tags in bulk.
           </p>
         </div>
       </div>
@@ -63,15 +63,17 @@ export function AdminProductSheetImporter() {
           </p>
         </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="csv_text">Or paste CSV rows</Label>
-          <Textarea
-            id="csv_text"
-            name="csv_text"
-            rows={5}
-            placeholder={'product_link,image_link,name,price,category,gift_tags\nhttps://example.com/item,https://example.com/item.jpg,Gift Item,49.99,kitchen,"coffee, hosting"'}
-          />
-        </div>
+        {!compact ? (
+          <div className="grid gap-2">
+            <Label htmlFor="csv_text">Or paste CSV rows</Label>
+            <Textarea
+              id="csv_text"
+              name="csv_text"
+              rows={5}
+              placeholder={'product_link,image_link,name,price,category,gift_tags\nhttps://example.com/item,https://example.com/item.jpg,Gift Item,49.99,kitchen,"coffee, hosting"'}
+            />
+          </div>
+        ) : null}
 
         <div className="flex items-center gap-2">
           <Checkbox id="default_published" name="default_published" />
