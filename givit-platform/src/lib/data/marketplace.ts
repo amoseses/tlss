@@ -315,6 +315,17 @@ const ALL_SEED_PRODUCTS = [...CORE_PRODUCTS, ...expandIdeas(), ...expandExtraGif
 
 const categoryBySlug = new Map(MARKETPLACE_CATEGORIES.map((category) => [category.slug, category]));
 
+const usedMarketplaceImages = new Set<string>();
+
+function marketplaceImageFor(seed: SeedProduct) {
+  if (!usedMarketplaceImages.has(seed.image)) {
+    usedMarketplaceImages.add(seed.image);
+    return seed.image;
+  }
+
+  return `https://picsum.photos/seed/givit-${seed.slug}/1100/900`;
+}
+
 export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = ALL_SEED_PRODUCTS.map((seed, index) => {
   const category = categoryBySlug.get(seed.category) ?? null;
   const now = new Date(Date.UTC(2026, 5, 1, 12, 0, 0) - index * 86400000).toISOString();
@@ -355,7 +366,7 @@ export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = ALL_SEED_PRODUCTS.map(
       {
         id: `${id}-image-1`,
         product_id: id,
-        storage_path: seed.image,
+        storage_path: marketplaceImageFor(seed),
         sort_order: 0,
       },
     ],

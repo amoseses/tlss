@@ -20,25 +20,25 @@ export default function HomePage() {
 
   return (
     <div className="pb-12">
-      <section className="relative overflow-hidden bg-givit-ink">
-        <div className="pointer-events-none absolute -top-32 right-0 h-[600px] w-[600px] rounded-full bg-givit-ember/10 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-givit-coral/10 blur-3xl" />
+      <section className="relative overflow-hidden bg-gradient-to-br from-givit-ember via-rose-500 to-amber-400">
+        <div className="pointer-events-none absolute -top-32 right-0 h-[600px] w-[600px] rounded-full bg-white/20 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-amber-200/30 blur-3xl" />
 
         <div className="container relative grid gap-10 py-16 md:py-24 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center lg:py-28">
           <div className="max-w-4xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-givit-coral/30 bg-givit-ember/10 px-3 py-1.5 text-xs font-semibold text-givit-coral">
               <Sparkles className="h-3 w-3" />
-              Gift autopilot
+Gift reminders
             </div>
 
             <h1 className="font-serif text-4xl font-bold leading-tight text-white md:text-6xl lg:text-7xl">
-              Never miss the gift.
+Gift better.
               <br />
               <span className="italic text-givit-coral">Approve. Done.</span>
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-7 text-white/65 md:text-lg">
-              Add people and dates. Givit finds the gift 5–6 weeks out, texts the plan, and waits for your approval.
+Add the people and dates. Givit helps you pick bright, thoughtful gifts before the day sneaks up.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -55,9 +55,9 @@ export default function HomePage() {
             </div>
 
             <div className="mt-8 grid gap-3 text-xs text-white/55 sm:grid-cols-3">
-              <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-givit-coral" /> Approve every charge</div>
-              <div className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-givit-coral" /> Stripe-safe card</div>
-              <div className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-givit-coral" /> Cards, flowers, tickets</div>
+              <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-givit-coral" /> You approve</div>
+              <div className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-givit-coral" /> Saved card ready</div>
+              <div className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-givit-coral" /> Gifts, cards, moments</div>
             </div>
           </div>
 
