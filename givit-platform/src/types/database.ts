@@ -48,6 +48,10 @@ export type Product = {
   is_published: boolean;
   category_id: string | null;
   seller_id: string | null;
+  gift_tags?: string[];
+  occasion_tags?: string[];
+  relationship_tags?: string[];
+  affiliate_url?: string | null;
   created_at: string;
   updated_at: string;
 };

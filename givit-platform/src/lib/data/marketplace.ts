@@ -219,56 +219,97 @@ function priceRange(price: number) {
 function expandIdeas() {
   let rank = CORE_PRODUCTS.length + 1;
   return Object.entries(GENERATED_IDEAS).flatMap(([category, ideas]) =>
-    ideas.flatMap((idea, ideaIndex) => {
+    ideas.map((idea, ideaIndex) => {
       const categoryImages = IMAGE_POOLS[category] ?? IMAGE_POOLS.home;
-      const base: SeedProduct = {
+      const productRank = rank++;
+      return {
         ...idea,
         slug: idea.slug,
         category,
         priceRange: priceRange(idea.price),
         image: img(categoryImages[ideaIndex % categoryImages.length]!),
-        rank: rank++,
+        rank: productRank,
         score: 87 - (ideaIndex % 6),
-        occasions: [OCCASION_ROTATION[(ideaIndex + rank) % OCCASION_ROTATION.length]!, OCCASION_ROTATION[(ideaIndex + rank + 3) % OCCASION_ROTATION.length]!],
-        recipients: [RECIPIENT_ROTATION[(ideaIndex + rank) % RECIPIENT_ROTATION.length]!, RECIPIENT_ROTATION[(ideaIndex + rank + 4) % RECIPIENT_ROTATION.length]!],
-        salePrice: (rank + ideaIndex) % 4 === 0 ? Math.round(idea.price * 0.88) : undefined,
-        dealBadge: (rank + ideaIndex) % 4 === 0 ? "Good deal" : undefined,
-      };
-
-      const variants = [
-        { suffix: "", label: "", multiplier: 1, scoreOffset: 0, badge: base.badge, summary: base.summary, why: base.why },
-        { suffix: "gift-set", label: " Gift Set", multiplier: 1.18, scoreOffset: -3, badge: "Bundle", summary: `${base.summary} Bundled with a small matching extra so it arrives gift-ready.`, why: `${base.why} The set version is stronger when the moment needs more presence.` },
-        { suffix: "premium-upgrade", label: " Premium Upgrade", multiplier: 1.45, scoreOffset: -5, badge: "Upgrade", summary: `${base.summary} Upgraded tier for milestone budgets and bigger occasions.`, why: `${base.why} This lets Givit scale the recommendation up without duplicating persona listings.` },
-        { suffix: "starter-kit", label: " Starter Kit", multiplier: 0.82, scoreOffset: -4, badge: "Starter", summary: `${base.summary} A leaner version for lower budgets or newer interests.`, why: `${base.why} The starter version keeps the idea accessible.` },
-        { suffix: "weekend-kit", label: " Weekend Kit", multiplier: 1.28, scoreOffset: -6, badge: "Weekend", summary: `${base.summary} Paired for a weekend plan, trip, or date-night handoff.`, why: `${base.why} Better when the questionnaire hints at experiences.` },
-        { suffix: "subscription-pairing", label: " Subscription Pairing", multiplier: 1.35, scoreOffset: -7, badge: "Recurring", summary: `${base.summary} Matched with a subscription or replenishment angle where it fits.`, why: `${base.why} Useful for recipients who prefer gifts that keep going.` },
-        { suffix: "travel-ready", label: " Travel-Ready Kit", multiplier: 1.12, scoreOffset: -4, badge: "Travel", summary: `${base.summary} Tuned for packing, commuting, and away-from-home use.`, why: `${base.why} Great when travel or commuting appears in the survey.` },
-        { suffix: "host-ready", label: " Host-Ready Set", multiplier: 1.22, scoreOffset: -5, badge: "Host", summary: `${base.summary} Presented as a polished host, housewarming, or thank-you gift.`, why: `${base.why} The host version feels finished without guessing personal sizing.` },
-        { suffix: "last-minute", label: " Last-Minute Option", multiplier: 0.92, scoreOffset: -8, badge: "Fast", summary: `${base.summary} Optimized for simpler sourcing when the date is close.`, why: `${base.why} Keeps the idea viable when shipping time is tight.` },
-        { suffix: "admin-sourced", label: " Admin-Sourced Build", multiplier: 1.3, scoreOffset: -6, badge: "Concierge", summary: `${base.summary} Admin can source the closest available version and add card or flowers.`, why: `${base.why} Best for concierge orders that need human sourcing.` },
-      ];
-
-      const microIdeas = variants.map((variant) => {
-        const price = Math.round(base.price * variant.multiplier);
-        return {
-          ...base,
-          slug: variant.suffix ? `${base.slug}-${variant.suffix}` : base.slug,
-          name: `${base.name}${variant.label}`,
-          price,
-          priceRange: priceRange(price),
-          rank: rank++,
-          score: Math.max(70, (base.score ?? 84) + variant.scoreOffset),
-          summary: variant.summary,
-          why: variant.why,
-          badge: variant.badge,
-        };
-      });
-      return microIdeas;
+        occasions: [OCCASION_ROTATION[(ideaIndex + productRank) % OCCASION_ROTATION.length]!, OCCASION_ROTATION[(ideaIndex + productRank + 3) % OCCASION_ROTATION.length]!],
+        recipients: [RECIPIENT_ROTATION[(ideaIndex + productRank) % RECIPIENT_ROTATION.length]!, RECIPIENT_ROTATION[(ideaIndex + productRank + 4) % RECIPIENT_ROTATION.length]!],
+        salePrice: (productRank + ideaIndex) % 4 === 0 ? Math.round(idea.price * 0.88) : undefined,
+        dealBadge: (productRank + ideaIndex) % 4 === 0 ? "Good deal" : undefined,
+      } satisfies SeedProduct;
     }),
   );
 }
 
-const ALL_SEED_PRODUCTS = [...CORE_PRODUCTS, ...expandIdeas()]
+type ExtraGiftTemplate = {
+  category: string;
+  products: string[];
+  brands: string[];
+  interests: string[];
+  summary: string;
+  why: string;
+  badge: string;
+  basePrice: number;
+};
+
+const EXTRA_GIFT_TEMPLATES: ExtraGiftTemplate[] = [
+  { category: "tech", products: ["Foldable Travel Keyboard", "USB-C Docking Station", "Smart Plug Starter Pack", "Portable Photo Printer", "Laptop Privacy Screen", "MagSafe Charging Stand", "Noise-Reducing Sleep Buds", "E-Ink Digital Notebook", "Bluetooth Record Player", "Desk Cable Management Kit", "Smart Bird Feeder Camera", "Portable Wi-Fi Hotspot", "Mini Video Projector", "Rechargeable Hand Warmer", "Solar Power Bank", "Smart Luggage Scale"], brands: ["Logitech", "Anker", "Belkin", "HP", "Twelve South", "Mophie", "Bose", "reMarkable", "Audio-Technica", "Orbitkey", "Bird Buddy", "GlocalMe", "Nebula", "Ocoopa", "Goal Zero", "Etekcity"], interests: ["tech", "travel", "desk setup", "organization"], summary: "Useful tech accessory selected for everyday problem solving rather than novelty.", why: "It is specific enough to feel thoughtful while staying broadly practical.", badge: "Smart utility", basePrice: 6400 },
+  { category: "gaming", products: ["Switch Carrying Case", "Mechanical Gaming Keyboard", "Wireless Gaming Headset", "Controller Charging Dock", "RGB Monitor Light Bar", "Streaming Capture Card", "Gaming Mouse Pad XL", "Retro Handheld Console", "VR Face Interface Kit", "Console Storage Expansion", "Arcade Fight Stick", "Game-Themed Desk Lamp", "Co-op Board Game", "Premium Dice Vault", "Miniature Paint Starter", "Tabletop Terrain Set"], brands: ["Tomtoc", "Keychron", "SteelSeries", "PowerA", "BenQ", "Elgato", "Razer", "Analogue", "KIWI design", "Seagate", "HORI", "Paladone", "Cephalofair", "Wyrmwood", "Army Painter", "Dwarven Forge"], interests: ["gaming", "setup", "play", "friends"], summary: "Gaming gift that improves play sessions, setup comfort, or game-night rituals.", why: "It avoids guessing a specific title and instead upgrades how they play.", badge: "Play upgrade", basePrice: 7200 },
+  { category: "home", products: ["Linen Sheet Set", "Weighted Knit Blanket", "Ceramic Table Lamp", "Wool Dryer Ball Set", "Entryway Catchall Tray", "Smart Air Purifier", "Organic Cotton Bath Towel Set", "Modular Shoe Rack", "Essential Oil Candle Trio", "Bedside Water Carafe", "Framed Photo Print Credit", "Compact Tool Kit", "Cordless Hand Vacuum", "Decorative Bookends", "Window Herb Planter", "Velvet Storage Ottoman"], brands: ["Quince", "Bearaby", "Schoolhouse", "Grove", "Yamazaki", "Coway", "Boll & Branch", "Open Spaces", "P.F. Candle Co.", "Hawkins New York", "Artifact Uprising", "iFixit", "Shark", "Umbra", "Modern Sprout", "Article"], interests: ["home", "cozy", "organization", "design"], summary: "Home upgrade that makes daily routines feel calmer, tidier, or more personal.", why: "It feels elevated while still being easy to place in most homes.", badge: "Home win", basePrice: 8800 },
+  { category: "kitchen", products: ["Carbon Steel Fry Pan", "Ceramic Mixing Bowl Set", "Digital Meat Thermometer", "Pour-Over Coffee Scale", "Magnetic Knife Strip", "Handmade Pasta Tool", "Insulated Picnic Basket", "Fermentation Jar Kit", "Reusable Silicone Bags", "Countertop Compost Bin", "Bamboo Steamer Set", "Japanese Mandoline Slicer", "Cocktail Smoking Kit", "Marble Salt Cellar", "Microplane Zester", "Ice Cream Maker Bowl"], brands: ["Made In", "Mason Cash", "ThermoWorks", "Hario", "Material", "Marcato", "Business & Pleasure", "Kilner", "Stasher", "Bamboozle", "Joyce Chen", "Benriner", "Aged & Charred", "Fox Run", "Microplane", "KitchenAid"], interests: ["cooking", "kitchen", "hosting", "food"], summary: "Kitchen tool that supports real cooking, hosting, or cafe-at-home habits.", why: "It is more useful than a novelty gadget and easy to pair with pantry extras.", badge: "Kitchen helper", basePrice: 5800 },
+  { category: "books", products: ["Personal Library Embosser", "Reading Journal", "Book Nook Shelf Insert", "Rechargeable Book Light", "Literary Tote Bag", "Signed Cookbook Credit", "Poetry Anthology", "Independent Magazine Bundle", "Book Club Box", "Classic Paperback Set", "Library Card Socks", "Adjustable Reading Pillow", "Page Anchor Set", "Audiobook Sleep Headband", "Bookstore Crawl Gift Card", "Rare Bookmark Collection"], brands: ["Paper Source", "Papier", "Robotime", "Glocusent", "Out of Print", "Now Serving", "Everyman's Library", "Stack", "Once Upon a Book Club", "Penguin Classics", "Library of Congress", "Nestl", "TILISMA", "Perytong", "Givit Experiences", "Etsy"], interests: ["reading", "books", "cozy", "learning"], summary: "Reader-friendly gift that supports the ritual around books, not just another random title.", why: "Great when you know they love reading but do not know their exact shelf.", badge: "Reader pick", basePrice: 4200 },
+  { category: "writing", products: ["Brass Rollerball Pen", "Desk Notepad System", "Archive Ink Bottle", "Leather Pen Sleeve", "Daily Planner", "Calligraphy Starter Set", "Pocket Fountain Pen", "Brass Pencil", "Writer's Block Timer", "Manuscript Editing Pencils", "Index Card Organizer", "Wax Seal Kit", "Stationery Wardrobe", "Portable Lap Desk", "Zine Making Kit", "Typewriter Ribbon Set"], brands: ["Traveler's Company", "Rhodia", "Platinum", "Galen Leather", "Hobonichi", "Tombow", "Kaweco", "Midori", "Time Timer", "Blackwing", "Levenger", "Artisaire", "Crane", "LapGear", "Riso Club", "Baco"], interests: ["writing", "journaling", "desk setup", "creative"], summary: "Writing accessory chosen for people who enjoy notes, letters, drafts, or planning.", why: "It makes an everyday creative habit feel more intentional.", badge: "Writer gear", basePrice: 3600 },
+  { category: "beauty", products: ["Ceramic Hair Dryer", "Gua Sha Tool Set", "Travel Skincare Organizer", "Mineral Bath Soak", "Luxury Lip Balm Trio", "Scalp Massage Brush", "Reusable Makeup Remover Pads", "LED Vanity Mirror", "Clean Fragrance Sampler", "Cuticle Care Kit", "Silk Sleep Mask", "Body Oil Set", "Facial Steamer", "Makeup Brush Roll", "Shower Steamers", "Hand Cream Wardrobe"], brands: ["T3", "Mount Lai", "Cadence", "Osea", "Fresh", "Briogeo", "MakeUp Eraser", "Simplehuman", "Ellis Brooklyn", "Olive & June", "Lunya", "Nécessaire", "Conair", "Sonia Kashuk", "Cleverfy", "L'Occitane"], interests: ["beauty", "self care", "wellness", "travel"], summary: "Self-care item with a polished feel and low-risk daily usefulness.", why: "It avoids overly personal shade matching while still feeling luxurious.", badge: "Self-care", basePrice: 5400 },
+  { category: "outdoor", products: ["Packable Camp Chair", "Insulated Trail Mug", "National Parks Pass", "Merino Hiking Socks", "Compact Hammock", "Waterproof Dry Bag", "Headlamp", "Campfire Popcorn Popper", "Birding Binoculars", "Trail First Aid Kit", "Portable Camp Table", "Reusable Picnic Blanket", "Navigation Compass", "Rain Shell Poncho", "Camp Lantern", "Travel Fly Rod Starter"], brands: ["Helinox", "YETI", "America the Beautiful", "Darn Tough", "ENO", "Sea to Summit", "Black Diamond", "Rome", "Nocs", "Adventure Medical Kits", "REI Co-op", "Rumpl", "Suunto", "Frogg Toggs", "BioLite", "Orvis"], interests: ["outdoor", "travel", "camping", "adventure"], summary: "Outdoor gift that makes day trips, camping, or park time easier to enjoy.", why: "Durable gear feels thoughtful for people who like getting outside.", badge: "Trail ready", basePrice: 6900 },
+  { category: "fitness", products: ["Adjustable Jump Rope", "Yoga Block Set", "Running Belt", "Grip Strength Trainer", "Foam Roller", "Pilates Ring", "Smart Body Tape Measure", "Sweat-Wicking Gym Towel", "Resistance Band Kit", "Recovery Sandals", "Cycling Phone Mount", "Pickleball Paddle Set", "Balance Board", "Cold Therapy Roller", "Training Log Book", "Hydration Vest"], brands: ["Crossrope", "Manduka", "FlipBelt", "Captains of Crush", "TriggerPoint", "Balanced Body", "Renpho", "Nomadix", "Fit Simplify", "OOFOS", "Quad Lock", "Selkirk", "Revbalance", "Recoup", "Believe Training", "Nathan"], interests: ["fitness", "wellness", "training", "recovery"], summary: "Fitness item focused on recovery, consistency, or making workouts more convenient.", why: "It supports their routine without assuming exact apparel sizing.", badge: "Active pick", basePrice: 4700 },
+  { category: "pets", products: ["Personalized Pet Portrait", "Puzzle Treat Toy", "Washable Pet Blanket", "Slow Feeder Bowl", "Window Cat Perch", "Dog Travel Water Bottle", "Pet Hair Detailer", "GPS Pet Tracker", "Snuffle Mat", "Modern Scratching Post", "Pet First Aid Kit", "Custom Collar Tag", "Hands-Free Dog Leash", "Cat Tunnel", "Calming Pet Bed", "Pet Birthday Box"], brands: ["West & Willow", "Outward Hound", "Molly Mutt", "SodaPup", "K&H", "MalsiPree", "Lilly Brush", "Fi", "AWOOF", "Mau", "Kurgo", "The Foggy Dog", "Tuff Mutt", "PAWZ Road", "Best Friends by Sheri", "PupBox"], interests: ["pets", "dogs", "cats", "home"], summary: "Pet-parent gift that includes the animal in the celebration while staying useful.", why: "It feels personal because it acknowledges a beloved companion.", badge: "Pet joy", basePrice: 5200 },
+  { category: "art", products: ["Watercolor Travel Palette", "Sketchbook Bundle", "Embroidery Starter Kit", "Pottery Tool Set", "Screen Printing Kit", "Analog Photography Film Pack", "Mini Easel Set", "Alcohol Marker Set", "Linocut Block Kit", "Jewelry Making Pliers", "Mosaic Coaster Kit", "Cyanotype Paper Set", "Digital Brush Pack", "Canvas Panel Pack", "Origami Paper Library", "Creative Class Credit"], brands: ["Winsor & Newton", "Stillman & Birn", "DMC", "Xiem", "Speedball", "Kodak", "U.S. Art Supply", "Ohuhu", "Essdee", "Beadsmith", "Mosaic Mercantile", "Jacquard", "True Grit", "Blick", "Tuttle", "Givit Experiences"], interests: ["art", "creative", "crafts", "learning"], summary: "Creative supply or class credit that invites hands-on making.", why: "It is easy to tailor to a hobby and still enjoyable for curious beginners.", badge: "Make it", basePrice: 4900 },
+  { category: "food", products: ["Hot Sauce Flight", "Small-Batch Jam Trio", "Premium Tinned Fish Box", "Artisan Pasta Sampler", "Japanese Snack Box", "Maple Syrup Set", "Craft Bitters Trio", "Olive Wood Honey Dipper Set", "Regional BBQ Sauce Pack", "Sourdough Starter Kit", "Fancy Nut Butter Duo", "Gourmet Popcorn Tin", "Vegan Cookie Box", "Zero-Proof Cocktail Set", "Chili Crisp Trio", "Birthday Cake Delivery"], brands: ["Heatonist", "Sqirl", "Fishwife", "Sfoglini", "Bokksu", "Runamok", "Fee Brothers", "Bee Seasonal", "Fly By Jing", "King Arthur", "Big Spoon", "Garrett", "Partake", "Ghia", "MìLà", "Milk Bar"], interests: ["food", "hosting", "snacks", "cooking"], summary: "Consumable gift with enough personality to feel more special than a grocery run.", why: "Food gifts are low clutter and easy to share with partners or family.", badge: "Tasteful", basePrice: 5600 },
+  { category: "experiences", products: ["Rooftop Cinema Tickets", "Cooking Class Credit", "Escape Room Night", "Spa Day Credit", "Dance Lesson Voucher", "Guided Hike", "Wine Tasting Pass", "Comedy Club Tickets", "Aquarium Membership", "Kayak Rental Day", "Flower Arranging Workshop", "Glassblowing Class", "Tea Ceremony Booking", "Photography Walk", "Indoor Climbing Pass", "Local Food Tour"], brands: ["Givit Experiences", "Cozymeal", "The Escape Game", "Admin sourced", "Arthur Murray", "REI Experiences", "Local vineyard", "Admin sourced", "Admin sourced", "Admin sourced", "Admin sourced", "Admin sourced", "Admin sourced", "Givit Experiences", "Admin sourced", "Givit Experiences"], interests: ["experience", "date night", "local", "memories"], summary: "Experience gift that creates a plan instead of adding another object to the shelf.", why: "Admin can source the best local version around city, date, and budget.", badge: "Memory maker", basePrice: 12000 },
+];
+
+function expandExtraGiftIdeas(): SeedProduct[] {
+  const maxExtraProducts = 200;
+  return EXTRA_GIFT_TEMPLATES.flatMap((template, templateIndex) => {
+    const categoryImages = IMAGE_POOLS[template.category] ?? IMAGE_POOLS.home;
+    return template.products.map((productName, productIndex) => {
+      const brand = template.brands[productIndex % template.brands.length]!;
+      const price = template.basePrice + ((productIndex % 8) - 3) * 1100 + templateIndex * 175;
+      const occasions = [OCCASION_ROTATION[(productIndex + templateIndex) % OCCASION_ROTATION.length]!, OCCASION_ROTATION[(productIndex + templateIndex + 5) % OCCASION_ROTATION.length]!];
+      const recipients = [RECIPIENT_ROTATION[(productIndex + templateIndex) % RECIPIENT_ROTATION.length]!, RECIPIENT_ROTATION[(productIndex + templateIndex + 3) % RECIPIENT_ROTATION.length]!];
+      const slug = `${slugSafe(brand)}-${slugSafe(productName)}`;
+
+      return {
+        slug,
+        name: `${brand} ${productName}`,
+        brand,
+        category: template.category,
+        price: Math.max(1800, price),
+        priceRange: priceRange(Math.max(1800, price)),
+        retailer: brand,
+        affiliateUrl: `https://www.givit.local/curated/${template.category}/${slug}`,
+        image: img(categoryImages[(productIndex + templateIndex) % categoryImages.length]!),
+        interests: Array.from(new Set([...template.interests, template.category, ...productName.toLowerCase().split(/\s+/).slice(0, 2)])),
+        occasions,
+        recipients,
+        summary: `${template.summary} Featured item: ${productName}.`,
+        why: template.why,
+        badge: template.badge,
+        score: Math.max(72, 86 - ((productIndex + templateIndex) % 9)),
+        salePrice: (productIndex + templateIndex) % 9 === 0 ? Math.round(Math.max(1800, price) * 0.9) : undefined,
+        dealBadge: (productIndex + templateIndex) % 9 === 0 ? "Curated deal" : undefined,
+      } satisfies SeedProduct;
+    });
+  }).slice(0, maxExtraProducts);
+}
+
+function slugSafe(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const ALL_SEED_PRODUCTS = [...CORE_PRODUCTS, ...expandIdeas(), ...expandExtraGiftIdeas()]
   .filter((product, index, products) => products.findIndex((candidate) => candidate.slug === product.slug) === index)
   .map((product, index) => ({ ...product, rank: index + 1, score: product.score ?? Math.max(70, 96 - Math.floor(index / 8)) }));
 
