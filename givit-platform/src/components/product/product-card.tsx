@@ -5,7 +5,7 @@ import { ExternalLink } from "lucide-react";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import type { MarketplaceProduct } from "@/lib/data/marketplace";
 import { formatMoney } from "@/lib/format";
-import { isUnsplashUrl, resolveProductImageSrc } from "@/lib/product-photo";
+import { isRemoteImageUrl, resolveProductImageSrc } from "@/lib/product-photo";
 import type { Product, ProductImage } from "@/types/database";
 
 import { StarRating } from "./star-rating";
@@ -57,7 +57,7 @@ export function ProductCard({
                 ? "(max-width: 640px) 50vw, 25vw"
                 : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
             }
-            unoptimized={isUnsplashUrl(src)}
+            unoptimized={isRemoteImageUrl(src)}
           />
           <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
             <span className="line-clamp-1">{rankingLabel}</span>

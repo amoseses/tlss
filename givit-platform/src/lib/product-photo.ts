@@ -21,8 +21,8 @@ export function productPhotoFallback(seed: string) {
   return FALLBACK_PHOTOS[hash]!;
 }
 
-export function isUnsplashUrl(url: string) {
-  return url.includes("images.unsplash.com");
+export function isRemoteImageUrl(url: string) {
+  return /^https?:\/\//.test(url);
 }
 
 /** Same image source as product cards: uploaded photo or deterministic Unsplash fallback. */

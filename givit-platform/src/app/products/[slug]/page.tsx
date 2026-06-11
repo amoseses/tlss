@@ -18,7 +18,7 @@ import {
   getRelatedMarketplaceProducts,
 } from "@/lib/data/marketplace";
 import { formatMoney } from "@/lib/format";
-import { isUnsplashUrl, resolveProductImageSrc } from "@/lib/product-photo";
+import { isRemoteImageUrl, resolveProductImageSrc } from "@/lib/product-photo";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -74,7 +74,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 className="object-cover"
                 priority
                 sizes="(max-width: 1024px) 100vw, 55vw"
-                unoptimized={isUnsplashUrl(mainSrc)}
+                unoptimized={isRemoteImageUrl(mainSrc)}
               />
               <div className="absolute left-4 top-4 rounded-full bg-white/95 px-4 py-2 text-sm font-bold text-givit-ember shadow-sm">
                 #{product.rank} Givit ranked

@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AdminProductSheetImporter } from "@/app/admin/products/admin-product-sheet-importer";
 import { getAdminProducts } from "@/lib/data/admin";
 import { formatMoney } from "@/lib/format";
 import { publicStorageUrl } from "@/lib/storage";
@@ -29,6 +30,8 @@ export default async function AdminProductsPage() {
           <Link href="/admin/products/new">Add product</Link>
         </Button>
       </div>
+      <AdminProductSheetImporter />
+
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
