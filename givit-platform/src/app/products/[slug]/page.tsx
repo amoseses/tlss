@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ExternalLink, Share2, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 
 import { Breadcrumbs, PageShell } from "@/components/layout/page-shell";
+import { GiftReviews } from "@/components/product/gift-reviews";
 import { ProductGrid } from "@/components/product/product-grid";
 import { StarRating } from "@/components/product/star-rating";
 import { RecentlyViewedRail, RecentlyViewedTracker } from "@/components/personalization/recently-viewed";
@@ -126,6 +127,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   Givit&apos;s free marketplace does not sell inventory directly. Review count and score represent the curated signal Givit uses to rank items, combining customer sentiment, durability, usefulness, and gift fit.
                 </p>
               </div>
+              <GiftReviews productId={product.id} />
             </TabsContent>
           </Tabs>
 

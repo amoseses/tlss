@@ -51,7 +51,7 @@ export default function GivitAiPage() {
 
   return (
     <PageShell>
-      <PageHeader title="GivIt AI" description="Fast gift ideas from the same catalog the concierge uses." />
+      <PageHeader title="GivIt AI" description="Fast gift ideas from the same catalog AutoGift uses." />
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-givit-ember" /> Quick gift survey</CardTitle></CardHeader>
@@ -82,7 +82,7 @@ export default function GivitAiPage() {
                 <div className="rounded-2xl bg-muted/50 p-4 text-sm">Card text: “{box.card_message}”</div>
                 <div className="space-y-2">{box.items.map((item, index) => <div key={`${item.title}-${index}`} className="flex justify-between gap-3 rounded-2xl border p-3 text-sm"><div><p className="font-medium">{item.title}</p><p className="text-muted-foreground">{item.description}</p>{item.external_url ? <a href={item.external_url} target="_blank" className="text-primary hover:underline">Source URL</a> : null}{box.items.length > 1 ? <button type="button" className="mt-1 block text-xs text-destructive hover:underline" onClick={() => removeItem(index)}>Remove item</button> : null}</div><span className="font-medium tabular-nums">{formatCents(item.price_cents)}</span></div>)}</div>
                 <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-lg font-bold">Total estimate: {formatCents(box.total_cents)}</p><Button variant="outline" onClick={() => { setRegenerationNote(`regen-${Date.now()}`); document.querySelector<HTMLButtonElement>('button[type="submit"]')?.click(); }}>Re-generate</Button></div>
-                <p className="text-xs text-muted-foreground">Want reminders, saved details, approval charging, and admin fulfillment? <Link href="/signup?next=/concierge" className="text-primary hover:underline">Create a concierge account</Link>.</p>
+                <p className="text-xs text-muted-foreground">Want reminders, saved details, approval charging, and admin fulfillment? <Link href="/signup?next=/concierge" className="text-primary hover:underline">Create an AutoGift account</Link>.</p>
               </div>
             )}
           </CardContent>
