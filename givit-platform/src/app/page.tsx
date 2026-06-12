@@ -44,10 +44,10 @@ Add the people and dates. Givit helps you pick bright, thoughtful gifts before t
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild className="h-12 rounded-full bg-givit-ember px-6 text-sm font-semibold text-white hover:bg-givit-ember-hover">
                 <Link href="/concierge">
-                  <Bell className="h-4 w-4" /> Set up concierge <ArrowRight className="h-4 w-4" />
+                  <Bell className="h-4 w-4" /> Set up AutoGift <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-12 rounded-full border-white/20 bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10">
+              <Button asChild className="h-12 rounded-full bg-white px-6 text-sm font-semibold text-givit-ember shadow-md hover:bg-white/90">
                 <Link href="/gift">
                   <Wand2 className="h-4 w-4" /> Try AI
                 </Link>
@@ -61,8 +61,8 @@ Add the people and dates. Givit helps you pick bright, thoughtful gifts before t
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur">
-            <div className="rounded-[1.5rem] bg-white p-4 text-givit-ink">
+          <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur">
+            <div className="rounded-xl bg-white p-4 text-givit-ink">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Approval preview</p>
@@ -110,8 +110,8 @@ Add the people and dates. Givit helps you pick bright, thoughtful gifts before t
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Free marketplace</p>
-            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Cool gifts, cleaner picks</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">A much bigger catalog across products, experiences, food, tickets, and handmade-style add-ons.</p>
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Featured gifts</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Products, experiences, food, tickets, and handmade add-ons.</p>
           </div>
           <Link href="/products" className="givit-link text-sm font-medium">Browse all →</Link>
         </div>
@@ -128,14 +128,15 @@ Add the people and dates. Givit helps you pick bright, thoughtful gifts before t
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Gift boards</p>
-            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Gift boards that do not feel generic</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Browse, save, send.</p>
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Gift boards</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Collect ideas, add your own images, and share boards you love.</p>
           </div>
+          <Link href="/boards" className="givit-link text-sm font-medium">Open gift boards →</Link>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {GIFT_COLLECTIONS.map((collection) => (
-            <Link key={collection.slug} href={`/products?q=${encodeURIComponent(collection.query)}`} className="rounded-3xl border border-border/70 bg-white p-5 transition hover:-translate-y-1 hover:border-givit-ember/40 hover:shadow-md">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-givit-sand text-2xl">📌</div>
+            <Link key={collection.slug} href="/boards" className="rounded-2xl border border-border/70 bg-white p-5 transition hover:-translate-y-1 hover:border-givit-ember/40 hover:shadow-md">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-givit-sand text-2xl">📌</div>
               <h3 className="font-serif text-xl font-bold text-givit-ink">{collection.title}</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{collection.description}</p>
             </Link>
@@ -148,8 +149,8 @@ Add the people and dates. Givit helps you pick bright, thoughtful gifts before t
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-emerald-600">Deals engine</p>
-            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Good deals only</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Discounted picks that still make sense.</p>
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Today&apos;s deals</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Discounted picks worth gifting.</p>
           </div>
           <Link href="/products?sort=popular" className="givit-link text-sm font-medium">Shop ranked deals →</Link>
         </div>
@@ -193,10 +194,10 @@ Add the people and dates. Givit helps you pick bright, thoughtful gifts before t
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/65">Automated gifting</p>
             <h2 className="mb-2 font-serif text-2xl font-bold md:text-3xl">From reminder to ordered.</h2>
             <p className="mb-6 text-sm leading-6 text-white/75">
-              Concierge saves the details, builds the order, charges after approval, and routes it to admin fulfillment.
+              AutoGift saves the details, builds the order, charges after approval, and routes it to admin fulfillment.
             </p>
             <Button asChild className="rounded-full bg-white px-6 text-givit-ember hover:bg-white/90">
-              <Link href="/concierge"><Gift className="h-4 w-4" /> Open concierge</Link>
+              <Link href="/concierge"><Gift className="h-4 w-4" /> Open AutoGift</Link>
             </Button>
           </div>
         </div>

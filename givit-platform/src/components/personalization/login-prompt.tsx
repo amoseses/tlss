@@ -21,7 +21,7 @@ export function LoginPrompt() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 p-4 backdrop-blur-sm sm:items-center">
-      <div className="w-full max-w-md rounded-[2rem] border border-white/40 bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl border border-white/40 bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-givit-ember text-white"><Gift className="h-5 w-5" /></div>

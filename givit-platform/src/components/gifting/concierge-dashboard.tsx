@@ -3,10 +3,10 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { CardElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { Bell, CalendarPlus, CheckCircle2, CreditCard, Gift, Loader2, RefreshCw, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Bell, CalendarPlus, CheckCircle2, CreditCard, Gift, Loader2, Plus, RefreshCw, ShieldCheck, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { approveGiftApprovalAction, generateGiftApprovalAction, removeGiftApprovalItemAction, saveConciergeRecipientAction, updateConciergeProfileAction, updateRecipientAutomationAction } from "@/app/actions/concierge";
+import { approveGiftApprovalAction, generateGiftApprovalAction, removeGiftApprovalItemAction, saveConciergeRecipientAction, saveConciergeRecipientsAction, updateConciergeProfileAction, updateRecipientAutomationAction } from "@/app/actions/concierge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,9 +36,9 @@ export function ConciergeDashboard({ data }: { data: ConciergeDashboardData }) {
         />
       ) : null}
 
-      <div className="rounded-[2rem] border bg-givit-ink p-6 text-white shadow-sm">
-        <Badge className="bg-white text-givit-ink">Concierge</Badge>
-        <h1 className="mt-3 font-serif text-4xl font-bold">Gift autopilot, approval-only.</h1>
+      <div className="rounded-2xl border bg-givit-ink p-6 text-white shadow-sm">
+        <Badge className="bg-white text-givit-ink">AutoGift</Badge>
+        <h1 className="mt-3 font-serif text-4xl font-bold">Gifting on autopilot, approval-only.</h1>
         <p className="mt-2 max-w-2xl text-sm text-white/65">Add people and dates. Givit pings you 5–6 weeks out, builds the gift, and charges only when you approve.</p>
         <Button type="button" className="mt-5 rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={() => setShowOnboarding(true)}>Open setup wizard</Button>
       </div>
@@ -69,11 +69,11 @@ export function ConciergeDashboard({ data }: { data: ConciergeDashboardData }) {
 function AutomationCard({ enabled, paymentReady }: { enabled: boolean; paymentReady: boolean }) {
   return (
     <Card>
-      <CardHeader><CardTitle>Global concierge toggle</CardTitle></CardHeader>
+      <CardHeader><CardTitle>Global AutoGift toggle</CardTitle></CardHeader>
       <CardContent>
         <form action={updateConciergeProfileAction} className="space-y-4">
           <label className="flex items-center justify-between gap-4 rounded-2xl border p-4">
-            <span><span className="font-medium">Concierge Service</span><span className="block text-sm text-muted-foreground">Must be on, along with each recipient toggle, before cron sends survey prompts.</span></span>
+            <span><span className="font-medium">AutoGift service</span><span className="block text-sm text-muted-foreground">Must be on, along with each recipient toggle, before survey prompts send.</span></span>
             <input type="checkbox" name="gift_automation_enabled" defaultChecked={enabled} className="h-5 w-5 accent-givit-ember" />
           </label>
           <div className="flex flex-wrap gap-2 text-xs">
@@ -90,7 +90,7 @@ function AutomationCard({ enabled, paymentReady }: { enabled: boolean; paymentRe
 function RecipientForm() {
   return (
     <Card id="onboarding">
-      <CardHeader><CardTitle className="flex items-center gap-2"><CalendarPlus className="h-5 w-5 text-givit-ember" /> Add a recipient</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="flex items-center gap-2"><CalendarPlus className="h-5 w-5 text-givit-ember" /> Add people</CardTitle></CardHeader>
       <CardContent>
         <ConciergeRecipientFields />
       </CardContent>
@@ -98,7 +98,40 @@ function RecipientForm() {
   );
 }
 
+function MultiPersonFields() {
+  const [rows, setRows] = useState([0]);
+  const [nextId, setNextId] = useState(1);
+
+  return (
+    <form action={saveConciergeRecipientsAction} className="grid gap-4">
+      {rows.map((rowId, index) => (
+        <div key={rowId} className="grid items-end gap-3 sm:grid-cols-[1fr_1fr_auto]">
+          <Field label={index === 0 ? "Person" : `Person ${index + 1}`} name="person_name" required />
+          <Field label="Important date" name="person_date" type="date" required />
+          {rows.length > 1 ? (
+            <Button type="button" variant="ghost" size="icon" aria-label="Remove person" onClick={() => setRows((current) => current.filter((id) => id !== rowId))}>
+              <Trash2 className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          ) : (
+            <span />
+          )}
+        </div>
+      ))}
+      <Button type="button" variant="outline" className="w-fit" onClick={() => { setRows((current) => [...current, nextId]); setNextId((id) => id + 1); }}>
+        <Plus className="mr-1 h-4 w-4" /> Add another person
+      </Button>
+      <p className="rounded-xl border border-givit-ember/20 bg-givit-ember/5 p-3 text-sm text-muted-foreground">
+        Address, card, interests, and gift notes come later. This step only saves people and dates.
+      </p>
+      <label className="flex items-center gap-3 text-sm"><input type="checkbox" name="recipient_automation_enabled" defaultChecked className="h-4 w-4 accent-givit-ember" /> AutoGift on for these people</label>
+      <Button className="w-fit bg-givit-ember text-white hover:bg-givit-ember-hover">Save people</Button>
+    </form>
+  );
+}
+
 function ConciergeRecipientFields({ compact = false }: { compact?: boolean }) {
+  if (compact) return <MultiPersonFields />;
+
   return (
     <form action={saveConciergeRecipientAction} className="grid gap-4">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -107,29 +140,21 @@ function ConciergeRecipientFields({ compact = false }: { compact?: boolean }) {
         <input type="hidden" name="relationship" value="recipient" />
         <input type="hidden" name="occasion" value="Important date" />
         <input type="hidden" name="budget" value="75" />
-        <input type="hidden" name="delivery_preference" value={compact ? "either" : "ship"} />
+        <input type="hidden" name="delivery_preference" value="ship" />
       </div>
-      {compact ? (
-        <p className="rounded-2xl border border-givit-ember/20 bg-givit-ember/5 p-3 text-sm text-muted-foreground">
-          Address, card, interests, and gift notes come later. This page only saves the person and date.
-        </p>
-      ) : (
-        <>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Street" name="ship_to_line1" required />
-            <Field label="Apt" name="ship_to_line2" />
-            <Field label="City" name="ship_to_city" required />
-            <Field label="State" name="ship_to_state" placeholder="CA" required />
-            <Field label="ZIP" name="ship_to_zip" required />
-            <Field label="Country" name="ship_to_country" defaultValue="US" required />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TextAreaField label="Interests" name="interests" placeholder="coffee, gardening, travel" />
-            <TextAreaField label="Avoid" name="avoid_terms" placeholder="alcohol, wool, duplicates" />
-          </div>
-        </>
-      )}
-      <label className="flex items-center gap-3 text-sm"><input type="checkbox" name="recipient_automation_enabled" defaultChecked className="h-4 w-4 accent-givit-ember" /> Concierge on for this person</label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Street" name="ship_to_line1" required />
+        <Field label="Apt" name="ship_to_line2" />
+        <Field label="City" name="ship_to_city" required />
+        <Field label="State" name="ship_to_state" placeholder="CA" required />
+        <Field label="ZIP" name="ship_to_zip" required />
+        <Field label="Country" name="ship_to_country" defaultValue="US" required />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TextAreaField label="Interests" name="interests" placeholder="coffee, gardening, travel" />
+        <TextAreaField label="Avoid" name="avoid_terms" placeholder="alcohol, wool, duplicates" />
+      </div>
+      <label className="flex items-center gap-3 text-sm"><input type="checkbox" name="recipient_automation_enabled" defaultChecked className="h-4 w-4 accent-givit-ember" /> AutoGift on for this person</label>
       <Button className="w-fit bg-givit-ember text-white hover:bg-givit-ember-hover">Save</Button>
     </form>
   );
@@ -141,11 +166,11 @@ function ConciergeSetupWizard({ onClose, enabled, paymentReady, stripePublishabl
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-givit-ink/80 p-4 backdrop-blur-sm">
-      <div className="mx-auto min-h-[92vh] max-w-4xl rounded-[2rem] bg-white p-5 shadow-2xl md:p-8">
+      <div className="mx-auto min-h-[92vh] max-w-4xl rounded-2xl bg-white p-5 shadow-2xl md:p-8">
         <div className="flex items-start justify-between gap-4">
           <div>
             <Badge className="bg-givit-ink text-white">Setup wizard</Badge>
-            <h2 className="mt-3 font-serif text-3xl font-bold text-givit-ink">Concierge in three steps.</h2>
+            <h2 className="mt-3 font-serif text-3xl font-bold text-givit-ink">AutoGift in three steps.</h2>
           </div>
           <Button type="button" variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
         </div>
@@ -173,7 +198,7 @@ function ConciergeSetupWizard({ onClose, enabled, paymentReady, stripePublishabl
           {step === 1 ? (
             <div className="space-y-5">
               <h3 className="font-serif text-2xl font-bold">Important dates and people</h3>
-              <p className="text-sm text-muted-foreground">Add only the person and date here. No address, payment, or extra details on this page.</p>
+              <p className="text-sm text-muted-foreground">Add as many people as you like — just names and dates. Details come later.</p>
               <ConciergeRecipientFields compact />
             </div>
           ) : null}
@@ -203,7 +228,7 @@ function PaymentCard({ stripePublishableKey, paymentReady }: { stripePublishable
     <Card>
       <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-givit-ember" /> Stripe payment setup</CardTitle></CardHeader>
       <CardContent>
-        <p className="mb-4 text-sm text-muted-foreground">Cards are captured with Stripe Elements and saved as a Stripe Customer payment method. Givit charges only after approval.</p>
+        <p className="mb-4 text-sm text-muted-foreground">Cards are captured with Stripe Elements and saved securely. Givit charges only after you approve a gift.</p>
         {stripePublishableKey ? (
           <Elements stripe={getStripePromise(stripePublishableKey)}><StripeSetupForm paymentReady={paymentReady} /></Elements>
         ) : (
@@ -232,7 +257,7 @@ function StripeSetupForm({ paymentReady }: { paymentReady: boolean }) {
       const result = await stripe.confirmCardSetup(clientSecret, { payment_method: { card } });
       if (result.error) throw new Error(result.error.message);
       await fetch("/api/concierge/setup-intent/confirm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ setupIntentId: result.setupIntent.id }) });
-      toast.success("Payment method saved for concierge approvals.");
+      toast.success("Payment method saved for AutoGift approvals.");
       window.location.reload();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save card.");

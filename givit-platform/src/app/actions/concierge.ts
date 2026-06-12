@@ -116,6 +116,72 @@ export async function saveConciergeRecipientAction(formData: FormData) {
   revalidatePath("/account");
 }
 
+export async function saveConciergeRecipientsAction(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Sign in required.");
+
+  const names = formData.getAll("person_name").map((value) => String(value).trim());
+  const dates = formData.getAll("person_date").map((value) => String(value).trim());
+  const automationEnabled = formData.get("recipient_automation_enabled") === "on";
+  const entries = names
+    .map((name, index) => ({ name, date: dates[index] ?? "" }))
+    .filter((entry) => entry.name && entry.date);
+  if (entries.length === 0) throw new Error("Add at least one person with a date.");
+
+  for (const entry of entries) {
+    const { data: recipient, error: recipientError } = await supabase
+      .from("gift_recipients")
+      .insert({
+        user_id: user.id,
+        name: entry.name,
+        relationship: "recipient",
+        default_budget_cents: 7500,
+        interests: [],
+        avoid_terms: [],
+        ship_to_name: entry.name,
+        ship_to_country: "US",
+        delivery_preference: "either",
+        automation_enabled: automationEnabled,
+      })
+      .select("id")
+      .single();
+    if (recipientError || !recipient) throw recipientError ?? new Error(`Could not save ${entry.name}.`);
+
+    const { data: occasionRow, error: occasionError } = await supabase
+      .from("gift_occasions")
+      .insert({
+        user_id: user.id,
+        recipient_id: recipient.id,
+        occasion: "Important date",
+        occasion_date: entry.date,
+        repeats_yearly: true,
+        approval_lead_days: DEFAULT_APPROVAL_LEAD_DAYS,
+        shipping_buffer_days: DEFAULT_SHIPPING_BUFFER_DAYS,
+        status: "active",
+      })
+      .select("id")
+      .single();
+    if (occasionError || !occasionRow) throw occasionError ?? new Error(`Could not save the date for ${entry.name}.`);
+
+    await supabase.from("gift_notifications").insert({
+      user_id: user.id,
+      recipient_id: recipient.id,
+      occasion_id: occasionRow.id,
+      title: `GivIt Survey for ${entry.name}`,
+      body: `Five weeks before the date, complete the tailored GivIt Survey so AutoGift can build a gift box.`,
+      channel: "in_app",
+      scheduled_for: `${getSurveyDate(entry.date)}T09:00:00.000Z`,
+      status: "scheduled",
+      metadata: { href: `/concierge?recipient=${recipient.id}&occasion=${occasionRow.id}#survey`, kind: "survey" },
+    });
+  }
+
+  await supabase.from("profiles").update({ concierge_onboarding_completed: true }).eq("id", user.id);
+  revalidatePath("/concierge");
+  revalidatePath("/account");
+}
+
 export async function updateRecipientAutomationAction(recipientId: string, enabled: boolean) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

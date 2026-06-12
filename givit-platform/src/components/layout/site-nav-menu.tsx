@@ -34,10 +34,10 @@ export function SiteNavMenu({ categories, isSeller }: Props) {
         <DropdownMenuLabel className="font-serif text-base">Browse</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/products")}>Marketplace</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/products?q=gift")}>Gift Finder Search</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/products?q=artisan")}>
+        <DropdownMenuItem onClick={() => router.push("/boards")}>
           Gift Boards
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/concierge")}>AutoGift</DropdownMenuItem>
         {categories.length > 0 ? <DropdownMenuSeparator /> : null}
         {categories.map((c) => (
           <DropdownMenuItem

@@ -51,8 +51,8 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-3xl: calc(var(--radius) * 2);
+  --radius-4xl: calc(var(--radius) * 2.4);
 }
 
 :root {
@@ -96,7 +96,7 @@
   --chart-3: #fbbf24;
   --chart-4: #a16207;
   --chart-5: #8a7060;
-  --radius: 0.875rem;
+  --radius: 0.625rem;
 
   --sidebar: #ffffff;
   --sidebar-foreground: #1a1208;
@@ -193,11 +193,11 @@
 
   /* Chat bubble styles for the AI interface */
   .chat-bubble-user {
-    @apply rounded-3xl rounded-br-sm bg-givit-ember text-white px-4 py-3;
+    @apply rounded-2xl rounded-br-sm bg-givit-ember text-white px-4 py-3;
   }
 
   .chat-bubble-ai {
-    @apply rounded-3xl rounded-bl-sm bg-card border border-border/60 px-4 py-3;
+    @apply rounded-2xl rounded-bl-sm bg-card border border-border/60 px-4 py-3;
   }
 
   /* Tag pill */
