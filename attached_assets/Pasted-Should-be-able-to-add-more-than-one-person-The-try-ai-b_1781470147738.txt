@@ -1,0 +1,127 @@
+Should be able to add more than one person
+The try ai button blends in
+Remove the auto pilot button from the top right corner the concierge button works enough 
+Call the conquer button AutoGift
+Make the search bar full width like amazons rather than having the stuff right of the search bar awkwardly in the middle 
+Everything is a little TOO bubbly, cut down the corner round just a little bit
+Improve the LLM of the givit ai, making it more accurate ideally by expanding the data set ideally 200 more links with stuff
+Currently the admin set up is as attached, and the admin can edit or get orders, as I see
+Remove the browse button its redundant 
+Add a gift review for each product
+Make the spreadsheet add on for admins, where they can upload a spreadsheet that includes a link and ai goes on the link and get all the neccersayr details to put the product on givit, then adds it
+Remove the gift finder search from the menu
+Clean up the functionality of the concierge.
+Make it so you can add images to the gift board, and the customers can actually make the. Make it so people can like giftboards and make that bit like pintrest feel in a way
+Too many tacky tag lines
+Just in general polish the site
+
+
+Final Launch Feedback: 
+(Let me know if you need any help Atticus - this might be a lot for one person. I basically yapped to copilot about feedback as I saw some issues and it created a curated list.)
+🚀 Givit MVP — Full‑Site Feedback (Problem → Fix)
+🏠 1. Landing Page
+Problem: Feels like a product catalog, not a story. No emotional hook or clear value proposition.
+Fix: Add a headline like “Find the perfect gift in seconds — powered by AI.” Include short copy explaining AutoGift, Gift Boards, and AI discovery.
+🧭 2. Navigation
+Problem: Navigation is functional but lacks hierarchy and visual balance.
+Fix: Group links logically (AI Finder | Marketplace | Boards | AutoGift | Account). Add hover states and a sticky header for smoother browsing.
+💬 3. AI Gift Finder
+Problem: AI chat lacks conversational depth; it only outputs suggestions.
+Fix: Add intent detection, follow‑up questions (age, interests, occasion, budget), and memory persistence. Give the AI a friendly tone and “thinking” indicator.
+🎁 4. Gift Cards & Marketplace
+Problem: Cards repeat identical price and score blocks; no differentiation or reasoning.
+Fix: Add “Why this gift?” blurbs, category tags, and hover animations. Include “Save” and “Share” buttons with subtle feedback.
+📅 5. AutoGift & Reminder System
+Problem: The concept is strong but under‑explained. Users won’t understand “Approve once; admin handles the rest.”
+Fix: Add a short explainer modal or animation showing the AutoGift workflow (Reminder → Approval → Fulfillment).
+📌 6. Gift Boards
+Problem: Great idea but buried mid‑page.
+Fix: Move “Gift Boards” higher and show 2–3 sample boards with preview thumbnails. Add “Create your own board” CTA.
+🧠 7. Discovery Feed
+Problem: Feels repetitive; same products appear multiple times.
+Fix: Randomize feed order, add category filters, and show trending tags (#TechUnder150, #CozyHome, #Experiences).
+📱 8. Mobile Responsiveness
+Problem: Tight spacing and overlapping text on smaller screens.
+Fix: Increase padding, stack cards vertically, and test on iPhone SE / Galaxy S series breakpoints.
+⚙️ 9. Performance
+Problem: Slight delay on initial load; heavy image rendering.
+Fix: Lazy‑load product images, compress thumbnails, and preload critical scripts.
+🧩 10. Branding
+Problem: No logo or consistent color identity.
+Fix: Add a minimalist logo (gift box + spark icon). Choose a palette — e.g., deep violet + mint accent — and apply it across buttons and headers.
+🔐 11. Trust & Credibility
+Problem: No visible privacy or transparency statement.
+Fix: Add footer links for Privacy Policy, Terms, and No brand deals in rankings (already mentioned — emphasize it visually).
+📊 12. Analytics
+Problem: No insight into user behavior.
+Fix: Track message count, drop‑off points, gift clicks, and conversion to “Save” or “Share.” Use this to refine AI prompts.
+🧼 13. Micro‑Interactions
+Problem: Static interface; lacks motion feedback.
+Fix:
+Add smooth scroll for chat.
+Add subtle animations for messages.
+Add hover effects on gift cards.
+Add small shadows behind chat bubbles.
+🧠 14. Content Hierarchy
+Problem: Too many repeated gift listings dilute focus.
+Fix: Show one top product per category, then “View more” links. Keep the homepage concise.
+🧰 15. Technical Polish
+Problem: Missing favicon, inconsistent spacing, and redundant price blocks.
+Fix: Add favicon, unify spacing grid (8‑pt system), and remove duplicate price lines.
+🧠 Givit AI — New System Prompt (Production‑Ready)
+🎯 Purpose
+Givit is an AI gifting assistant that helps users find thoughtful, personalized gifts through natural conversation. It should feel like a friendly, smart companion — not a product catalog.
+💬 Core Behavior
+Understand intent before responding.
+Classify each message as one of:
+Greeting / Intro
+Gift request
+Clarification / Follow‑up
+General chat / Help
+Out‑of‑scope
+Respond appropriately based on intent.
+Ask for missing context.
+If the user doesn’t specify recipient, occasion, or budget, ask for them naturally:
+“Got it! Who’s the gift for, and what’s the occasion?”
+Remember conversation details.
+Store recipient info, age, interests, occasion, and budget.
+Use these details in later suggestions.
+Explain reasoning.
+For each gift, include a short “Why this gift” line:
+“She loves art — this sketching tablet lets her create anywhere.”
+Handle vague or off‑topic input gracefully.
+Redirect politely:
+“I can help with gifts! Tell me who you’re shopping for.”
+Tone and personality.
+Warm, conversational, and human.
+Avoid corporate or robotic phrasing.
+Example tone:
+“Hey, I’ve got some ideas — but first, tell me a bit about them.”
+🎁 Gift Suggestion Logic
+Use recipient profile (age, interests, relationship, occasion, budget).
+Prioritize creativity and emotional connection.
+Mix practical + unique ideas.
+Limit to 3–5 suggestions per message.
+Include short reasoning for each.
+🧩 Fallbacks
+If unsure, ask clarifying questions.
+If user rejects suggestions, offer alternatives:
+“No worries — want me to find something more personal or more fun?”
+⚙️ UX Integration
+Show typing indicator (“Givit is thinking…”).
+Add “Start Over” and “Regenerate” buttons.
+Include “Not what I wanted” feedback option.
+Display “Why this gift” under each suggestion.
+📊 Analytics Hooks
+Track:
+Message count per session
+Drop‑off points
+Gift clicks
+Common recipient types
+Common confusion triggers
+🧠 System Identity
+You are Givit, an AI gifting companion built to make gift‑giving effortless and personal.
+You are friendly, empathetic, and creative — you ask smart questions, remember details, and give thoughtful suggestions.
+
+
+
