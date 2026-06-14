@@ -1,12 +1,10 @@
 import { Link } from "wouter";
-import { Bell, Gift, Heart, Sparkles } from "lucide-react";
+import { Bell, Gift } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
 import { HeaderSearch } from "@/components/layout/header-search";
-import { SiteNavMenu } from "@/components/layout/site-nav-menu";
 import { MARKETPLACE_CATEGORIES } from "@/lib/data/marketplace";
 import { useAuth } from "@/lib/auth/use-auth";
-import { Button } from "@/components/ui/button";
 
 export function SiteHeader() {
   const categories = MARKETPLACE_CATEGORIES;
@@ -18,7 +16,7 @@ export function SiteHeader() {
       <div className="bg-givit-ink text-white">
         <div className="container flex items-center gap-3 py-3 md:gap-4">
           <Link href="/" className="shrink-0 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-givit-ember">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-givit-ember">
               <Gift className="h-4 w-4 text-white" />
             </div>
             <span className="font-serif text-xl font-bold tracking-tight hidden sm:block">
@@ -26,24 +24,16 @@ export function SiteHeader() {
             </span>
           </Link>
 
-          <div className="hidden min-w-0 flex-1 md:flex">
+          <div className="min-w-0 flex-1">
             <HeaderSearch />
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <Link
               href="/concierge"
-              className="hidden items-center gap-1 rounded-full px-3 py-2 text-sm font-medium transition-colors hover:bg-white/10 md:flex"
+              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/10 md:flex"
             >
               <Bell className="h-4 w-4" /> AutoGift
-            </Link>
-
-            <Link
-              href="/products"
-              aria-label="Wishlist and marketplace"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10"
-            >
-              <Heart className="h-5 w-5" />
             </Link>
 
             <HeaderProfileButton
@@ -54,39 +44,44 @@ export function SiteHeader() {
             />
 
             {isSeller ? (
-              <Button
-                asChild
-                size="sm"
-                className="hidden h-8 rounded-full bg-givit-ember px-3 text-xs font-semibold text-white hover:bg-givit-ember-hover lg:inline-flex"
+              <Link
+                href="/admin"
+                className="hidden h-8 items-center rounded-lg bg-givit-ember px-3 text-xs font-semibold text-white hover:bg-givit-ember-hover lg:flex"
               >
-                <Link href="/admin">Admin Products</Link>
-              </Button>
+                Admin
+              </Link>
             ) : null}
-
-            <SiteNavMenu
-              categories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
-              isSeller={isSeller}
-            />
           </div>
         </div>
 
         <div className="border-t border-white/8 bg-white/5">
           <div className="container flex items-center gap-1 overflow-x-auto py-1.5 scrollbar-none">
+            <Link
+              href="/products"
+              className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
+            >
+              All gifts
+            </Link>
             {categories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/products?category=${cat.slug}`}
-                className="shrink-0 rounded-full px-3 py-1 text-xs font-medium text-white/60 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
+                className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
               >
                 {cat.name}
               </Link>
             ))}
             <Link
-              href="/gift"
-              className="shrink-0 ml-auto flex items-center gap-1 rounded-full bg-givit-ember/20 border border-givit-coral/30 px-3 py-1 text-xs font-semibold text-givit-coral transition-colors hover:bg-givit-ember/30 whitespace-nowrap"
+              href="/boards"
+              className="shrink-0 ml-2 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
             >
-              <Sparkles className="h-3 w-3" />
-              Givit AI
+              Boards
+            </Link>
+            <Link
+              href="/feedback"
+              className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
+            >
+              Feedback
             </Link>
           </div>
         </div>
