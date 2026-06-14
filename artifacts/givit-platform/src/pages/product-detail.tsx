@@ -9,6 +9,7 @@ import { WishlistButton } from "@/components/product/wishlist-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GiftReviews } from "@/components/product/gift-reviews";
 import {
   MARKETPLACE_RATINGS,
   getMarketplaceProductBySlug,
@@ -161,6 +162,7 @@ export default function ProductDetailPage() {
         <Tabs defaultValue="details">
           <TabsList className="rounded-full">
             <TabsTrigger value="details" className="rounded-full">Details</TabsTrigger>
+            <TabsTrigger value="reviews" className="rounded-full">Reviews</TabsTrigger>
             <TabsTrigger value="related" className="rounded-full">Related gifts</TabsTrigger>
           </TabsList>
           <TabsContent value="details" className="mt-4">
@@ -174,6 +176,11 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </TabsContent>
+          <TabsContent value="reviews" className="mt-4">
+            <div className="givit-section">
+              <GiftReviews productId={product.id} />
             </div>
           </TabsContent>
           <TabsContent value="related" className="mt-4">
