@@ -196,6 +196,7 @@ export function GiftFinderChat() {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lastQuery, setLastQuery] = useState("");
   const [form, setForm] = useState<Questionnaire>({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -204,10 +205,24 @@ export function GiftFinderChat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function sendMessage(text: string) {
+  function startOver() {
+    setMessages([GREETING]);
+    setInput("");
+    setLastQuery("");
+    setForm({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
+    inputRef.current?.focus();
+  }
+
+  async function regenerate() {
+    if (!lastQuery || loading) return;
+    await sendMessage(lastQuery, true);
+  }
+
+  async function sendMessage(text: string, isRegenerate = false) {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
+    if (!isRegenerate) setLastQuery(trimmed);
     setMessages((prev) => [...prev, { role: "user", content: trimmed }, { role: "assistant", content: "", loading: true }]);
     setInput("");
     setLoading(true);
@@ -288,6 +303,19 @@ export function GiftFinderChat() {
         )}
 
         <div className="givit-panel flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
+            <p className="text-xs font-semibold text-muted-foreground">Givit AI · Gift Finder</p>
+            <div className="flex gap-1.5">
+              {lastQuery && !loading && (
+                <button type="button" onClick={regenerate} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">
+                  <Wand2 className="h-3 w-3" /> Regenerate
+                </button>
+              )}
+              <button type="button" onClick={startOver} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">
+                ↺ Start over
+              </button>
+            </div>
+          </div>
           <div className="flex flex-col gap-5 overflow-y-auto p-5" style={{ maxHeight: "65vh" }}>
             {messages.map((msg, i) => (
               <div key={i}>
@@ -331,15 +359,16 @@ export function GiftFinderChat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-                placeholder="Add more context or ask for a rerank..."
+                placeholder="Tell me more, adjust the budget, or ask for different ideas..."
                 rows={1}
-                className="flex-1 resize-none rounded-2xl border border-border/60 bg-muted/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="flex-1 resize-none rounded-xl border border-border/60 bg-muted/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                 style={{ maxHeight: "120px" }}
               />
-              <button onClick={() => sendMessage(input)} disabled={!input.trim() || loading} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-givit-ember text-white transition-all hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40">
+              <button onClick={() => sendMessage(input)} disabled={!input.trim() || loading} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-givit-ember text-white transition-all hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40">
                 <Send className="h-4 w-4" />
               </button>
             </div>
+            <p className="mt-1.5 text-center text-[10px] text-muted-foreground/60">Press Enter to send · Shift+Enter for new line</p>
           </div>
         </div>
       </div>

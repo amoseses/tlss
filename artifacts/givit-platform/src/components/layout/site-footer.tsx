@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Gift, Sparkles } from "lucide-react";
+import { Gift, ShieldCheck, Sparkles } from "lucide-react";
 
 export function SiteFooter() {
   return (
@@ -16,11 +16,11 @@ export function SiteFooter() {
               </span>
             </Link>
             <p className="text-xs leading-relaxed text-white/50 max-w-[180px]">
-              AI gift discovery plus a free, admin-ranked marketplace of best-item picks.
+              AI gift discovery plus a free, editorially-ranked marketplace. No brand deals, ever.
             </p>
             <Link
               href="/gift"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-givit-ember px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-givit-ember-hover"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-givit-ember px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-givit-ember-hover"
             >
               <Sparkles className="h-3 w-3" />
               Try Gift AI
@@ -34,6 +34,7 @@ export function SiteFooter() {
               <li><Link href="/products" className="hover:text-white transition-colors">Marketplace</Link></li>
               <li><Link href="/products?sort=popular" className="hover:text-white transition-colors">Top Ranked</Link></li>
               <li><Link href="/boards" className="hover:text-white transition-colors">Gift Boards</Link></li>
+              <li><Link href="/concierge" className="hover:text-white transition-colors">AutoGift</Link></li>
             </ul>
           </div>
 
@@ -42,7 +43,7 @@ export function SiteFooter() {
             <ul className="space-y-2 text-sm">
               <li><Link href="/products?category=tech" className="hover:text-white transition-colors">Tech Gifts</Link></li>
               <li><Link href="/products?category=home" className="hover:text-white transition-colors">Home Gifts</Link></li>
-              <li><Link href="/admin" className="hover:text-white transition-colors">Admin Curation</Link></li>
+              <li><Link href="/products?category=experiences" className="hover:text-white transition-colors">Experiences</Link></li>
               <li><Link href="/feedback" className="hover:text-white transition-colors">Contact Us</Link></li>
             </ul>
           </div>
@@ -52,15 +53,25 @@ export function SiteFooter() {
             <ul className="space-y-2 text-sm">
               <li><Link href="/login" className="hover:text-white transition-colors">Sign In</Link></li>
               <li><Link href="/signup" className="hover:text-white transition-colors">Sign Up</Link></li>
-              <li><Link href="/orders" className="hover:text-white transition-colors">My Orders</Link></li>
               <li><Link href="/account" className="hover:text-white transition-colors">Settings</Link></li>
+              <li><Link href="/feedback" className="hover:text-white transition-colors">Feedback</Link></li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-6 text-xs text-white/30">
-          <p>© {new Date().getFullYear()} GIVIT. All rights reserved.</p>
-          <p>No brand deals in rankings · Original retailer links · AI-ready catalog</p>
+        <div className="mt-8 border-t border-white/8 pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-white/30">
+            <p>© {new Date().getFullYear()} GIVIT. All rights reserved.</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-1.5 text-white/40">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                No brand deals in rankings
+              </div>
+              <Link href="/privacy" className="hover:text-white/60 transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-white/60 transition-colors">Terms of Use</Link>
+              <span>Original retailer links only</span>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

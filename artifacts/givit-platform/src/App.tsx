@@ -17,6 +17,9 @@ import ConciergePage from "@/pages/concierge";
 import BoardsPage from "@/pages/boards";
 import FeedbackPage from "@/pages/feedback";
 import AccountPage from "@/pages/account";
+import AdminPage from "@/pages/admin";
+import PrivacyPage from "@/pages/privacy";
+import TermsPage from "@/pages/terms";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -37,6 +40,9 @@ function Router() {
           <Route path="/boards" component={BoardsPage} />
           <Route path="/feedback" component={FeedbackPage} />
           <Route path="/account" component={AccountPage} />
+          <Route path="/admin" component={AdminPage} />
+          <Route path="/privacy" component={PrivacyPage} />
+          <Route path="/terms" component={TermsPage} />
           <Route component={NotFound} />
         </Switch>
       </main>

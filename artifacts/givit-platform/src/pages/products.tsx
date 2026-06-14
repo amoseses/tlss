@@ -20,6 +20,17 @@ const OCCASIONS = [
   "Graduation", "Baby Shower", "Wedding", "Anniversary", "Retirement",
 ];
 
+const TRENDING_TAGS = [
+  { label: "Tech under $150", q: "tech under 150" },
+  { label: "Cozy home gifts", q: "cozy home" },
+  { label: "Gifts for coffee lovers", q: "coffee" },
+  { label: "For the outdoors type", q: "outdoor" },
+  { label: "Eco-friendly picks", q: "eco sustainable" },
+  { label: "Gifts under $30", q: "under 30" },
+  { label: "Bookworm favorites", q: "books reading" },
+  { label: "Unique experiences", q: "experiences" },
+];
+
 export default function ProductsPage() {
   const { get } = useSearchParams();
   const categorySlug = get("category") || undefined;
@@ -159,6 +170,20 @@ export default function ProductsPage() {
               <Button type="submit" className="h-10 rounded-sm bg-primary text-primary-foreground hover:bg-primary/90">Apply</Button>
             </form>
           </div>
+
+          {!q && !categorySlug && (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {TRENDING_TAGS.map((tag) => (
+                <a
+                  key={tag.label}
+                  href={`/products?q=${encodeURIComponent(tag.q)}`}
+                  className="inline-flex items-center rounded-full border border-border/60 bg-white px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-givit-ember/40 hover:bg-givit-sand hover:text-givit-ember"
+                >
+                  # {tag.label}
+                </a>
+              ))}
+            </div>
+          )}
 
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
             <p>

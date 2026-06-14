@@ -66,6 +66,12 @@ export function ProductCard({
             {product.name}
           </p>
 
+          {marketplaceProduct.ai_summary && !compact && (
+            <p className="line-clamp-2 text-left text-xs leading-snug text-muted-foreground">
+              {marketplaceProduct.ai_summary}
+            </p>
+          )}
+
           {avgRating != null && reviewCount != null && reviewCount > 0 ? (
             <StarRating value={avgRating} count={reviewCount} size={compact ? 12 : 14} />
           ) : (
