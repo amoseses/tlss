@@ -1,0 +1,7 @@
+{
+  "buildCommand": "pnpm --filter @workspace/givit-platform run build",
+  "outputDirectory": "artifacts/givit-platform/dist/public",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
