@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm --filter @workspace/givit-platform run build",
   "outputDirectory": "artifacts/givit-platform/dist/public",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
