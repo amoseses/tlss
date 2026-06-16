@@ -37,12 +37,12 @@ export default function HomePage() {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild className="h-12 rounded-lg bg-white px-6 text-sm font-bold text-givit-ember shadow-lg hover:bg-white/95">
+              <Button asChild className="h-12 rounded-md bg-givit-ink px-6 text-sm font-bold text-white shadow-lg ring-2 ring-white/30 hover:bg-givit-ink/90">
                 <Link href="/gift">
                   <Sparkles className="h-4 w-4" /> Try Givit AI <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild className="h-12 rounded-lg border border-white/30 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/20">
+              <Button asChild className="h-12 rounded-md border border-white/30 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/20">
                 <Link href="/concierge">
                   <Bell className="h-4 w-4" /> Set up AutoGift
                 </Link>
@@ -105,10 +105,7 @@ export default function HomePage() {
       {/* Featured gifts */}
       <section className="container py-10 md:py-14">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
-          <div>
-            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Featured gifts</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Curated picks for every occasion and budget.</p>
-          </div>
+          <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Featured gifts</h2>
           <Link href="/products" className="givit-link text-sm font-medium">Shop all →</Link>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -123,10 +120,7 @@ export default function HomePage() {
       {/* Gift boards */}
       <section className="container py-4 md:py-8">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
-          <div>
-            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Gift boards</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Themed collections — save ideas, share boards, get inspired.</p>
-          </div>
+          <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Gift boards</h2>
           <Link href="/boards" className="givit-link text-sm font-medium">See all boards →</Link>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -144,10 +138,7 @@ export default function HomePage() {
       {deals.length > 0 && (
         <section className="container py-8 md:py-12">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
-            <div>
-              <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Today's deals</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Discounted picks with high gift match scores.</p>
-            </div>
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Today's deals</h2>
             <Link href="/products?sort=popular" className="givit-link text-sm font-medium">See all deals →</Link>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -190,14 +181,14 @@ export default function HomePage() {
           <div className="relative max-w-2xl">
             <h2 className="font-serif text-2xl font-bold md:text-3xl">Never miss a gift moment again.</h2>
             <p className="mt-3 mb-6 text-sm leading-7 text-white/65">
-              AutoGift learns who you buy for, reminds you weeks in advance, and handles everything once you approve.
+              AutoGift reminds you early and handles fulfillment once you approve.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button asChild className="rounded-lg bg-givit-ember px-5 text-white hover:bg-givit-ember-hover">
                 <Link href="/concierge"><Bell className="h-4 w-4" /> Set up AutoGift</Link>
               </Button>
-              <Button asChild variant="outline" className="rounded-lg border-white/20 text-white hover:bg-white/10">
-                <Link href="/gift"><Wand2 className="h-4 w-4" /> Try the AI finder</Link>
+              <Button asChild variant="outline" className="rounded-md border-white/20 text-white hover:bg-white/10">
+                <Link href="/gift"><Wand2 className="h-4 w-4" /> Try Givit AI</Link>
               </Button>
             </div>
           </div>

@@ -1,94 +1,125 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
-import { Bell, Calendar, Gift, Package, Plus, Sparkles, Trash2, Users, X } from "lucide-react";
+import { Bell, Calendar, Gift, Plus, Sparkles, Trash2, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 
 type Occasion = { label: string; date: string };
 type Recipient = { id: string; name: string; relationship: string; occasions: Occasion[] };
-type RecipientForm = { name: string; relationship: string; occasions: Occasion[] };
 
-const EMPTY_FORM: RecipientForm = { name: "", relationship: "", occasions: [{ label: "Birthday", date: "" }] };
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
 
-function AddRecipientModal({ onAdd, onClose }: { onAdd: (r: Recipient) => void; onClose: () => void }) {
-  const [form, setForm] = useState<RecipientForm>(EMPTY_FORM);
+function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]) => void; onClose: () => void }) {
+  type PersonForm = { name: string; relationship: string; occasions: Occasion[] };
+  const emptyPerson = (): PersonForm => ({ name: "", relationship: "", occasions: [{ label: "Birthday", date: "" }] });
+  const [people, setPeople] = useState<PersonForm[]>([emptyPerson()]);
 
-  function addOccasion() {
-    setForm((f) => ({ ...f, occasions: [...f.occasions, { label: "Birthday", date: "" }] }));
+  function addPerson() {
+    setPeople((prev) => [...prev, emptyPerson()]);
   }
 
-  function removeOccasion(i: number) {
-    setForm((f) => ({ ...f, occasions: f.occasions.filter((_, idx) => idx !== i) }));
+  function removePerson(i: number) {
+    setPeople((prev) => prev.filter((_, idx) => idx !== i));
   }
 
-  function updateOccasion(i: number, field: keyof Occasion, value: string) {
-    setForm((f) => {
-      const occasions = [...f.occasions];
-      occasions[i] = { ...occasions[i], [field]: value };
-      return { ...f, occasions };
-    });
+  function updatePerson(i: number, field: keyof PersonForm, value: string) {
+    setPeople((prev) => prev.map((p, idx) => idx === i ? { ...p, [field]: value } : p));
+  }
+
+  function addOccasion(personIndex: number) {
+    setPeople((prev) => prev.map((p, idx) => idx === personIndex ? { ...p, occasions: [...p.occasions, { label: "Birthday", date: "" }] } : p));
+  }
+
+  function removeOccasion(personIndex: number, occIndex: number) {
+    setPeople((prev) => prev.map((p, idx) => idx === personIndex ? { ...p, occasions: p.occasions.filter((_, oi) => oi !== occIndex) } : p));
+  }
+
+  function updateOccasion(personIndex: number, occIndex: number, field: keyof Occasion, value: string) {
+    setPeople((prev) => prev.map((p, idx) => {
+      if (idx !== personIndex) return p;
+      const occasions = [...p.occasions];
+      occasions[occIndex] = { ...occasions[occIndex], [field]: value };
+      return { ...p, occasions };
+    }));
   }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) return;
-    onAdd({
+    const valid = people.filter((p) => p.name.trim());
+    if (valid.length === 0) return;
+    onAdd(valid.map((p) => ({
       id: crypto.randomUUID(),
-      name: form.name.trim(),
-      relationship: form.relationship,
-      occasions: form.occasions.filter((o) => o.date),
-    });
+      name: p.name.trim(),
+      relationship: p.relationship,
+      occasions: p.occasions.filter((o) => o.date),
+    })));
     onClose();
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
-      <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-border p-5">
-          <h2 className="font-serif text-xl font-bold text-givit-ink">Add a recipient</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+          <h2 className="font-serif text-xl font-bold text-givit-ink">Add people</h2>
+          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={submit} className="space-y-4 p-5">
-          <div className="grid gap-1.5">
-            <label className="text-sm font-semibold">Full name *</label>
-            <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required placeholder="e.g. Mom, Sarah, John" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
-          </div>
-          <div className="grid gap-1.5">
-            <label className="text-sm font-semibold">Relationship</label>
-            <select value={form.relationship} onChange={(e) => setForm((f) => ({ ...f, relationship: e.target.value }))} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
-              <option value="">Select...</option>
-              {RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
-            </select>
-          </div>
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold">Occasions</label>
-              <button type="button" onClick={addOccasion} className="inline-flex items-center gap-1 text-xs font-semibold text-givit-ember hover:underline">
-                <Plus className="h-3 w-3" /> Add date
-              </button>
-            </div>
-            {form.occasions.map((occ, i) => (
-              <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
-                <select value={occ.label} onChange={(e) => updateOccasion(i, "label", e.target.value)} className="h-9 rounded-lg border border-border bg-background px-2 text-sm outline-none">
-                  {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
-                </select>
-                <input type="date" value={occ.date} onChange={(e) => updateOccasion(i, "date", e.target.value)} className="h-9 w-full rounded-lg border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
-                {form.occasions.length > 1 && (
-                  <button type="button" onClick={() => removeOccasion(i)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
-                    <X className="h-3.5 w-3.5" />
+        <form onSubmit={submit} className="space-y-5 p-5">
+          {people.map((person, personIndex) => (
+            <div key={personIndex} className="space-y-3 rounded-lg border border-border/60 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-givit-ink">Person {personIndex + 1}</p>
+                {people.length > 1 && (
+                  <button type="button" onClick={() => removePerson(personIndex)} className="text-xs font-medium text-destructive hover:underline">
+                    Remove
                   </button>
                 )}
               </div>
-            ))}
-          </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm font-semibold">Full name *</label>
+                <input value={person.name} onChange={(e) => updatePerson(personIndex, "name", e.target.value)} required placeholder="e.g. Mom, Sarah, John" className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm font-semibold">Relationship</label>
+                <select value={person.relationship} onChange={(e) => updatePerson(personIndex, "relationship", e.target.value)} className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+                  <option value="">Select...</option>
+                  {RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold">Occasions</label>
+                  <button type="button" onClick={() => addOccasion(personIndex)} className="inline-flex items-center gap-1 text-xs font-semibold text-givit-ember hover:underline">
+                    <Plus className="h-3 w-3" /> Add date
+                  </button>
+                </div>
+                {person.occasions.map((occ, i) => (
+                  <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
+                    <select value={occ.label} onChange={(e) => updateOccasion(personIndex, i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
+                      {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
+                    </select>
+                    <input type="date" value={occ.date} onChange={(e) => updateOccasion(personIndex, i, "date", e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+                    {person.occasions.length > 1 && (
+                      <button type="button" onClick={() => removeOccasion(personIndex, i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <button type="button" onClick={addPerson} className="flex w-full items-center justify-center gap-2 rounded-md border-2 border-dashed border-border/60 py-3 text-sm font-semibold text-givit-ember transition hover:border-givit-ember/40">
+            <Plus className="h-4 w-4" /> Add another person
+          </button>
+
           <div className="flex gap-2 pt-2">
-            <Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={onClose}>Cancel</Button>
-            <Button type="submit" className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">Save recipient</Button>
+            <Button type="button" variant="outline" className="flex-1 rounded-md" onClick={onClose}>Cancel</Button>
+            <Button type="submit" className="flex-1 rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Save {people.filter((p) => p.name.trim()).length || ""} recipient{people.filter((p) => p.name.trim()).length !== 1 ? "s" : ""}</Button>
           </div>
         </form>
       </div>
@@ -149,7 +180,7 @@ function RecipientCard({ recipient, onDelete }: { recipient: Recipient; onDelete
 }
 
 export default function ConciergePage() {
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -194,7 +225,7 @@ export default function ConciergePage() {
     <PageShell>
       {showModal && (
         <AddRecipientModal
-          onAdd={(r) => saveRecipients([...recipients, r])}
+          onAdd={(added) => saveRecipients([...recipients, ...added])}
           onClose={() => setShowModal(false)}
         />
       )}
@@ -203,12 +234,9 @@ export default function ConciergePage() {
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">AutoGift</p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Your gift concierge</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            {profile?.full_name ? `Welcome back, ${profile.full_name}.` : "Welcome back."} Add people below to set up automatic reminders.
-          </p>
         </div>
-        <Button onClick={() => setShowModal(true)} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
-          <Plus className="h-4 w-4" /> Add person
+        <Button onClick={() => setShowModal(true)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+          <Plus className="h-4 w-4" /> Add people
         </Button>
       </div>
 
@@ -282,12 +310,9 @@ export default function ConciergePage() {
                 </ol>
               </div>
             </div>
-            <div className="mt-4 grid gap-2">
-              <Button asChild className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover text-xs h-9">
-                <Link href="/gift"><Gift className="h-3.5 w-3.5" /> Try AI gift finder</Link>
-              </Button>
-              <Button asChild variant="outline" className="rounded-lg text-xs h-9">
-                <Link href="/products"><Package className="h-3.5 w-3.5" /> Browse marketplace</Link>
+            <div className="mt-4">
+              <Button asChild className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover text-xs h-9 w-full">
+                <Link href="/gift"><Gift className="h-3.5 w-3.5" /> Find a gift with AI</Link>
               </Button>
             </div>
           </div>

@@ -37,12 +37,13 @@ export function ProductCard({
     : `#${marketplaceProduct.rank ?? 1} in Marketplace`);
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-2 transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/30 hover:shadow-lg hover:shadow-black/5">
+    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-card p-2 transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/30 hover:shadow-lg hover:shadow-black/5">
       <Link href={`/products/${product.slug}`} className="flex flex-1 flex-col">
         <div className={featured ? "relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-givit-sand" : "relative aspect-square w-full overflow-hidden rounded-xl bg-givit-sand"}>
           <img
             src={src}
             alt={product.name}
+            loading="lazy"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
@@ -66,7 +67,14 @@ export function ProductCard({
             {product.name}
           </p>
 
-          {marketplaceProduct.ai_summary && !compact && (
+          {marketplaceProduct.why_we_picked_it && (
+            <p className="line-clamp-2 text-left text-xs leading-snug text-muted-foreground">
+              <span className="font-medium text-foreground/80">Why this gift: </span>
+              {marketplaceProduct.why_we_picked_it}
+            </p>
+          )}
+
+          {marketplaceProduct.ai_summary && !compact && !marketplaceProduct.why_we_picked_it && (
             <p className="line-clamp-2 text-left text-xs leading-snug text-muted-foreground">
               {marketplaceProduct.ai_summary}
             </p>

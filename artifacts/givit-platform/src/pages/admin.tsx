@@ -4,6 +4,7 @@ import { CheckCircle, FileSpreadsheet, Loader2, Package, Plus, Sparkles, Upload,
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
+import { extractProductFromUrl, getImportedCount, saveImportedProduct } from "@/lib/admin/imported-products";
 
 type ParsedRow = { url: string; name: string; brand: string; price: string; category: string; status: "pending" | "processing" | "done" | "error" };
 
@@ -70,10 +71,23 @@ export default function AdminPage() {
     setProcessing(true);
     setDone(0);
     for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]!;
+      if (row.status === "done") continue;
       setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "processing" } : r));
-      await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 400));
-      setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "done" } : r));
-      setDone((n) => n + 1);
+      await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 400));
+
+      try {
+        const extracted = extractProductFromUrl(row.url, row);
+        saveImportedProduct({ ...extracted, status: "done" });
+        setRows((prev) => prev.map((r, idx) => idx === i ? {
+          ...r,
+          ...extracted,
+          status: "done" as const,
+        } : r));
+        setDone((n) => n + 1);
+      } catch {
+        setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "error" } : r));
+      }
     }
     setProcessing(false);
   }
@@ -106,8 +120,8 @@ export default function AdminPage() {
               <Upload className="mx-auto h-8 w-8 text-muted-foreground/50" />
               <p className="mt-2 text-sm font-medium text-muted-foreground">Drop a CSV or spreadsheet here</p>
               <p className="text-xs text-muted-foreground/60">or</p>
-              <Button onClick={() => fileRef.current?.click()} variant="outline" size="sm" className="mt-2 rounded-lg">
-                Browse files
+              <Button onClick={() => fileRef.current?.click()} variant="outline" size="sm" className="mt-2 rounded-md">
+                Choose file
               </Button>
             </div>
             <div>
@@ -189,7 +203,7 @@ export default function AdminPage() {
               </div>
               {rows.every((r) => r.status === "done") && (
                 <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-700 text-center">
-                  ✓ All {rows.length} products processed. Review and publish below.
+                  ✓ All {rows.length} products added to the marketplace ({getImportedCount()} total imported).
                 </div>
               )}
             </div>

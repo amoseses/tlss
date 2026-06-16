@@ -93,7 +93,7 @@
   --chart-3: #fbbf24;
   --chart-4: #a16207;
   --chart-5: #8a7060;
-  --radius: 0.45rem;
+  --radius: 0.35rem;
 
   --sidebar: #ffffff;
   --sidebar-foreground: #1a1208;
@@ -165,11 +165,11 @@
 
 @layer utilities {
   .givit-panel {
-    @apply rounded-2xl border border-border/60 bg-card shadow-sm;
+    @apply rounded-lg border border-border/60 bg-card shadow-sm;
   }
 
   .givit-section {
-    @apply rounded-2xl border border-border/60 bg-card p-4 shadow-sm md:p-6;
+    @apply rounded-lg border border-border/60 bg-card p-4 shadow-sm md:p-6;
   }
 
   .givit-link {
@@ -189,11 +189,11 @@
   }
 
   .chat-bubble-user {
-    @apply rounded-2xl rounded-br-sm bg-givit-ember text-white px-4 py-3;
+    @apply rounded-lg rounded-br-sm bg-givit-ember text-white px-4 py-3;
   }
 
   .chat-bubble-ai {
-    @apply rounded-2xl rounded-bl-sm bg-card border border-border/60 px-4 py-3;
+    @apply rounded-lg rounded-bl-sm bg-card border border-border/60 px-4 py-3;
   }
 
   .tag-pill {

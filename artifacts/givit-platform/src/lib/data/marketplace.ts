@@ -1,4 +1,6 @@
 import type { Category, Product, ProductImage, ProductRatingStats } from "@/types/database";
+import { EXPANDED_CURATED_PRODUCTS } from "@/lib/data/marketplace-expanded";
+import { getImportedMarketplaceProducts } from "@/lib/admin/imported-products";
 
 export type MarketplaceProduct = Product & {
   affiliate_url: string;
@@ -285,7 +287,7 @@ function expandExtraGiftIdeas(): SeedProduct[] {
         price: Math.max(1800, price),
         priceRange: priceRange(Math.max(1800, price)),
         retailer: brand,
-        affiliateUrl: `https://www.givit.local/curated/${template.category}/${slug}`,
+        affiliateUrl: `https://www.amazon.com/s?k=${encodeURIComponent(`${brand} ${productName}`)}`,
         image: img(categoryImages[(productIndex + templateIndex) % categoryImages.length]!),
         interests: Array.from(new Set([...template.interests, template.category, ...productName.toLowerCase().split(/\s+/).slice(0, 2)])),
         occasions,
@@ -309,7 +311,34 @@ function slugSafe(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-const ALL_SEED_PRODUCTS = [...CORE_PRODUCTS, ...expandIdeas(), ...expandExtraGiftIdeas()]
+function expandCuratedLinks(): SeedProduct[] {
+  let rank = CORE_PRODUCTS.length + expandIdeas().length + expandExtraGiftIdeas().length + 1;
+  return EXPANDED_CURATED_PRODUCTS.map((item, index) => {
+    const categoryImages = IMAGE_POOLS[item.category] ?? IMAGE_POOLS.home;
+    const productRank = rank + index;
+    return {
+      slug: item.slug,
+      name: item.name,
+      brand: item.brand,
+      category: item.category,
+      price: item.price,
+      priceRange: priceRange(item.price),
+      retailer: item.brand,
+      affiliateUrl: item.affiliateUrl,
+      image: img(categoryImages[index % categoryImages.length]!),
+      interests: item.interests,
+      summary: item.summary,
+      why: item.why,
+      badge: item.badge,
+      score: Math.max(74, 88 - (index % 10)),
+      rank: productRank,
+      occasions: [OCCASION_ROTATION[index % OCCASION_ROTATION.length]!, OCCASION_ROTATION[(index + 4) % OCCASION_ROTATION.length]!],
+      recipients: [RECIPIENT_ROTATION[index % RECIPIENT_ROTATION.length]!, RECIPIENT_ROTATION[(index + 3) % RECIPIENT_ROTATION.length]!],
+    } satisfies SeedProduct;
+  });
+}
+
+const ALL_SEED_PRODUCTS = [...CORE_PRODUCTS, ...expandIdeas(), ...expandExtraGiftIdeas(), ...expandCuratedLinks()]
   .filter((product, index, products) => products.findIndex((candidate) => candidate.slug === product.slug) === index)
   .map((product, index) => ({ ...product, rank: index + 1, score: product.score ?? Math.max(70, 96 - Math.floor(index / 8)) }));
 
@@ -384,14 +413,19 @@ export const MARKETPLACE_RATINGS = new Map<string, ProductRatingStats>(
   ]),
 );
 
+export function getAllMarketplaceProducts(): MarketplaceProduct[] {
+  if (typeof window === "undefined") return MARKETPLACE_PRODUCTS;
+  return [...MARKETPLACE_PRODUCTS, ...getImportedMarketplaceProducts()];
+}
+
 export function getMarketplaceProductBySlug(slug: string) {
-  return MARKETPLACE_PRODUCTS.find((product) => product.slug === slug) ?? null;
+  return getAllMarketplaceProducts().find((product) => product.slug === slug) ?? null;
 }
 
 export function getMarketplaceProducts(options?: { categorySlug?: string; q?: string }) {
   const q = options?.q?.trim().toLowerCase();
 
-  return MARKETPLACE_PRODUCTS.filter((product) => {
+  return getAllMarketplaceProducts().filter((product) => {
     if (options?.categorySlug && product.category?.slug !== options.categorySlug) return false;
     if (!q) return true;
 
@@ -415,7 +449,7 @@ export function getMarketplaceProducts(options?: { categorySlug?: string; q?: st
 }
 
 export function getRelatedMarketplaceProducts(product: MarketplaceProduct) {
-  return MARKETPLACE_PRODUCTS.filter((candidate) => candidate.id !== product.id)
+  return getAllMarketplaceProducts().filter((candidate) => candidate.id !== product.id)
     .map((candidate) => {
       const overlap = [
         ...candidate.interests.filter((interest) => product.interests.includes(interest)),

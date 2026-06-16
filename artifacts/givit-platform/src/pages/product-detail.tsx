@@ -30,7 +30,7 @@ export default function ProductDetailPage() {
           <h1 className="font-serif text-2xl font-bold text-givit-ink">Product not found</h1>
           <p className="mt-2 text-muted-foreground">This product may have been removed or the URL is incorrect.</p>
           <Button asChild className="mt-6 rounded-full bg-givit-ember text-white">
-            <Link href="/products">Browse marketplace</Link>
+            <Link href="/products">Shop marketplace</Link>
           </Button>
         </div>
       </PageShell>

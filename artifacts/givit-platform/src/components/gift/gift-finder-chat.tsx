@@ -2,37 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { AlertTriangle, ExternalLink, Send, Sparkles, Star, ThumbsDown, ThumbsUp, Wand2 } from "lucide-react";
 import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
+import { recommendGifts, type GiftRecommendResult } from "@/lib/gift-recommend";
 
-type GiftScore = {
-  total: number;
-  factors: {
-    interests: number;
-    uniqueness: number;
-    priceFit: number;
-    quality: number;
-    reviewSentiment: number;
-    novelty: number;
-    previousOverlap: number;
-  };
-};
-
-type GiftResult = {
-  id: string;
-  slug: string;
-  name: string;
-  price_cents: number;
-  sale_price_cents?: number | null;
-  description: string | null;
-  image_url: string | null;
-  avg_rating: number | null;
-  review_count: number;
-  match_reason: string;
-  avoidance_warning?: string | null;
-  gift_tags: string[];
-  rank_label?: string;
-  learning_tags?: string[];
-  gift_score?: GiftScore;
-};
+type GiftResult = GiftRecommendResult;
 
 type Message = {
   role: "user" | "assistant";
@@ -53,7 +25,7 @@ type Questionnaire = {
 
 const GREETING: Message = {
   role: "assistant",
-  content: "👋 Hi! I'm Givit AI. Answer a few basics and I'll run a Gift Match Score, explain why each item fits, warn you about gifts to avoid, and help turn it into a full concierge bundle.",
+  content: "Hey! I'm Givit — your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll suggest thoughtful picks with a reason for each one.",
 };
 
 const QUICK_PROMPTS = [
@@ -122,10 +94,13 @@ function TypingIndicator() {
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-givit-ember">
         <Sparkles className="h-3.5 w-3.5 text-white" />
       </div>
-      <div className="chat-bubble-ai flex items-center gap-1.5">
-        <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
-        <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
-        <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
+      <div className="chat-bubble-ai flex flex-col gap-1">
+        <span className="text-[10px] font-semibold text-muted-foreground">Givit is thinking…</span>
+        <div className="flex items-center gap-1.5">
+          <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
+          <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
+          <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
+        </div>
       </div>
     </div>
   );
@@ -228,14 +203,8 @@ export function GiftFinderChat() {
     setLoading(true);
 
     try {
-      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-      const res = await fetch(`${base}/api/gift-recommend`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: trimmed, learningProfile: readLearningProfile() }),
-      });
-      const data = await res.json() as { message?: string; results?: GiftResult[]; error?: string };
-      if (!res.ok) throw new Error(data?.error ?? "Recommendation failed");
+      await new Promise((resolve) => setTimeout(resolve, 700 + Math.random() * 500));
+      const data = recommendGifts(trimmed, readLearningProfile());
       setMessages((prev) => [...prev.slice(0, -1), { role: "assistant", content: data.message ?? "", results: data.results ?? [] }]);
     } catch {
       setMessages((prev) => [...prev.slice(0, -1), { role: "assistant", content: "I hit a snag while ranking gifts. Try again with recipient, occasion, budget, interests, and avoid-list details." }]);
@@ -260,7 +229,6 @@ export function GiftFinderChat() {
           <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-givit-ember text-white"><Wand2 className="h-4 w-4" /></div>
           <div>
             <h2 className="font-serif text-xl font-bold text-givit-ink">Gift questionnaire</h2>
-            <p className="text-xs text-muted-foreground">Basic answers, better rankings.</p>
           </div>
         </div>
         <div className="space-y-3">
@@ -343,7 +311,7 @@ export function GiftFinderChat() {
                     )}
                     {msg.results && msg.results.length === 0 && (
                       <div className="ml-11 rounded-2xl border border-border/40 bg-givit-sand p-4 text-sm text-muted-foreground">
-                        No exact matches found. Try different keywords or <Link href="/products" className="givit-link font-medium">browse all products</Link>.
+                        No exact matches found. Try different keywords or <Link href="/products" className="givit-link font-medium">shop the marketplace</Link>.
                       </div>
                     )}
                   </div>
