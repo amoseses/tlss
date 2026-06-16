@@ -1,15 +1,20 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
 import { Bookmark, Grid3X3, Heart, ImagePlus, Plus, Share2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { GIFT_COLLECTIONS, MARKETPLACE_PRODUCTS, MARKETPLACE_RATINGS } from "@/lib/data/marketplace";
 import { ProductCard } from "@/components/product/product-card";
+import {
+  mergeBoardLikes,
+  persistBoardLike,
+  readUserBoards,
+  writeUserBoards,
+  type BoardImage,
+  type UserBoard,
+} from "@/lib/boards/storage";
 
-type BoardImage = { id: string; src: string; caption: string };
-type UserBoard = { id: string; title: string; description: string; images: BoardImage[]; likes: number; liked: boolean };
-
-const INITIAL_USER_BOARDS: UserBoard[] = [];
+const LIKED_BOARDS_KEY = "givit-liked-board-ids";
 
 function CreateBoardModal({ onAdd, onClose }: { onAdd: (b: UserBoard) => void; onClose: () => void }) {
   const [title, setTitle] = useState("");
@@ -131,10 +136,22 @@ export default function BoardsPage() {
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
   const [activeTab, setActiveTab] = useState<"curated" | "mine">("curated");
   const [activeBoard, setActiveBoard] = useState(GIFT_COLLECTIONS[0]?.slug ?? "");
-  const [userBoards, setUserBoards] = useState<UserBoard[]>(INITIAL_USER_BOARDS);
+  const [userBoards, setUserBoards] = useState<UserBoard[]>([]);
   const [activeUserBoard, setActiveUserBoard] = useState<string | null>(null);
   const [showCreateBoard, setShowCreateBoard] = useState(false);
   const [showAddImage, setShowAddImage] = useState(false);
+
+  useEffect(() => {
+    const saved = mergeBoardLikes(readUserBoards());
+    const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
+    setUserBoards(saved.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
+    if (saved[0]) setActiveUserBoard(saved[0].id);
+  }, []);
+
+  function persistBoards(boards: UserBoard[]) {
+    setUserBoards(boards);
+    writeUserBoards(boards.map(({ liked, ...rest }) => rest));
+  }
 
   const curatedBoard = GIFT_COLLECTIONS.find((c) => c.slug === activeBoard) ?? GIFT_COLLECTIONS[0];
   const boardProducts = curatedBoard
@@ -144,28 +161,30 @@ export default function BoardsPage() {
   const currentUserBoard = userBoards.find((b) => b.id === activeUserBoard) ?? userBoards[0];
 
   function createBoard(b: UserBoard) {
-    setUserBoards((prev) => [...prev, b]);
+    persistBoards([...userBoards, b]);
     setActiveUserBoard(b.id);
     setActiveTab("mine");
   }
 
   function toggleLike(id: string) {
-    setUserBoards((prev) =>
-      prev.map((b) => b.id === id ? { ...b, liked: !b.liked, likes: b.liked ? b.likes - 1 : b.likes + 1 } : b)
-    );
+    const board = userBoards.find((b) => b.id === id);
+    if (!board) return;
+    const liked = !board.liked;
+    const likes = liked ? board.likes + 1 : Math.max(0, board.likes - 1);
+    const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
+    if (liked) likedIds.add(id); else likedIds.delete(id);
+    window.localStorage.setItem(LIKED_BOARDS_KEY, JSON.stringify([...likedIds]));
+    persistBoardLike(id, liked, likes);
+    persistBoards(userBoards.map((b) => b.id === id ? { ...b, liked, likes } : b));
   }
 
   function addImageToBoard(img: BoardImage) {
     if (!activeUserBoard) return;
-    setUserBoards((prev) =>
-      prev.map((b) => b.id === activeUserBoard ? { ...b, images: [...b.images, img] } : b)
-    );
+    persistBoards(userBoards.map((b) => b.id === activeUserBoard ? { ...b, images: [...b.images, img] } : b));
   }
 
   function removeImageFromBoard(boardId: string, imgId: string) {
-    setUserBoards((prev) =>
-      prev.map((b) => b.id === boardId ? { ...b, images: b.images.filter((i) => i.id !== imgId) } : b)
-    );
+    persistBoards(userBoards.map((b) => b.id === boardId ? { ...b, images: b.images.filter((i) => i.id !== imgId) } : b));
   }
 
   return (
@@ -176,7 +195,6 @@ export default function BoardsPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-serif text-3xl font-bold text-givit-ink">Gift boards</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Curated collections and your own inspiration boards.</p>
         </div>
         <Button onClick={() => setShowCreateBoard(true)} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
           <Plus className="h-4 w-4" /> Create board
@@ -231,7 +249,7 @@ export default function BoardsPage() {
                 </div>
                 <div className="mt-6 text-center">
                   <Link href={`/products?q=${encodeURIComponent(curatedBoard.query)}`} className="text-sm font-semibold text-givit-ember hover:underline">
-                    Browse all {curatedBoard.title} →
+                    View all {curatedBoard.title} →
                   </Link>
                 </div>
               </>
@@ -328,7 +346,7 @@ export default function BoardsPage() {
                       })}
                     </div>
                     <div className="mt-3 text-center">
-                      <Link href="/products" className="text-sm font-semibold text-givit-ember hover:underline">Browse all products →</Link>
+                      <Link href="/products" className="text-sm font-semibold text-givit-ember hover:underline">Shop marketplace →</Link>
                     </div>
                   </div>
                 </div>

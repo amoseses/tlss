@@ -14,9 +14,9 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 shadow-md">
       <div className="bg-givit-ink text-white">
-        <div className="container flex items-center gap-3 py-3 md:gap-4">
+        <div className="container flex items-center justify-between gap-3 py-2.5 md:py-3">
           <Link href="/" className="shrink-0 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-givit-ember">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-givit-ember">
               <Gift className="h-4 w-4 text-white" />
             </div>
             <span className="font-serif text-xl font-bold tracking-tight hidden sm:block">
@@ -24,18 +24,7 @@ export function SiteHeader() {
             </span>
           </Link>
 
-          <div className="min-w-0 flex-1">
-            <HeaderSearch />
-          </div>
-
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            <Link
-              href="/concierge"
-              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/10 md:flex"
-            >
-              <Bell className="h-4 w-4" /> AutoGift
-            </Link>
-
             <HeaderProfileButton
               loggedIn={Boolean(user && profile)}
               email={profile?.email}
@@ -46,12 +35,16 @@ export function SiteHeader() {
             {isSeller ? (
               <Link
                 href="/admin"
-                className="hidden h-8 items-center rounded-lg bg-givit-ember px-3 text-xs font-semibold text-white hover:bg-givit-ember-hover lg:flex"
+                className="hidden h-8 items-center rounded-md bg-givit-ember px-3 text-xs font-semibold text-white hover:bg-givit-ember-hover lg:flex"
               >
                 Admin
               </Link>
             ) : null}
           </div>
+        </div>
+
+        <div className="container pb-2.5 md:pb-3">
+          <HeaderSearch />
         </div>
 
         <div className="border-t border-white/8 bg-white/5">
@@ -60,9 +53,15 @@ export function SiteHeader() {
               href="/products"
               className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
             >
-              All gifts
+              Marketplace
             </Link>
-            {categories.map((cat) => (
+            <Link
+              href="/gift"
+              className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
+            >
+              AI Finder
+            </Link>
+            {categories.slice(0, 8).map((cat) => (
               <Link
                 key={cat.id}
                 href={`/products?category=${cat.slug}`}
@@ -73,15 +72,16 @@ export function SiteHeader() {
             ))}
             <Link
               href="/boards"
-              className="shrink-0 ml-2 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
+              className="shrink-0 ml-1 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
             >
               Boards
             </Link>
             <Link
-              href="/feedback"
-              className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
+              href="/concierge"
+              className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-givit-coral transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
             >
-              Feedback
+              <Bell className="mr-1 inline h-3 w-3" />
+              AutoGift
             </Link>
           </div>
         </div>

@@ -1,11 +1,10 @@
 import { Link } from "wouter";
-import { Bookmark, Compass, Search, SlidersHorizontal, Sparkles, Trophy } from "lucide-react";
+import { Bookmark, Compass, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 
 import { Breadcrumbs, PageShell } from "@/components/layout/page-shell";
 import { RecentlyViewedRail } from "@/components/personalization/recently-viewed";
 import { ProductGrid } from "@/components/product/product-grid";
 import { WishlistRail } from "@/components/product/wishlist-button";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   GIFT_COLLECTIONS,
@@ -80,19 +79,16 @@ export default function ProductsPage() {
         ) : null}
       </Breadcrumbs>
 
-      <section className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-givit-ember via-rose-500 to-amber-400 p-6 text-white shadow-xl md:p-8">
+      <section className="mb-6 overflow-hidden rounded-lg bg-gradient-to-br from-givit-ember via-rose-500 to-amber-400 p-6 text-white shadow-xl md:p-8">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
           <div>
-            <Badge className="mb-4 rounded-full bg-givit-ember/20 text-givit-coral">
-              <Trophy className="mr-1 h-3.5 w-3.5" /> Gift-first marketplace
-            </Badge>
             <h1 className="font-serif text-3xl font-bold md:text-5xl">
-              Find brighter, better gifts fast.
+              Marketplace
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/70 md:text-base">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70 md:text-base">
               Search by recipient, occasion, budget, or category.
             </p>
-            <form action="/products" className="mt-6 flex max-w-2xl overflow-hidden rounded-full bg-white text-givit-ink shadow-xl">
+            <form action="/products" className="mt-6 flex max-w-2xl overflow-hidden rounded-md bg-white text-givit-ink shadow-xl">
               <input
                 type="search"
                 name="q"
@@ -100,12 +96,12 @@ export default function ProductsPage() {
                 placeholder="Search pens, gamers, teachers, coffee, travel..."
                 className="min-w-0 flex-1 px-5 py-3 text-sm outline-none"
               />
-              <Button type="submit" className="m-1 rounded-full bg-givit-ember px-5 text-white hover:bg-givit-ember-hover">
+              <Button type="submit" className="m-1 rounded-md bg-givit-ember px-5 text-white hover:bg-givit-ember-hover">
                 <Search className="h-4 w-4" /> Search
               </Button>
             </form>
           </div>
-          <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
+          <div className="rounded-lg border border-white/10 bg-white/10 p-5 backdrop-blur">
             <div className="flex items-center gap-2 text-sm font-semibold text-givit-coral">
               <Bookmark className="h-4 w-4" /> Your wishlist
             </div>
