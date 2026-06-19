@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Givit">
-  <rect width="64" height="64" rx="16" fill="#1f2937"/>
-  <path d="M18 29h28v24H18z" fill="#f97316"/>
-  <path d="M16 24h32v9H16z" fill="#fb7185"/>
-  <path d="M30 18h4v35h-4z" fill="#fff7ed"/>
-  <path d="M19 24c-4-8 7-14 13 0M45 24c4-8-7-14-13 0" fill="none" stroke="#fff7ed" stroke-width="4" stroke-linecap="round"/>
-</svg>
