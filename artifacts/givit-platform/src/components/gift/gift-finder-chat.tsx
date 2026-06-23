@@ -3,6 +3,7 @@ import { AlertTriangle, ExternalLink, Send, Sparkles, Star, ThumbsDown, ThumbsUp
 import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { recommendGifts, type GiftRecommendResult } from "@/lib/gift-recommend";
+import { readLearningProfile, applyFeedback as applyLearningFeedback } from "@/lib/gift-learning";
 
 type GiftResult = GiftRecommendResult;
 
