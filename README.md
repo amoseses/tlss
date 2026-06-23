@@ -29,6 +29,73 @@ pnpm install
 pnpm dev
 ```
 
+## 🚀 Latest Updates (June 2026)
+
+### Recent Fixes
+- **Login prompt**: Now dismisses immediately when clicking "Create account" (no longer stays visible)
+- **Login flow**: Fixed whitespace trimming in `.env.local` URL parsing
+- **AI learning**: Persists to both localStorage AND Supabase (`ai_learning` table) via `gift-learning.ts`
+- **Data layer**: Added `data-layer.ts` - queries Supabase first, falls back to seed data
+
+### Admin Dashboard (`/admin`)
+- **Product Management**: Search, edit, add, delete products with modal editor
+- **AI Import**: Upload CSV or paste product URLs — AI extracts product details automatically
+- **Analytics**: DAU, top products by views, revenue tracking, pending submissions
+- **Submissions Management**: Approve/reject customer-submitted products
+- **Orders & Users**: View all orders and user profiles
+
+### Givit AI (`/gift`)
+- **More Occasions**: Father's Day, Mother's Day, Valentine's Day, Easter, Halloween, New Baby, Retirement, Get Well, Just Because, Engagement, Baby Shower
+- **Learning System**: AI learns from your feedback (thumbs up/down) — persists across sessions
+- **Quick Prompts**: One-click gift finders for common scenarios
+
+### AutoGift Concierge (`/concierge`)
+- **Recipient Management**: Add people with their relationships and important dates
+- **Upcoming Calendar**: Shows next 5 upcoming events with countdown
+- **Auto-Pricing**: Total = items price + 10% service fee
+- **Notification Scheduling**: Reminds you 5-6 weeks before each date
+- **Bell Badge**: Shows notification count, dismissable dropdown
+
+### Pinterest-Style Boards (`/boards`)
+- **Public Boards**: No sidebar — clean Pinterest-style grid layout
+- **Visual Cards**: Photo cover for each board, product card layout
+- **Like System**: Public boards are likeable
+- **Drag & Drop Images**: Upload or paste image URLs
+
+### Enhanced Account Page (`/account`)
+- **Orders**: Recent order history with status badges
+- **Wishlist**: Saved products from Givit AI recommendations
+- **Saved Addresses**: AutoGift shipping addresses
+- **Payment Methods**: Saved cards from checkout
+- **Quick Links**: AutoGift, Givit AI, Gift Boards
+
+### Customer Product Submissions (`/submit-product`)
+- Anyone can submit a product URL for admin review
+- Admin approves/rejects in the admin dashboard
+- Approved products appear in the marketplace
+
+### Special Dates Auto-Fill
+When a special date is near (Valentine's Day, Mother's Day, Father's Day, Christmas, etc.), the system auto-fills the occasion in forms.
+
+### Homepage Updates
+- New tagline: "Automating your gift giving so you never forget."
+- Sign-in prompt for non-logged-in users
+- "Sign in" link in the footer CTA
+
+### Notification System
+- Auto-sends notifications for upcoming gift occasions
+- In-app notifications via the bell icon
+- Scheduled notifications appear in the concierge
+
+### Admin Database Setup
+Complete SQL schema at `artifacts/givit-platform/src/lib/supabase/admin-schema.sql`:
+- 25+ tables with full RLS policies
+- Auto-profile creation on signup
+- Analytics views (DAU, top products, revenue)
+- Product submissions table
+- AI learning table
+- Wishlist, addresses, payment methods tables
+
 ## 🚀 New Features (Latest Update)
 
 ### Admin Dashboard (`/admin`)
