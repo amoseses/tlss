@@ -37,7 +37,7 @@ const QUICK_PROMPTS = [
   { label: "Pens ✍️", prompt: "Gift for a teacher who loves pens and journaling, thank-you gift, under $30" },
 ];
 
-const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Graduation", "Wedding", "Holiday", "Housewarming", "Thank you"];
+const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Graduation", "Wedding", "Holiday", "Housewarming", "Thank you", "Father's Day", "Mother's Day", "Valentine's Day", "Easter", "Halloween", "New Baby", "Retirement", "Get Well", "Just Because", "Engagement", "Baby Shower"];
 const STYLES = ["Practical", "Sentimental", "Unique", "Luxury", "Cozy", "Funny", "Minimal", "Experience-like"];
 
 type LearningProfile = {

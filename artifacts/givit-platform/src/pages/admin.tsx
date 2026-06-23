@@ -1,10 +1,15 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { CheckCircle, FileSpreadsheet, Loader2, Package, Plus, Sparkles, Upload, X } from "lucide-react";
+import { 
+  CheckCircle, FileSpreadsheet, Loader2, Package, Plus, Sparkles, Upload, X, 
+  BarChart3, Users, ShoppingBag, TrendingUp, Eye, Edit3, Save, Trash2, 
+  Search, Filter, CheckSquare, AlertTriangle, DollarSign, Activity
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { extractProductFromUrl, getImportedCount, saveImportedProduct } from "@/lib/admin/imported-products";
+import { getAnalytics, getProductSubmissions, updateProductSubmission, getProducts, upsertProduct, deleteProduct, getAllProfiles, getOrders, trackEvent } from "@/lib/supabase/db";
 
 type ParsedRow = { url: string; name: string; brand: string; price: string; category: string; status: "pending" | "processing" | "done" | "error" };
 
@@ -31,19 +36,62 @@ function parseCSVRows(text: string): ParsedRow[] {
   }).filter((r) => r.url || r.name);
 }
 
+type Tab = "products" | "import" | "analytics" | "submissions" | "orders" | "users";
+
 export default function AdminPage() {
-  const { profile, loading } = useAuth();
+  const { profile, loading, user } = useAuth();
   const [, navigate] = useLocation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [urlInput, setUrlInput] = useState("");
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(0);
+  const [activeTab, setActiveTab] = useState<Tab>("products");
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [allOrders, setAllOrders] = useState<any[]>([]);
+  const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  if (!loading && profile?.role !== "admin") {
-    navigate("/");
-    return null;
+  useEffect(() => {
+    if (!loading && (!user || profile?.role !== "admin")) {
+      navigate("/");
+    }
+  }, [loading, user, profile, navigate]);
+
+  useEffect(() => {
+    if (profile?.role !== "admin") return;
+    loadData();
+  }, [activeTab, profile]);
+
+  async function loadData() {
+    try {
+      if (activeTab === "analytics") {
+        const data = await getAnalytics();
+        setAnalyticsData(data);
+      } else if (activeTab === "submissions") {
+        const data = await getProductSubmissions();
+        setSubmissions(data);
+      } else if (activeTab === "products") {
+        const data = await getProducts();
+        setAllProducts(data);
+      } else if (activeTab === "orders") {
+        const data = await getOrders({ limit: 50 });
+        setAllOrders(data);
+      } else if (activeTab === "users") {
+        const data = await getAllProfiles();
+        setAllProfiles(data);
+      }
+    } catch (err) {
+      console.error("Failed to load admin data:", err);
+    }
   }
+
+  if (loading) return <PageShell><div className="flex min-h-[400px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-givit-ember border-t-transparent" /></div></PageShell>;
+  if (profile?.role !== "admin") return null;
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -75,15 +123,10 @@ export default function AdminPage() {
       if (row.status === "done") continue;
       setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "processing" } : r));
       await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 400));
-
       try {
         const extracted = extractProductFromUrl(row.url, row);
         saveImportedProduct({ ...extracted, status: "done" });
-        setRows((prev) => prev.map((r, idx) => idx === i ? {
-          ...r,
-          ...extracted,
-          status: "done" as const,
-        } : r));
+        setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, ...extracted, status: "done" as const } : r));
         setDone((n) => n + 1);
       } catch {
         setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "error" } : r));
@@ -92,164 +135,539 @@ export default function AdminPage() {
     setProcessing(false);
   }
 
+  async function handleApproveSubmission(id: string) {
+    await updateProductSubmission(id, { status: "approved", reviewed_by: user?.id });
+    loadData();
+  }
+
+  async function handleRejectSubmission(id: string) {
+    await updateProductSubmission(id, { status: "rejected", reviewed_by: user?.id });
+    loadData();
+  }
+
+  async function handleSaveProduct() {
+    if (!editingProduct) return;
+    await upsertProduct(editingProduct);
+    setShowEditModal(false);
+    setEditingProduct(null);
+    loadData();
+  }
+
+  async function handleDeleteProduct(id: string) {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    await deleteProduct(id);
+    loadData();
+  }
+
   const pendingCount = rows.filter((r) => r.status === "pending").length;
+  const filteredProducts = allProducts.filter((p: any) => 
+    !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.slug?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const tabs: { id: Tab; label: string; icon: any }[] = [
+    { id: "products", label: "Products", icon: Package },
+    { id: "import", label: "Import", icon: Upload },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "submissions", label: "Submissions", icon: AlertTriangle },
+    { id: "orders", label: "Orders", icon: ShoppingBag },
+    { id: "users", label: "Users", icon: Users },
+  ];
 
   return (
     <PageShell wide>
       <div className="mb-6">
         <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Admin</p>
-        <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Product management</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Upload a spreadsheet or paste product URLs — AI will scrape each link and extract all the details needed to add the product to Givit.
-        </p>
+        <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Dashboard</h1>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-5">
-          <div className="givit-section space-y-4">
-            <div className="flex items-center gap-2 border-b border-border/50 pb-3">
-              <FileSpreadsheet className="h-4 w-4 text-givit-ember" />
-              <h2 className="font-semibold text-givit-ink">Upload spreadsheet</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Upload a <strong>.csv</strong> or <strong>.xlsx</strong> file with columns: <code className="rounded bg-muted px-1 py-0.5 text-xs">product_url</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">name</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">brand</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">price</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">category</code>.
-              AI will visit each URL and fill in any missing fields automatically.
-            </p>
-            <div className="rounded-lg border-2 border-dashed border-border/60 p-6 text-center">
-              <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
-              <Upload className="mx-auto h-8 w-8 text-muted-foreground/50" />
-              <p className="mt-2 text-sm font-medium text-muted-foreground">Drop a CSV or spreadsheet here</p>
-              <p className="text-xs text-muted-foreground/60">or</p>
-              <Button onClick={() => fileRef.current?.click()} variant="outline" size="sm" className="mt-2 rounded-md">
-                Choose file
-              </Button>
-            </div>
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">Example CSV format:</p>
-              <pre className="overflow-x-auto rounded-lg bg-muted px-4 py-3 text-xs text-muted-foreground">{SAMPLE_CSV}</pre>
-            </div>
-          </div>
+      {/* Tabs */}
+      <div className="mb-6 flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+              activeTab === tab.id ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <tab.icon className="h-3.5 w-3.5" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-          <div className="givit-section space-y-3">
-            <div className="flex items-center gap-2 border-b border-border/50 pb-3">
-              <Plus className="h-4 w-4 text-givit-ember" />
-              <h2 className="font-semibold text-givit-ink">Add product URLs manually</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">Paste an Amazon, retailer, or product page URL — AI will scrape it and extract name, price, brand, description, and category.</p>
-            <div className="flex gap-2">
+      {/* PRODUCTS TAB */}
+      {activeTab === "products" && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") addUrl(); }}
-                placeholder="https://www.amazon.com/product/..."
-                className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products..."
+                className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
               />
-              <Button onClick={addUrl} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover shrink-0">
-                <Plus className="h-4 w-4" /> Add
-              </Button>
             </div>
+            <Button onClick={() => { setEditingProduct({ name: "", slug: "", price_cents: 0, description: "", is_published: false }); setShowEditModal(true); }} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+              <Plus className="h-4 w-4" /> Add Product
+            </Button>
           </div>
 
-          {rows.length > 0 && (
-            <div className="givit-section space-y-3">
-              <div className="flex items-center justify-between border-b border-border/50 pb-3">
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-givit-ember" />
-                  <h2 className="font-semibold text-givit-ink">Queue ({rows.length})</h2>
-                </div>
-                {!processing && pendingCount > 0 && (
-                  <Button onClick={runProcessing} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover h-8 text-xs">
-                    <Sparkles className="h-3.5 w-3.5" /> Process {pendingCount} with AI
-                  </Button>
-                )}
-                {processing && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Processing {done}/{rows.length}…
-                  </div>
-                )}
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Name</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Price</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Score</th>
+                  <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {filteredProducts.map((product: any) => (
+                  <tr key={product.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-foreground">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">{product.slug}</p>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">${(product.price_cents / 100).toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        product.is_published ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      }`}>
+                        {product.is_published ? "Published" : "Draft"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{product.gift_match_score ?? "—"}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          onClick={() => { setEditingProduct(product); setShowEditModal(true); }}
+                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-givit-ember"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* IMPORT TAB */}
+      {activeTab === "import" && (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-5">
+            <div className="givit-section space-y-4">
+              <div className="flex items-center gap-2 border-b border-border/50 pb-3">
+                <FileSpreadsheet className="h-4 w-4 text-givit-ember" />
+                <h2 className="font-semibold text-givit-ink">Upload spreadsheet</h2>
               </div>
-              <div className="divide-y divide-border/40">
-                {rows.map((row, i) => (
-                  <div key={i} className="flex items-center gap-3 py-2.5">
-                    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                      row.status === "done" ? "bg-emerald-100 text-emerald-700" :
-                      row.status === "processing" ? "bg-amber-100 text-amber-700" :
-                      row.status === "error" ? "bg-rose-100 text-rose-700" :
-                      "bg-muted text-muted-foreground"
-                    }`}>
-                      {row.status === "done" ? <CheckCircle className="h-4 w-4" /> :
-                       row.status === "processing" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
-                       i + 1}
+              <p className="text-sm text-muted-foreground">
+                Upload a <strong>.csv</strong> or <strong>.xlsx</strong> file with columns: <code className="rounded bg-muted px-1 py-0.5 text-xs">product_url</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">name</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">brand</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">price</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">category</code>.
+              </p>
+              <div className="rounded-lg border-2 border-dashed border-border/60 p-6 text-center">
+                <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
+                <Upload className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                <p className="mt-2 text-sm font-medium text-muted-foreground">Drop a CSV or spreadsheet here</p>
+                <p className="text-xs text-muted-foreground/60">or</p>
+                <Button onClick={() => fileRef.current?.click()} variant="outline" size="sm" className="mt-2 rounded-md">
+                  Choose file
+                </Button>
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs font-semibold text-muted-foreground">Example CSV format:</p>
+                <pre className="overflow-x-auto rounded-lg bg-muted px-4 py-3 text-xs text-muted-foreground">{SAMPLE_CSV}</pre>
+              </div>
+            </div>
+
+            <div className="givit-section space-y-3">
+              <div className="flex items-center gap-2 border-b border-border/50 pb-3">
+                <Plus className="h-4 w-4 text-givit-ember" />
+                <h2 className="font-semibold text-givit-ink">Add product URLs manually</h2>
+              </div>
+              <p className="text-sm text-muted-foreground">Paste a product page URL — AI will scrape it and extract details.</p>
+              <div className="flex gap-2">
+                <input
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") addUrl(); }}
+                  placeholder="https://www.amazon.com/product/..."
+                  className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
+                <Button onClick={addUrl} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover shrink-0">
+                  <Plus className="h-4 w-4" /> Add
+                </Button>
+              </div>
+            </div>
+
+            {rows.length > 0 && (
+              <div className="givit-section space-y-3">
+                <div className="flex items-center justify-between border-b border-border/50 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-givit-ember" />
+                    <h2 className="font-semibold text-givit-ink">Queue ({rows.length})</h2>
+                  </div>
+                  {!processing && pendingCount > 0 && (
+                    <Button onClick={runProcessing} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover h-8 text-xs">
+                      <Sparkles className="h-3.5 w-3.5" /> Process {pendingCount} with AI
+                    </Button>
+                  )}
+                  {processing && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Processing {done}/{rows.length}…
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{row.name || row.url}</p>
-                      <p className="truncate text-xs text-muted-foreground">{row.url}</p>
-                      {row.status === "done" && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {row.brand && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{row.brand}</span>}
-                          {row.price && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">${row.price}</span>}
-                          {row.category && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">{row.category}</span>}
-                          <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700 font-semibold">AI processed ✓</span>
-                        </div>
+                  )}
+                </div>
+                <div className="divide-y divide-border/40">
+                  {rows.map((row, i) => (
+                    <div key={i} className="flex items-center gap-3 py-2.5">
+                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        row.status === "done" ? "bg-emerald-100 text-emerald-700" :
+                        row.status === "processing" ? "bg-amber-100 text-amber-700" :
+                        row.status === "error" ? "bg-rose-100 text-rose-700" :
+                        "bg-muted text-muted-foreground"
+                      }`}>
+                        {row.status === "done" ? <CheckCircle className="h-4 w-4" /> :
+                         row.status === "processing" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
+                         i + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{row.name || row.url}</p>
+                        <p className="truncate text-xs text-muted-foreground">{row.url}</p>
+                        {row.status === "done" && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {row.brand && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{row.brand}</span>}
+                            {row.price && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">${row.price}</span>}
+                            {row.category && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">{row.category}</span>}
+                            <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700 font-semibold">AI processed ✓</span>
+                          </div>
+                        )}
+                      </div>
+                      {row.status !== "processing" && (
+                        <button type="button" onClick={() => removeRow(i)} className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
                       )}
                     </div>
-                    {row.status !== "processing" && (
-                      <button type="button" onClick={() => removeRow(i)} className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <aside className="space-y-4">
+            <div className="rounded-xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/10 to-amber-100/40 p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-givit-ember text-white">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-givit-ink">How AI processing works</h2>
+                  <ol className="mt-2 space-y-2 text-xs leading-5 text-muted-foreground">
+                    <li>1. Upload your CSV or paste a URL</li>
+                    <li>2. AI visits each product page</li>
+                    <li>3. Extracts: name, brand, price, description, images, category</li>
+                    <li>4. Generates a Gift Match Score and AI summary</li>
+                    <li>5. You review and publish to the marketplace</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* ANALYTICS TAB */}
+      {activeTab === "analytics" && (
+        <div className="space-y-6">
+          {analyticsData ? (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="givit-panel p-4">
+                  <div className="flex items-center gap-2 text-givit-ember">
+                    <Activity className="h-4 w-4" />
+                    <p className="text-xs font-semibold uppercase tracking-wider">Pending Submissions</p>
+                  </div>
+                  <p className="mt-2 text-3xl font-bold text-givit-ink">{analyticsData.pendingSubmissions?.pending_count ?? 0}</p>
+                </div>
+                <div className="givit-panel p-4">
+                  <div className="flex items-center gap-2 text-givit-ember">
+                    <Users className="h-4 w-4" />
+                    <p className="text-xs font-semibold uppercase tracking-wider">Recent DAU</p>
+                  </div>
+                  <p className="mt-2 text-3xl font-bold text-givit-ink">
+                    {analyticsData.dau?.[0]?.dau ?? 0}
+                  </p>
+                </div>
+                <div className="givit-panel p-4">
+                  <div className="flex items-center gap-2 text-givit-ember">
+                    <DollarSign className="h-4 w-4" />
+                    <p className="text-xs font-semibold uppercase tracking-wider">Today's Revenue</p>
+                  </div>
+                  <p className="mt-2 text-3xl font-bold text-givit-ink">
+                    ${analyticsData.revenue?.[0] ? (analyticsData.revenue[0].revenue_cents / 100).toFixed(2) : "0.00"}
+                  </p>
+                </div>
+                <div className="givit-panel p-4">
+                  <div className="flex items-center gap-2 text-givit-ember">
+                    <ShoppingBag className="h-4 w-4" />
+                    <p className="text-xs font-semibold uppercase tracking-wider">Today's Orders</p>
+                  </div>
+                  <p className="mt-2 text-3xl font-bold text-givit-ink">
+                    {analyticsData.revenue?.[0]?.orders ?? 0}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Top Products */}
+                <div className="givit-section p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-givit-ember" />
+                    <h2 className="font-semibold text-givit-ink">Top Products by Views</h2>
+                  </div>
+                  <div className="space-y-2">
+                    {analyticsData.topProducts?.slice(0, 5).map((product: any, i: number) => (
+                      <div key={product.id} className="flex items-center justify-between rounded-lg bg-muted/50 p-2.5 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-givit-ember/10 text-[10px] font-bold text-givit-ember">{i + 1}</span>
+                          <span className="font-medium text-foreground">{product.name}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{product.views} views</span>
+                      </div>
+                    ))}
+                    {(!analyticsData.topProducts || analyticsData.topProducts.length === 0) && (
+                      <p className="text-sm text-muted-foreground">No data yet. Start tracking events.</p>
                     )}
                   </div>
-                ))}
-              </div>
-              {rows.every((r) => r.status === "done") && (
-                <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-700 text-center">
-                  ✓ All {rows.length} products added to the marketplace ({getImportedCount()} total imported).
                 </div>
-              )}
+
+                {/* Recent Revenue */}
+                <div className="givit-section p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-givit-ember" />
+                    <h2 className="font-semibold text-givit-ink">Revenue (Last 7 Days)</h2>
+                  </div>
+                  <div className="space-y-2">
+                    {analyticsData.revenue?.slice(0, 7).map((day: any) => (
+                      <div key={day.day} className="flex items-center justify-between rounded-lg bg-muted/50 p-2.5 text-sm">
+                        <span className="text-muted-foreground">{new Date(day.day).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-muted-foreground">{day.orders} orders</span>
+                          <span className="font-medium text-foreground">${(day.revenue_cents / 100).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {(!analyticsData.revenue || analyticsData.revenue.length === 0) && (
+                      <p className="text-sm text-muted-foreground">No revenue data yet.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}
         </div>
+      )}
 
-        <aside className="space-y-4">
-          <div className="rounded-xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/10 to-amber-100/40 p-5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-givit-ember text-white">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-givit-ink">How AI processing works</h2>
-                <ol className="mt-2 space-y-2 text-xs leading-5 text-muted-foreground">
-                  <li>1. Upload your CSV or paste a URL</li>
-                  <li>2. AI visits each product page</li>
-                  <li>3. Extracts: name, brand, price, description, images, category</li>
-                  <li>4. Generates a Gift Match Score and AI summary</li>
-                  <li>5. You review and publish to the marketplace</li>
-                </ol>
-              </div>
+      {/* SUBMISSIONS TAB */}
+      {activeTab === "submissions" && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Customer-submitted products that need review. Approve to add to marketplace, or reject.
+          </p>
+          {submissions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-16 text-center">
+              <CheckSquare className="h-10 w-10 text-muted-foreground/50" />
+              <p className="mt-3 font-semibold text-muted-foreground">No pending submissions</p>
             </div>
-          </div>
-
-          <div className="givit-section space-y-3">
-            <h2 className="font-semibold text-givit-ink text-sm">Required columns</h2>
-            <div className="space-y-1.5 text-xs text-muted-foreground">
-              {[
-                { col: "product_url", desc: "Full product page URL", req: true },
-                { col: "name", desc: "Product name (AI fills if missing)", req: false },
-                { col: "brand", desc: "Brand name", req: false },
-                { col: "price", desc: "Retail price in USD", req: false },
-                { col: "category", desc: "Tech, Home, Kitchen…", req: false },
-              ].map((item) => (
-                <div key={item.col} className="flex items-start gap-2">
-                  <code className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${item.req ? "bg-givit-ember/10 text-givit-ember" : "bg-muted"}`}>
-                    {item.col}
-                  </code>
-                  <span>{item.desc} {item.req ? <span className="text-givit-ember font-semibold">*required</span> : "(optional)"}</span>
+          ) : (
+            <div className="space-y-3">
+              {submissions.map((sub: any) => (
+                <div key={sub.id} className="givit-panel flex items-start justify-between gap-4 p-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground">{sub.name || "Unnamed product"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{sub.url}</p>
+                    {sub.brand && <p className="text-xs text-muted-foreground">Brand: {sub.brand}</p>}
+                    {sub.price_cents && <p className="text-xs font-semibold text-givit-ember">${(sub.price_cents / 100).toFixed(2)}</p>}
+                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Submitted by {sub.profiles?.full_name || sub.profiles?.email || "Anonymous"}</span>
+                      <span>·</span>
+                      <span>{new Date(sub.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      sub.status === "pending" ? "bg-amber-100 text-amber-700" :
+                      sub.status === "approved" ? "bg-emerald-100 text-emerald-700" :
+                      "bg-rose-100 text-rose-700"
+                    }`}>{sub.status}</span>
+                  </div>
+                  {sub.status === "pending" && (
+                    <div className="flex shrink-0 gap-2">
+                      <Button onClick={() => handleApproveSubmission(sub.id)} size="sm" className="rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
+                        <CheckCircle className="h-3.5 w-3.5" /> Approve
+                      </Button>
+                      <Button onClick={() => handleRejectSubmission(sub.id)} size="sm" variant="outline" className="rounded-lg text-destructive border-destructive/30 hover:bg-destructive/10">
+                        <X className="h-3.5 w-3.5" /> Reject
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ORDERS TAB */}
+      {activeTab === "orders" && (
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Order ID</th>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Total</th>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Items</th>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {allOrders.map((order: any) => (
+                <tr key={order.id} className="hover:bg-muted/30">
+                  <td className="px-4 py-3 font-mono text-xs text-foreground">{order.id.slice(0, 8)}…</td>
+                  <td className="px-4 py-3 font-medium text-foreground">${(order.total_cents / 100).toFixed(2)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      order.status === "delivered" ? "bg-emerald-100 text-emerald-700" :
+                      order.status === "shipped" ? "bg-blue-100 text-blue-700" :
+                      order.status === "cancelled" ? "bg-rose-100 text-rose-700" :
+                      "bg-amber-100 text-amber-700"
+                    }`}>{order.status}</span>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{order.order_items?.length ?? 0}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* USERS TAB */}
+      {activeTab === "users" && (
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Name</th>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Email</th>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Role</th>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Joined</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {allProfiles.map((profile: any) => (
+                <tr key={profile.id} className="hover:bg-muted/30">
+                  <td className="px-4 py-3 font-medium text-foreground">{profile.full_name || "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{profile.email || "—"}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      profile.role === "admin" ? "bg-givit-ember/10 text-givit-ember" :
+                      profile.role === "seller" ? "bg-blue-100 text-blue-700" :
+                      "bg-muted text-muted-foreground"
+                    }`}>{profile.role}</span>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{new Date(profile.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* EDIT PRODUCT MODAL */}
+      {showEditModal && editingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border p-5">
+              <h2 className="font-serif text-xl font-bold text-givit-ink">
+                {editingProduct.id ? "Edit Product" : "New Product"}
+              </h2>
+              <button type="button" onClick={() => setShowEditModal(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-4 p-5">
+              <div className="grid gap-1.5">
+                <label className="text-sm font-semibold">Name *</label>
+                <input
+                  value={editingProduct.name || ""}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm font-semibold">Slug</label>
+                <input
+                  value={editingProduct.slug || ""}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, slug: e.target.value })}
+                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm font-semibold">Price (cents)</label>
+                <input
+                  type="number"
+                  value={editingProduct.price_cents || 0}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, price_cents: parseInt(e.target.value) || 0 })}
+                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm font-semibold">Description</label>
+                <textarea
+                  value={editingProduct.description || ""}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  rows={3}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is_published"
+                  checked={editingProduct.is_published || false}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, is_published: e.target.checked })}
+                  className="rounded border-border"
+                />
+                <label htmlFor="is_published" className="text-sm font-medium text-foreground">Published</label>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={() => setShowEditModal(false)}>Cancel</Button>
+                <Button onClick={handleSaveProduct} className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+                  <Save className="h-4 w-4" /> Save Product
+                </Button>
+              </div>
+            </div>
           </div>
-        </aside>
-      </div>
+        </div>
+      )}
     </PageShell>
   );
 }

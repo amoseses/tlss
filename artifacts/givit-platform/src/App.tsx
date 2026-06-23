@@ -16,6 +16,7 @@ import SignupPage from "@/pages/signup";
 import ConciergePage from "@/pages/concierge";
 import BoardsPage from "@/pages/boards";
 import FeedbackPage from "@/pages/feedback";
+import SubmitProductPage from "@/pages/submit-product";
 import AccountPage from "@/pages/account";
 import AdminPage from "@/pages/admin";
 import PrivacyPage from "@/pages/privacy";
@@ -39,6 +40,7 @@ function Router() {
           <Route path="/concierge" component={ConciergePage} />
           <Route path="/boards" component={BoardsPage} />
           <Route path="/feedback" component={FeedbackPage} />
+          <Route path="/submit-product" component={SubmitProductPage} />
           <Route path="/account" component={AccountPage} />
           <Route path="/admin" component={AdminPage} />
           <Route path="/privacy" component={PrivacyPage} />

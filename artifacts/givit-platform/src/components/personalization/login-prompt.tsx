@@ -11,6 +11,13 @@ export function LoginPrompt() {
 
   useEffect(() => {
     const dismissed = window.localStorage.getItem(KEY);
+    // Check if user just signed up - dismiss automatically
+    const justSignedUp = window.localStorage.getItem("givit-just-signed-up");
+    if (justSignedUp) {
+      window.localStorage.removeItem("givit-just-signed-up");
+      setOpen(false);
+      return;
+    }
     const timer = window.setTimeout(() => setOpen(!dismissed), 500);
     return () => window.clearTimeout(timer);
   }, []);

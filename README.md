@@ -9,36 +9,116 @@ AI-powered gift recommendation platform. Built with React, Vite, and Supabase.
 | Frontend | React 19, Vite 7, TypeScript |
 | UI | Tailwind CSS 4, Radix UI, Framer Motion |
 | Backend | Supabase (PostgreSQL, Auth, Storage) |
-| ORM | Drizzle ORM + Drizzle Kit |
-| API | OpenAPI 3.0, Orval (code generation) |
-| Payments | Stripe (Checkout, Connect) |
-| Shipping | Shippo |
+| Payments | Stripe |
 | Package Manager | pnpm (workspace monorepo) |
+
+## Quick Start
+
+```bash
+# 1. Install dependencies
+pnpm install
+
+# 2. Run the complete SQL schema in Supabase SQL Editor
+#    (see the SQL file at artifacts/givit-platform/src/lib/supabase/admin-schema.sql)
+#    This creates ALL tables, RLS policies, triggers, and analytics views
+
+# 3. Set your environment variables
+#    Copy .env.local and fill in your Supabase URL + anon key
+
+# 4. Start the dev server
+pnpm dev
+```
+
+## 🚀 New Features (Latest Update)
+
+### Admin Dashboard (`/admin`)
+- **Product Management**: Search, edit, add, and delete products
+- **AI Import**: Upload CSV or paste product URLs — AI extracts product details automatically
+- **Analytics**: DAU, top products by views, revenue tracking, pending submissions
+- **Submissions Management**: Approve/reject customer-submitted products
+- **Orders & Users**: View all orders and user profiles
+
+### Givit AI (`/gift`)
+- **More Occasions**: Father's Day, Mother's Day, Valentine's Day, Easter, Halloween, New Baby, Retirement, Get Well, Just Because, Engagement, Baby Shower
+- **Learning System**: AI learns from your feedback (thumbs up/down) — persists across sessions
+- **Quick Prompts**: One-click gift finders for common scenarios
+
+### AutoGift Concierge (`/concierge`)
+- **Recipient Management**: Add people with their relationships and important dates
+- **Upcoming Calendar**: Shows next 5 upcoming events with countdown
+- **Auto-Pricing**: Total = items price + 10% service fee
+- **Notification Scheduling**: Reminds you 5-6 weeks before each date
+
+### Pinterest-Style Boards (`/boards`)
+- **Public Boards**: No sidebar — clean Pinterest-style grid layout
+- **Visual Cards**: Photo cover for each board, product card layout
+- **Like System**: Public boards are likeable
+- **Drag & Drop Images**: Upload or paste image URLs
+
+### Enhanced Account Page (`/account`)
+- **Orders**: Recent order history with status badges
+- **Wishlist**: Saved products from Givit AI recommendations
+- **Saved Addresses**: AutoGift shipping addresses
+- **Payment Methods**: Saved cards from checkout
+- **Quick Links**: AutoGift, Givit AI, Gift Boards
+
+### Customer Product Submissions (`/submit-product`)
+- Anyone can submit a product URL for admin review
+- Admin approves/rejects in the admin dashboard
+- Approved products appear in the marketplace
+
+### Special Dates Auto-Fill
+When a special date is near (Valentine's Day, Mother's Day, Father's Day, Christmas, etc.), the system auto-fills the occasion in forms.
+
+### Homepage Updates
+- New tagline: "Automating your gift giving so you never forget."
+- Sign-in prompt for non-logged-in users
+- "Sign in" link in the footer CTA
+
+### Notification System
+- Auto-sends notifications for upcoming gift occasions
+- In-app notifications via the bell icon
+- Scheduled notifications appear in the concierge
+
+### Admin Database Setup
+Complete SQL schema at `artifacts/givit-platform/src/lib/supabase/admin-schema.sql`:
+- 25+ tables with full RLS policies
+- Auto-profile creation on signup
+- Analytics views (DAU, top products, revenue)
+- Product submissions table
+- AI learning table
+- Wishlist, addresses, payment methods tables
+
+## Setting Up Supabase Admin
+
+1. Go to your Supabase Dashboard → SQL Editor
+2. Open `artifacts/givit-platform/src/lib/supabase/admin-schema.sql`
+3. Copy and paste the entire SQL file into the SQL Editor
+4. Run it — this creates ALL tables, policies, triggers, and views
+5. After your first user signs up, make them admin:
+   ```sql
+   UPDATE profiles SET role = 'admin' WHERE email = 'your-email@example.com';
+   ```
 
 ## Project Structure
 
 ```
 ├── artifacts/givit-platform/   # Main frontend application
 │   ├── src/
-│   │   ├── components/         # Reusable React components (ui, layout, product, etc.)
+│   │   ├── components/         # Reusable React components
+│   │   │   ├── gift/           # Givit AI chat component
+│   │   │   ├── personalization/ # Login prompt, gift calendar
+│   │   │   ├── layout/         # Site header, footer, profile button
+│   │   │   ├── product/        # Product card, wishlist button
+│   │   │   └── ui/             # Base UI components (button, card, etc.)
 │   │   ├── lib/
-│   │   │   ├── supabase/       # Supabase client, server, env config
-│   │   │   ├── commerce/       # Stripe checkout, fulfillment logic
-│   │   │   └── data/           # Data access layer (admin, catalog, manager)
-│   │   ├── pages/              # Route pages
+│   │   │   ├── supabase/       # Supabase client, db helpers, schema SQL
+│   │   │   ├── data/           # Marketplace data, special dates
+│   │   │   ├── admin/          # Imported products helper
+│   │   │   └── commerce/       # Stripe checkout
+│   │   ├── pages/              # All route pages
 │   │   └── types/              # TypeScript type definitions
-│   ├── public/                 # Static assets (favicon, opengraph)
 │   └── vite.config.ts
-├── lib/
-│   ├── db/                     # Drizzle database schema + migrations
-│   │   ├── src/schema/         # PostgreSQL schema definitions
-│   │   ├── drizzle.config.ts   # Drizzle Kit configuration
-│   │   └── src/index.ts        # Drizzle client initialization
-│   ├── api-client-react/       # Generated React API client (Orval)
-│   ├── api-spec/               # OpenAPI spec + codegen config
-│   └── api-zod/                # Generated Zod validation schemas
-├── scripts/                    # Utility scripts
-└── config files                # pnpm-workspace, tsconfig, vercel, etc.
 ```
 
 ## Prerequisites

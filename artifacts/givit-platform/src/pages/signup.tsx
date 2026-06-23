@@ -28,6 +28,8 @@ export default function SignupPage() {
         options: { data: { full_name: name } },
       });
       if (authError) { setError(authError.message); return; }
+      // Set flag so login prompt auto-dismisses after signup
+      window.localStorage.setItem("givit-just-signed-up", "1");
       setDone(true);
     } finally {
       setLoading(false);

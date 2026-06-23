@@ -179,9 +179,9 @@ export default function HomePage() {
         <div className="relative overflow-hidden rounded-xl bg-givit-ink px-8 py-10 text-white md:px-12">
           <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
           <div className="relative max-w-2xl">
-            <h2 className="font-serif text-2xl font-bold md:text-3xl">Never miss a gift moment again.</h2>
+          <h2 className="font-serif text-2xl font-bold md:text-3xl">Automating your gift giving so you never forget.</h2>
             <p className="mt-3 mb-6 text-sm leading-7 text-white/65">
-              AutoGift reminds you early and handles fulfillment once you approve.
+              AutoGift reminds you early, handles fulfillment once you approve, and learns your style over time. <Link href="/login" className="underline text-white/80 hover:text-white">Sign in</Link> to get started.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button asChild className="rounded-lg bg-givit-ember px-5 text-white hover:bg-givit-ember-hover">
