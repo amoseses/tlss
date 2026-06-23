@@ -53,7 +53,16 @@ export function LoginPrompt() {
           <Button asChild className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
             <Link href="/login?next=/concierge">Log in</Link>
           </Button>
-          <Button asChild variant="outline" className="rounded-full">
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-full"
+            onClick={() => {
+              window.localStorage.setItem("givit-login-prompt-dismissed", "1");
+              window.localStorage.setItem("givit-just-signed-up", "1");
+              setOpen(false);
+            }}
+          >
             <Link href="/signup?next=/concierge">Create account</Link>
           </Button>
         </div>
