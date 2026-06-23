@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
-import { Bell, Calendar, Gift, Plus, Sparkles, Trash2, Users, X } from "lucide-react";
+import { Bell, Calendar, Gift, Plus, Sparkles, Trash2, Users, X, DollarSign, ShoppingCart, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
+import { getTodaySpecialDate } from "@/lib/data/special-dates";
 
 type Occasion = { label: string; date: string };
 type Recipient = { id: string; name: string; relationship: string; occasions: Occasion[] };
@@ -11,10 +12,78 @@ type Recipient = { id: string; name: string; relationship: string; occasions: Oc
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
 
+const NOTIFICATION_KEY = "givit-notifications";
+const NOTIFICATION_LEAD_DAYS = 35; // 5 weeks before
+
+type Notification = {
+  id: string;
+  recipientName: string;
+  occasion: string;
+  date: string;
+  daysUntil: number;
+  dismissed: boolean;
+  createdAt: string;
+};
+
+function getNotifications(): Notification[] {
+  try {
+    return JSON.parse(window.localStorage.getItem(NOTIFICATION_KEY) ?? "[]");
+  } catch { return []; }
+}
+
+function saveNotifications(notifications: Notification[]) {
+  window.localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
+}
+
+function generateNotifications(recipients: Recipient[]): Notification[] {
+  const existing = getNotifications();
+  const existingKeys = new Set(existing.map(n => `${n.recipientName}-${n.occasion}-${n.date}`));
+  const now = new Date();
+  const newNotifications: Notification[] = [];
+
+  for (const r of recipients) {
+    for (const o of r.occasions) {
+      const key = `${r.name}-${o.label}-${o.date}`;
+      if (existingKeys.has(key)) continue;
+      
+      const occDate = new Date(o.date);
+      const leadDate = new Date(occDate.getTime() - NOTIFICATION_LEAD_DAYS * 86400000);
+      const daysUntil = Math.ceil((occDate.getTime() - now.getTime()) / 86400000);
+      
+      if (daysUntil > 0 && daysUntil <= NOTIFICATION_LEAD_DAYS + 7) {
+        newNotifications.push({
+          id: crypto.randomUUID(),
+          recipientName: r.name,
+          occasion: o.label,
+          date: o.date,
+          daysUntil,
+          dismissed: false,
+          createdAt: now.toISOString(),
+        });
+      }
+    }
+  }
+
+  const merged = [...newNotifications, ...existing];
+  saveNotifications(merged);
+  return merged;
+}
+
 function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]) => void; onClose: () => void }) {
   type PersonForm = { name: string; relationship: string; occasions: Occasion[] };
   const emptyPerson = (): PersonForm => ({ name: "", relationship: "", occasions: [{ label: "Birthday", date: "" }] });
   const [people, setPeople] = useState<PersonForm[]>([emptyPerson()]);
+
+  // Auto-fill special date if applicable
+  useEffect(() => {
+    const special = getTodaySpecialDate();
+    if (special) {
+      const year = new Date().getFullYear();
+      const date = special.getDate(year);
+      const dateStr = date.toISOString().split("T")[0];
+      setPeople([{ name: "", relationship: "", occasions: [{ label: special.name, date: dateStr }] }]);
+    }
+  }, []);
 
   function addPerson() {
     setPeople((prev) => [...prev, emptyPerson()]);
@@ -137,6 +206,11 @@ function RecipientCard({ recipient, onDelete }: { recipient: Recipient; onDelete
 
   const daysUntil = upcoming ? Math.ceil((upcoming.parsed.getTime() - today.getTime()) / 86400000) : null;
 
+  // AutoGift pricing: items price + 10% service fee
+  const estimatedItemPrice = 5000; // $50 default estimate
+  const serviceFee = Math.round(estimatedItemPrice * 0.1);
+  const totalPrice = estimatedItemPrice + serviceFee;
+
   return (
     <div className="givit-panel flex flex-col gap-3 p-4">
       <div className="flex items-start justify-between gap-2">
@@ -172,6 +246,28 @@ function RecipientCard({ recipient, onDelete }: { recipient: Recipient; onDelete
         </div>
       )}
 
+      {/* AutoGift Pricing */}
+      <div className="rounded-lg bg-givit-ember/5 border border-givit-ember/20 p-2.5">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-givit-ember mb-1.5">
+          <DollarSign className="h-3 w-3" />
+          AutoGift Pricing
+        </div>
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <div className="flex justify-between">
+            <span>Estimated items</span>
+            <span>${(estimatedItemPrice / 100).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Service fee (10%)</span>
+            <span>${(serviceFee / 100).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between border-t border-border/40 pt-1 font-semibold text-foreground">
+            <span>Total</span>
+            <span>${(totalPrice / 100).toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
       <Link href="/gift" className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-givit-ember/30 py-1.5 text-xs font-semibold text-givit-ember transition hover:bg-givit-ember/5">
         <Sparkles className="h-3 w-3" /> Find a gift
       </Link>
@@ -184,6 +280,8 @@ export default function ConciergePage() {
   const [, navigate] = useLocation();
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate("/login?next=/concierge");
@@ -192,14 +290,38 @@ export default function ConciergePage() {
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("givit-recipients");
-      if (saved) setRecipients(JSON.parse(saved));
+      if (saved) {
+        const parsed = JSON.parse(saved) as Recipient[];
+        setRecipients(parsed);
+        // Auto-generate notifications
+        const notifs = generateNotifications(parsed);
+        setNotifications(notifs);
+      }
     } catch {}
   }, []);
 
   function saveRecipients(list: Recipient[]) {
     setRecipients(list);
     window.localStorage.setItem("givit-recipients", JSON.stringify(list));
+    // Regenerate notifications
+    const notifs = generateNotifications(list);
+    setNotifications(notifs);
   }
+
+  function dismissNotification(id: string) {
+    const updated = notifications.map(n => n.id === id ? { ...n, dismissed: true } : n);
+    setNotifications(updated);
+    saveNotifications(updated);
+  }
+
+  const activeNotifications = notifications.filter(n => !n.dismissed);
+  const upcomingAll = recipients
+    .flatMap((r) =>
+      r.occasions.filter((o) => o.date).map((o) => ({ ...o, recipient: r.name, parsed: new Date(o.date) }))
+    )
+    .filter((o) => o.parsed >= new Date())
+    .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())
+    .slice(0, 5);
 
   if (loading) {
     return (
@@ -212,14 +334,6 @@ export default function ConciergePage() {
   }
 
   if (!user) return null;
-
-  const upcomingAll = recipients
-    .flatMap((r) =>
-      r.occasions.filter((o) => o.date).map((o) => ({ ...o, recipient: r.name, parsed: new Date(o.date) }))
-    )
-    .filter((o) => o.parsed >= new Date())
-    .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())
-    .slice(0, 5);
 
   return (
     <PageShell>
@@ -235,9 +349,55 @@ export default function ConciergePage() {
           <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">AutoGift</p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Your gift concierge</h1>
         </div>
-        <Button onClick={() => setShowModal(true)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
-          <Plus className="h-4 w-4" /> Add people
-        </Button>
+        <div className="flex gap-2">
+          {activeNotifications.length > 0 && (
+            <div className="relative">
+              <Button
+                onClick={() => setShowNotifications(!showNotifications)}
+                variant="outline"
+                className="rounded-md relative"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-givit-ember text-[9px] font-bold text-white">
+                  {activeNotifications.length}
+                </span>
+              </Button>
+              {showNotifications && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-xl border border-border bg-card shadow-2xl">
+                  <div className="border-b border-border p-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-givit-ember">Notifications</p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-2">
+                    {activeNotifications.length === 0 ? (
+                      <p className="p-3 text-center text-xs text-muted-foreground">No new notifications</p>
+                    ) : (
+                      activeNotifications.map((n) => (
+                        <div key={n.id} className="flex items-start gap-2 rounded-lg p-2.5 text-xs hover:bg-muted/50">
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-givit-ember/10 text-givit-ember">
+                            <Bell className="h-3 w-3" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-foreground">{n.recipientName}'s {n.occasion}</p>
+                            <p className="text-muted-foreground">{n.daysUntil} days away</p>
+                          </div>
+                          <button
+                            onClick={() => dismissNotification(n.id)}
+                            className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <Button onClick={() => setShowModal(true)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+            <Plus className="h-4 w-4" /> Add people
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_290px]">
@@ -308,6 +468,10 @@ export default function ConciergePage() {
                   <li>3. Pick a gift from AI suggestions</li>
                   <li>4. We order, write a card, and deliver</li>
                 </ol>
+                <div className="mt-3 rounded-lg bg-white/60 p-2.5 text-xs">
+                  <p className="font-semibold text-givit-ink">Pricing</p>
+                  <p className="mt-1 text-muted-foreground">Items price + 10% service fee. You approve before any charge.</p>
+                </div>
               </div>
             </div>
             <div className="mt-4">
