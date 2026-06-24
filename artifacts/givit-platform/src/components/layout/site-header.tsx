@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Bell, Gift } from "lucide-react";
+import { Bell } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
 import { HeaderSearch } from "@/components/layout/header-search";
@@ -16,9 +16,7 @@ export function SiteHeader() {
       <div className="bg-givit-ink text-white">
         <div className="container flex items-center justify-between gap-3 py-2.5 md:py-3">
           <Link href="/" className="shrink-0 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-givit-ember">
-              <Gift className="h-4 w-4 text-white" />
-            </div>
+            <img src="/logo.pdf" alt="Givit" className="h-8 w-auto" />
             <span className="font-serif text-xl font-bold tracking-tight hidden sm:block">
               GIV<span className="text-givit-coral">IT</span>
             </span>
