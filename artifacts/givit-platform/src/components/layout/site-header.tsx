@@ -16,7 +16,7 @@ export function SiteHeader() {
       <div className="bg-givit-ink text-white">
         <div className="container flex items-center justify-between gap-3 py-2.5 md:py-3">
           <Link href="/" className="shrink-0 flex items-center gap-2">
-            <img src="/logo.pdf" alt="Givit" className="h-8 w-auto" />
+            <img src="/logo.png" alt="Givit" className="h-8 w-auto" />
             <span className="font-serif text-xl font-bold tracking-tight hidden sm:block">
               GIV<span className="text-givit-coral">IT</span>
             </span>
@@ -81,6 +81,9 @@ export function SiteHeader() {
               <Bell className="mr-1 inline h-3 w-3" />
               AutoGift
             </Link>
+            <a href="tel:2673785600" className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap">
+              📞 267-378-5600
+            </a>
           </div>
         </div>
       </div>

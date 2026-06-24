@@ -286,7 +286,9 @@ export default function ConciergePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) navigate("/login?next=/concierge");
+    if (!loading && !user) {
+      setShowOnboarding(true);
+    }
   }, [loading, user, navigate]);
 
   useEffect(() => {
@@ -339,7 +341,21 @@ export default function ConciergePage() {
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <PageShell>
+        <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 text-center">
+          <Bell className="h-10 w-10 text-givit-ember" />
+          <h2 className="font-serif text-2xl font-bold text-givit-ink">AutoGift</h2>
+          <p className="max-w-sm text-sm text-muted-foreground">Sign in to manage recipients, reminders, and auto-gifting. You can still take the quick onboarding tour.</p>
+          <div className="flex gap-3">
+            <Button asChild className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"><Link href="/login">Log in</Link></Button>
+            <Button onClick={() => setShowOnboarding(true)} variant="outline" className="rounded-lg">Take onboarding tour</Button>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell>
