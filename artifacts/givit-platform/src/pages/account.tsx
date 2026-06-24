@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
-import { User, Package, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star } from "lucide-react";
+import { User, Package, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
-import { getUserOrders, getUserAddresses, getUserPaymentMethods, getWishlist } from "@/lib/supabase/db";
+import { getUserOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile } from "@/lib/supabase/db";
 
 export default function AccountPage() {
   const { user, profile, loading } = useAuth();
@@ -14,6 +14,13 @@ export default function AccountPage() {
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  
+  // Profile editing state
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState("");
 
   useEffect(() => {
     if (!loading && !user) navigate("/login?next=/account");
@@ -43,6 +50,33 @@ export default function AccountPage() {
     load();
   }, [user]);
 
+  // Sync profile fields when loaded
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || "");
+      setPhone(profile.phone || "");
+    }
+  }, [profile]);
+
+  async function handleProfileSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    setSavingProfile(true);
+    setProfileError("");
+    try {
+      const { data, error } = await updateProfile(user.id, {
+        full_name: fullName.trim() || null,
+        phone: phone.trim() || null,
+      });
+      if (error) throw new Error(error.message || "Failed to update profile");
+      setEditingProfile(false);
+    } catch (err: any) {
+      setProfileError(err.message);
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
   if (loading || dataLoading) return <PageShell><div className="flex min-h-[400px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-givit-ember border-t-transparent" /></div></PageShell>;
   if (!user) return null;
 
@@ -52,11 +86,49 @@ export default function AccountPage() {
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-givit-ember/10">
           <User className="h-7 w-7 text-givit-ember" />
         </div>
-        <div>
-          <h1 className="font-serif text-2xl font-bold text-givit-ink">{profile?.full_name || "Your account"}</h1>
-          <p className="text-sm text-muted-foreground">{profile?.email}</p>
-          {profile?.role === "admin" && (
-            <span className="mt-1 inline-block rounded-full bg-givit-ember/10 px-2.5 py-0.5 text-xs font-semibold text-givit-ember">Admin</span>
+        <div className="flex-1">
+          {editingProfile ? (
+            <form onSubmit={handleProfileSave} className="space-y-2">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">Full name</label>
+                <input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Your name"
+                  className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">Phone</label>
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone (optional)"
+                  className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+                />
+              </div>
+              {profileError && <p className="text-xs text-destructive">{profileError}</p>}
+              <div className="flex gap-2">
+                <Button type="submit" disabled={savingProfile} size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+                  {savingProfile ? "Saving..." : "Save"}
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setEditingProfile(false)} className="rounded-md">Cancel</Button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <h1 className="font-serif text-2xl font-bold text-givit-ink">{profile?.full_name || "Your account"}</h1>
+              <p className="text-sm text-muted-foreground">{profile?.email}</p>
+              {profile?.role === "admin" && (
+                <span className="mt-1 inline-block rounded-full bg-givit-ember/10 px-2.5 py-0.5 text-xs font-semibold text-givit-ember">Admin</span>
+              )}
+              <button
+                onClick={() => setEditingProfile(true)}
+                className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-givit-ember hover:underline"
+              >
+                <Edit2 className="h-3 w-3" /> Edit profile
+              </button>
+            </>
           )}
         </div>
       </div>

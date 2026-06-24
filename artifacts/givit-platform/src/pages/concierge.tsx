@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getTodaySpecialDate } from "@/lib/data/special-dates";
+import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
 
 type Occasion = { label: string; date: string };
 type Recipient = { id: string; name: string; relationship: string; occasions: Occasion[] };
@@ -282,6 +283,7 @@ export default function ConciergePage() {
   const [showModal, setShowModal] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate("/login?next=/concierge");
@@ -296,6 +298,10 @@ export default function ConciergePage() {
         // Auto-generate notifications
         const notifs = generateNotifications(parsed);
         setNotifications(notifs);
+      } else {
+        // First visit: offer onboarding
+        const onboarded = window.localStorage.getItem("givit-autogift-onboarded");
+        if (!onboarded) setShowOnboarding(true);
       }
     } catch {}
   }, []);
@@ -337,7 +343,15 @@ export default function ConciergePage() {
 
   return (
     <PageShell>
-      {showModal && (
+      {showOnboarding && (
+        <AutoGiftOnboardingWizard
+          onClose={() => {
+            setShowOnboarding(false);
+            window.localStorage.setItem("givit-autogift-onboarded", "1");
+          }}
+        />
+      )}
+      {showModal && !showOnboarding && (
         <AddRecipientModal
           onAdd={(added) => saveRecipients([...recipients, ...added])}
           onClose={() => setShowModal(false)}
@@ -409,6 +423,9 @@ export default function ConciergePage() {
               <p className="mt-2 max-w-xs text-sm text-muted-foreground">Add the people you regularly gift to — with their birthdays, anniversaries, and other key dates.</p>
               <Button onClick={() => setShowModal(true)} className="mt-5 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
                 <Users className="h-4 w-4" /> Add your first person
+              </Button>
+              <Button onClick={() => setShowOnboarding(true)} variant="outline" className="mt-3 rounded-lg">
+                Retake onboarding tour
               </Button>
             </div>
           ) : (
