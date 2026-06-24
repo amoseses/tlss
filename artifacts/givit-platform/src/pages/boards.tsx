@@ -34,6 +34,7 @@ function CreateBoardModal({ onAdd, onClose }: { onAdd: (b: UserBoard) => void; o
       images: [],
       likes: 0,
       liked: false,
+      isPublic: true,
     });
     onClose();
   }
@@ -188,7 +189,7 @@ function PinterestGrid({ images, onRemove }: { images: BoardImage[]; onRemove?: 
 export default function BoardsPage() {
   const { user, loading: authLoading } = useAuth();
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
-  const [activeTab, setActiveTab] = useState<"curated" | "mine">("curated");
+  const [activeTab, setActiveTab] = useState<"public" | "mine">("public");
   const [userBoards, setUserBoards] = useState<UserBoard[]>([]);
   const [showCreateBoard, setShowCreateBoard] = useState(false);
   const [showAddImage, setShowAddImage] = useState(false);
@@ -232,7 +233,7 @@ export default function BoardsPage() {
   }
 
   async function createBoard(b: UserBoard) {
-    const newBoard = { ...b };
+    const newBoard = { ...b, isPublic: true };
     if (user) {
       try {
         const { data } = await saveBoard({ 
@@ -240,7 +241,7 @@ export default function BoardsPage() {
           title: b.title, 
           description: b.description, 
           cover_image: b.coverImage,
-          is_public: b.isPublic ?? false,
+          is_public: true,
           likes: b.likes 
         });
         if (data?.id) newBoard.id = data.id;
@@ -386,35 +387,35 @@ export default function BoardsPage() {
           <h1 className="font-serif text-3xl font-bold text-givit-ink">Gift boards</h1>
           <p className="mt-1 text-sm text-muted-foreground">Public boards — collect and share gift ideas</p>
         </div>
-        <Button onClick={() => setShowCreateBoard(true)} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
-          <Plus className="h-4 w-4" /> Create board
-        </Button>
+        {user ? (
+          <Button onClick={() => setShowCreateBoard(true)} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+            <Plus className="h-4 w-4" /> Create board
+          </Button>
+        ) : (
+          <Button asChild className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+            <Link href="/login">Log in to create</Link>
+          </Button>
+        )}
       </div>
 
       <div className="mb-5 flex gap-1 rounded-lg bg-muted p-1 w-fit">
-        <button type="button" onClick={() => setActiveTab("curated")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "curated" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-          Curated
+        <button type="button" onClick={() => setActiveTab("public")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "public" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+          Public boards
         </button>
         <button type="button" onClick={() => setActiveTab("mine")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "mine" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
           My boards {userBoards.length > 0 && <span className="ml-1 rounded-full bg-givit-ember/10 px-1.5 py-0.5 text-xs text-givit-ember">{userBoards.length}</span>}
         </button>
       </div>
 
-      {activeTab === "curated" && (
+      {activeTab === "public" && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {GIFT_COLLECTIONS.map((col) => (
-            <Link key={col.slug} href={`/products?q=${encodeURIComponent(col.query)}`} className="group relative overflow-hidden rounded-xl bg-white shadow-sm border border-border/60 transition-all hover:-translate-y-1 hover:shadow-md">
-              <div className="aspect-[4/3] overflow-hidden bg-gradient-to-br from-givit-ember/20 to-amber-100/40">
-                <div className="flex h-full items-center justify-center text-4xl">
-                  {col.slug.includes("pens") ? "✍️" : col.slug.includes("christmas") ? "🎄" : col.slug.includes("experience") ? "🎭" : col.slug.includes("tech") ? "💻" : "🎁"}
-                </div>
-              </div>
-              <div className="p-3">
-                <h3 className="font-semibold text-givit-ink line-clamp-1">{col.title}</h3>
-                <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{col.description}</p>
-              </div>
-            </Link>
-          ))}
+          {userBoards.filter(b => b.isPublic).length > 0 ? (
+            userBoards.filter(b => b.isPublic).map((b) => (
+              <BoardCard key={b.id} board={b} onOpen={() => setSelectedBoardId(b.id)} />
+            ))
+          ) : (
+            <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No public boards yet. Create one to share with everyone.</div>
+          )}
         </div>
       )}
 
@@ -425,9 +426,15 @@ export default function BoardsPage() {
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10 text-3xl">📌</div>
               <p className="mt-4 font-serif text-xl font-bold text-givit-ink">No boards yet</p>
               <p className="mt-2 max-w-xs text-sm text-muted-foreground">Create your first board to collect gift ideas, add images, and share with friends.</p>
-              <Button onClick={() => setShowCreateBoard(true)} className="mt-5 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
-                <Plus className="h-4 w-4" /> Create your first board
-              </Button>
+              {user ? (
+                <Button onClick={() => setShowCreateBoard(true)} className="mt-5 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+                  <Plus className="h-4 w-4" /> Create your first board
+                </Button>
+              ) : (
+                <Button asChild className="mt-5 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+                  <Link href="/login">Log in to create</Link>
+                </Button>
+              )}
             </div>
           ) : selectedBoard && selectedBoardId ? (
             <>
@@ -509,17 +516,19 @@ export default function BoardsPage() {
                     key={b.id}
                     board={b}
                     onOpen={() => setSelectedBoardId(b.id)}
-                    onDelete={() => deleteBoard(b.id)}
+                    onDelete={user ? () => deleteBoard(b.id) : undefined}
                   />
                 ))}
-                <button
-                  type="button"
-                  onClick={() => setShowCreateBoard(true)}
-                  className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/60 py-12 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
-                >
-                  <Plus className="h-6 w-6" />
-                  New board
-                </button>
+                {user && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateBoard(true)}
+                    className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/60 py-12 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
+                  >
+                    <Plus className="h-6 w-6" />
+                    New board
+                  </button>
+                )}
               </div>
             </>
           )}
