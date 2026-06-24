@@ -288,14 +288,40 @@ export async function getUserBoards(userId: string) {
   return data ?? [];
 }
 
+export async function addBoardItem(item: Record<string, unknown>) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("gift_board_items").insert(item).select().single();
+  return { data, error };
+}
+
+export async function getUserBoardsFromDb(userId: string) {
+  const supabase = getDb();
+  const { data } = await supabase
+    .from("gift_boards")
+    .select("*, gift_board_items(*)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as any[];
+}
+
 export async function saveBoard(board: Record<string, unknown>) {
   const supabase = getDb();
   const { data, error } = await supabase.from("gift_boards").upsert(board).select().single();
   return { data, error };
 }
 
-export async function addBoardItem(item: Record<string, unknown>) {
+export async function saveBoardsToDb(userId: string, boards: any[]) {
   const supabase = getDb();
-  const { data, error } = await supabase.from("gift_board_items").insert(item).select().single();
-  return { data, error };
+  // Save/update boards
+  for (const board of boards) {
+    await supabase.from("gift_boards").upsert({
+      id: board.id,
+      user_id: userId,
+      title: board.title,
+      description: board.description,
+      cover_image: board.coverImage,
+      is_public: board.isPublic ?? false,
+      likes: board.likes,
+    });
+  }
 }

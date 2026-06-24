@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { Bookmark, Check, Mail, Share2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth/use-auth";
+import { addToWishlist, removeFromWishlist } from "@/lib/supabase/db";
 
 const STORAGE_KEY = "givit-wishlist";
 
@@ -13,6 +16,7 @@ type WishlistItem = {
   href: string;
   image?: string;
   price?: string;
+  productId?: string;
 };
 
 function readWishlist(): WishlistItem[] {
@@ -32,6 +36,59 @@ function writeWishlist(items: WishlistItem[]) {
 
 export function WishlistButton({ item, compact = false }: { item: WishlistItem; compact?: boolean }) {
   const [saved, setSaved] = useState(() => readWishlist().some((entry) => entry.slug === item.slug));
+  const { user, loading } = useAuth();
+  const [, navigate] = useLocation();
+
+  async function handleClick(event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // If not logged in, redirect to login
+    if (!user && !loading) {
+      navigate(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+
+    const current = readWishlist();
+    const existingIndex = current.findIndex((entry) => entry.slug === item.slug);
+
+    if (existingIndex >= 0) {
+      // Remove from wishlist
+      const updated = current.filter((entry) => entry.slug !== item.slug);
+      writeWishlist(updated);
+      setSaved(false);
+      
+      // Remove from database if logged in
+      if (user && item.productId) {
+        try {
+          await removeFromWishlist(item.productId);
+        } catch (err) {
+          console.error("Failed to remove from wishlist:", err);
+        }
+      }
+    } else {
+      // Add to wishlist
+      const newItem = { ...item, savedAt: new Date().toISOString() };
+      writeWishlist([newItem, ...current]);
+      setSaved(true);
+      
+      // Add to database if logged in
+      if (user) {
+        try {
+          await addToWishlist({
+            user_id: user.id,
+            product_id: item.productId || item.slug,
+            product_name: item.name,
+            product_image: item.image,
+            product_price_cents: item.price ? Math.round(parseFloat(item.price) * 100) : null,
+            priority: 0,
+          });
+        } catch (err) {
+          console.error("Failed to add to wishlist:", err);
+        }
+      }
+    }
+  }
 
   return (
     <Button
@@ -39,18 +96,7 @@ export function WishlistButton({ item, compact = false }: { item: WishlistItem; 
       variant={saved ? "secondary" : "outline"}
       size={compact ? "sm" : "default"}
       className={compact ? "h-8 rounded-full text-xs" : "h-10 w-full rounded-sm"}
-      onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const current = readWishlist();
-        if (current.some((entry) => entry.slug === item.slug)) {
-          writeWishlist(current.filter((entry) => entry.slug !== item.slug));
-          setSaved(false);
-        } else {
-          writeWishlist([item, ...current]);
-          setSaved(true);
-        }
-      }}
+      onClick={handleClick}
       aria-pressed={saved}
     >
       {saved ? <Check className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}

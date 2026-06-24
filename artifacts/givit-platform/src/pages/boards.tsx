@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
-import { Bookmark, Grid3X3, Heart, ImagePlus, Plus, Share2, Sparkles, X, Camera, ExternalLink } from "lucide-react";
+import { Bookmark, Grid3X3, Heart, ImagePlus, Plus, Share2, Sparkles, X, Camera, ExternalLink, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { GIFT_COLLECTIONS, MARKETPLACE_PRODUCTS, MARKETPLACE_RATINGS } from "@/lib/data/marketplace";
 import { ProductCard } from "@/components/product/product-card";
+import { useAuth } from "@/lib/auth/use-auth";
 import {
   mergeBoardLikes,
   persistBoardLike,
@@ -13,6 +14,7 @@ import {
   type BoardImage,
   type UserBoard,
 } from "@/lib/boards/storage";
+import { getPublicBoards, getUserBoardsFromDb, saveBoardsToDb, addBoardItem, saveBoard } from "@/lib/supabase/db";
 
 const LIKED_BOARDS_KEY = "givit-liked-board-ids";
 
@@ -184,12 +186,15 @@ function PinterestGrid({ images, onRemove }: { images: BoardImage[]; onRemove?: 
 }
 
 export default function BoardsPage() {
+  const { user, loading: authLoading } = useAuth();
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
   const [activeTab, setActiveTab] = useState<"curated" | "mine">("curated");
   const [userBoards, setUserBoards] = useState<UserBoard[]>([]);
   const [showCreateBoard, setShowCreateBoard] = useState(false);
   const [showAddImage, setShowAddImage] = useState(false);
+  const [showAddProduct, setShowAddProduct] = useState(false);
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
+  const [productSearchQuery, setProductSearchQuery] = useState("");
 
   useEffect(() => {
     const saved = mergeBoardLikes(readUserBoards());
@@ -197,14 +202,54 @@ export default function BoardsPage() {
     setUserBoards(saved.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
   }, []);
 
-  function persistBoards(boards: UserBoard[]) {
+  // Load user's gift boards from Supabase when logged in
+  useEffect(() => {
+    if (!user || authLoading) return;
+    async function loadUserBoards() {
+      try {
+        const userBoardsData = await getUserBoardsFromDb(user.id);
+        const localStorageBoards = readUserBoards();
+        const merged = mergeBoardLikes([...userBoardsData, ...localStorageBoards]);
+        const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
+        setUserBoards(merged.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
+      } catch (err) {
+        console.error("Failed to load boards:", err);
+      }
+    }
+    loadUserBoards();
+  }, [user, authLoading]);
+
+  async function persistBoards(boards: UserBoard[]) {
     setUserBoards(boards);
     writeUserBoards(boards.map(({ liked, ...rest }) => rest));
+    if (user) {
+      try {
+        await saveBoardsToDb(user.id, boards);
+      } catch (err) {
+        console.error("Failed to save boards to DB:", err);
+      }
+    }
   }
 
-  function createBoard(b: UserBoard) {
-    persistBoards([...userBoards, b]);
-    setSelectedBoardId(b.id);
+  async function createBoard(b: UserBoard) {
+    const newBoard = { ...b };
+    if (user) {
+      try {
+        const { data } = await saveBoard({ 
+          user_id: user.id, 
+          title: b.title, 
+          description: b.description, 
+          cover_image: b.coverImage,
+          is_public: b.isPublic ?? false,
+          likes: b.likes 
+        });
+        if (data?.id) newBoard.id = data.id;
+      } catch (err) {
+        console.error("Failed to save board to DB:", err);
+      }
+    }
+    await persistBoards([...userBoards, newBoard]);
+    setSelectedBoardId(newBoard.id);
     setActiveTab("mine");
   }
 
@@ -225,9 +270,51 @@ export default function BoardsPage() {
     persistBoards(userBoards.map((b) => b.id === id ? { ...b, liked, likes } : b));
   }
 
-  function addImageToBoard(img: BoardImage) {
+  async function addImageToBoard(img: BoardImage) {
     if (!selectedBoardId) return;
+    
+    if (user) {
+      try {
+        await addBoardItem({
+          board_id: selectedBoardId,
+          item_type: "image",
+          image_url: img.src,
+          caption: img.caption,
+        });
+      } catch (err) {
+        console.error("Failed to save image to DB:", err);
+      }
+    }
+    
     persistBoards(userBoards.map((b) => b.id === selectedBoardId ? { ...b, images: [...b.images, img] } : b));
+  }
+
+  async function addProductToBoard(product: typeof MARKETPLACE_PRODUCTS[0]) {
+    if (!selectedBoardId || !user) return;
+    
+    const productImage: BoardImage = {
+      id: crypto.randomUUID(),
+      src: product.image || "",
+      caption: product.name,
+    };
+    
+    try {
+      await addBoardItem({
+        board_id: selectedBoardId,
+        item_type: "product",
+        product_slug: product.slug,
+        product_name: product.name,
+        product_price_cents: product.priceCents,
+        product_image: product.image,
+        caption: product.name,
+      });
+    } catch (err) {
+      console.error("Failed to save product to DB:", err);
+    }
+    
+    persistBoards(userBoards.map((b) => b.id === selectedBoardId ? { ...b, images: [...b.images, productImage] } : b));
+    setShowAddProduct(false);
+    setProductSearchQuery("");
   }
 
   function removeImageFromBoard(boardId: string, imgId: string) {
@@ -236,10 +323,63 @@ export default function BoardsPage() {
 
   const selectedBoard = userBoards.find((b) => b.id === selectedBoardId);
 
+  // Filter products based on search
+  const filteredProducts = MARKETPLACE_PRODUCTS.filter(p => {
+    if (!productSearchQuery) return true;
+    const query = productSearchQuery.toLowerCase();
+    return p.name.toLowerCase().includes(query) || 
+           p.brand.toLowerCase().includes(query) ||
+           p.category.toLowerCase().includes(query);
+  });
+
   return (
     <PageShell wide>
       {showCreateBoard && <CreateBoardModal onAdd={createBoard} onClose={() => setShowCreateBoard(false)} />}
       {showAddImage && selectedBoard && <AddImageModal onAdd={addImageToBoard} onClose={() => setShowAddImage(false)} />}
+      
+      {/* Add Product Modal */}
+      {showAddProduct && selectedBoard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border p-5">
+              <h2 className="font-serif text-xl font-bold text-givit-ink">Add product to "{selectedBoard.title}"</h2>
+              <button type="button" onClick={() => { setShowAddProduct(false); setProductSearchQuery(""); }} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="p-5">
+              <div className="mb-4 relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={productSearchQuery}
+                  onChange={(e) => setProductSearchQuery(e.target.value)}
+                  placeholder="Search products by name, brand, or category..."
+                  className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                  autoFocus
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {filteredProducts.slice(0, 12).map((product) => (
+                  <button
+                    key={product.slug}
+                    type="button"
+                    onClick={() => addProductToBoard(product)}
+                    className="group rounded-lg border border-border bg-white p-2 text-left transition hover:border-givit-ember/40 hover:shadow-sm"
+                  >
+                    <div className="aspect-square overflow-hidden rounded-md bg-muted">
+                      {product.image && <img src={product.image} alt={product.name} className="h-full w-full object-cover transition group-hover:scale-105" />}
+                    </div>
+                    <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-givit-ink">{product.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{product.brand}</p>
+                    {product.priceCents && <p className="mt-0.5 text-xs font-bold text-givit-ember">${(product.priceCents / 100).toFixed(2)}</p>}
+                  </button>
+                ))}
+              </div>
+              {filteredProducts.length === 0 && (
+                <p className="py-8 text-center text-sm text-muted-foreground">No products found. Try a different search.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -310,7 +450,10 @@ export default function BoardsPage() {
                     <Heart className={`h-4 w-4 ${selectedBoard.liked ? "fill-current" : ""}`} />
                     {selectedBoard.likes > 0 ? selectedBoard.likes : "Like"}
                   </button>
-                  <Button onClick={() => setShowAddImage(true)} size="sm" className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover gap-1.5">
+                  <Button onClick={() => setShowAddProduct(true)} size="sm" className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" /> Add products
+                  </Button>
+                  <Button onClick={() => setShowAddImage(true)} size="sm" variant="outline" className="rounded-lg gap-1.5">
                     <ImagePlus className="h-3.5 w-3.5" /> Add image
                   </Button>
                   <button
@@ -324,13 +467,18 @@ export default function BoardsPage() {
               </div>
 
               {selectedBoard.images.length === 0 ? (
-                <div
-                  className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-16 text-center cursor-pointer hover:border-givit-ember/40 transition"
-                  onClick={() => setShowAddImage(true)}
-                >
-                  <Camera className="h-10 w-10 text-muted-foreground/50" />
-                  <p className="mt-3 font-semibold text-muted-foreground">Add your first image</p>
-                  <p className="mt-1 text-xs text-muted-foreground/70">Upload a photo or paste an image URL</p>
+                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-16 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10 text-2xl">🎁</div>
+                  <p className="mt-4 font-serif text-xl font-bold text-givit-ink">No items yet</p>
+                  <p className="mt-2 max-w-xs text-sm text-muted-foreground">Add products or images to build your gift board.</p>
+                  <div className="mt-5 flex gap-3">
+                    <Button onClick={() => setShowAddProduct(true)} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+                      <Sparkles className="h-4 w-4" /> Browse products
+                    </Button>
+                    <Button onClick={() => setShowAddImage(true)} variant="outline" className="rounded-lg">
+                      <ImagePlus className="h-4 w-4" /> Add image
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -338,11 +486,18 @@ export default function BoardsPage() {
                     images={selectedBoard.images}
                     onRemove={(imgId) => removeImageFromBoard(selectedBoard.id!, imgId)}
                   />
-                  <button type="button" onClick={() => setShowAddImage(true)}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/60 py-4 text-sm text-muted-foreground hover:border-givit-ember/40 hover:text-givit-ember transition"
-                  >
-                    <Plus className="h-4 w-4" /> Add more images
-                  </button>
+                  <div className="mt-4 flex gap-2">
+                    <button type="button" onClick={() => setShowAddProduct(true)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-dashed border-givit-ember/30 py-3 text-sm font-semibold text-givit-ember transition hover:border-givit-ember/50 hover:bg-givit-ember/5"
+                    >
+                      <Sparkles className="h-4 w-4" /> Add products
+                    </button>
+                    <button type="button" onClick={() => setShowAddImage(true)}
+                      className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/60 px-4 py-3 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
+                    >
+                      <ImagePlus className="h-4 w-4" /> Add image
+                    </button>
+                  </div>
                 </>
               )}
             </>

@@ -25,7 +25,10 @@ export default function SignupPage() {
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name } },
+        options: { 
+          data: { full_name: name },
+          emailRedirectTo: `${window.location.origin}/auth-callback`,
+        },
       });
       if (authError) { setError(authError.message); return; }
       // Set flag so login prompt auto-dismisses after signup

@@ -30,7 +30,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser({ id: u.id });
       const { data } = await supabase.from("profiles").select("full_name, email, role").eq("id", u.id).single();
       setProfile(data as Profile | null);
-    } catch {
+    } catch (err) {
+      console.error("[Auth] Failed to load user:", err);
       setUser(null);
       setProfile(null);
     } finally {
