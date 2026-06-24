@@ -7,6 +7,7 @@ export default function FeedbackPage() {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -17,7 +18,7 @@ export default function FeedbackPage() {
     setError("");
     try {
       const supabase = createClient();
-      const { error: dbError } = await supabase.from("feedback").insert({ subject, message, email: email || null });
+      const { error: dbError } = await supabase.from("feedback").insert({ subject, message, email: email || null, phone: phone || null });
       if (dbError) throw dbError;
       setDone(true);
     } catch {
@@ -42,14 +43,20 @@ export default function FeedbackPage() {
   return (
     <PageShell narrow>
       <div className="mb-6">
-        <h1 className="font-serif text-3xl font-bold text-givit-ink">Feedback</h1>
-        <p className="mt-2 text-muted-foreground text-sm">Have ideas, bugs, or suggestions? We read everything.</p>
+        <h1 className="font-serif text-3xl font-bold text-givit-ink">Contact & Feedback</h1>
+        <p className="mt-2 text-muted-foreground text-sm">Have ideas, bugs, or suggestions? We read everything. Or call us at <a href="tel:2673785600" className="text-givit-ember font-semibold hover:underline">267-378-5600</a>.</p>
       </div>
       <form onSubmit={handleSubmit} className="givit-section space-y-4">
         {error ? <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium" htmlFor="email">Email (optional)</label>
-          <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium" htmlFor="email">Email (optional)</label>
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium" htmlFor="phone">Phone (optional)</label>
+            <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="267-378-5600" className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
+          </div>
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium" htmlFor="subject">Subject</label>

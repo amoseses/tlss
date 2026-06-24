@@ -81,9 +81,6 @@ export function SiteHeader() {
               <Bell className="mr-1 inline h-3 w-3" />
               AutoGift
             </Link>
-            <a href="tel:2673785600" className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap">
-              📞 267-378-5600
-            </a>
           </div>
         </div>
       </div>
