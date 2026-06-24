@@ -291,26 +291,31 @@ export default function BoardsPage() {
   }
 
   async function addProductToBoard(product: typeof MARKETPLACE_PRODUCTS[0]) {
-    if (!selectedBoardId || !user) return;
+    if (!selectedBoardId) return;
     
+    const imgSrc = (product as any).image || product.images?.[0]?.src || "";
+    const priceCents = (product as any).priceCents ?? (product as any).price_cents ?? 0;
+
     const productImage: BoardImage = {
       id: crypto.randomUUID(),
-      src: product.image || "",
+      src: imgSrc,
       caption: product.name,
     };
     
-    try {
-      await addBoardItem({
-        board_id: selectedBoardId,
-        item_type: "product",
-        product_slug: product.slug,
-        product_name: product.name,
-        product_price_cents: product.priceCents,
-        product_image: product.image,
-        caption: product.name,
-      });
-    } catch (err) {
-      console.error("Failed to save product to DB:", err);
+    if (user) {
+      try {
+        await addBoardItem({
+          board_id: selectedBoardId,
+          item_type: "product",
+          product_slug: product.slug,
+          product_name: product.name,
+          product_price_cents: priceCents,
+          product_image: imgSrc,
+          caption: product.name,
+        });
+      } catch (err) {
+        console.error("Failed to save product to DB:", err);
+      }
     }
     
     persistBoards(userBoards.map((b) => b.id === selectedBoardId ? { ...b, images: [...b.images, productImage] } : b));

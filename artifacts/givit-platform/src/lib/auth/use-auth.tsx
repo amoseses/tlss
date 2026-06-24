@@ -22,10 +22,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  async function load(initial = false) {
     try {
       const supabase = createClient();
-      const { data: { user: u } } = await supabase.auth.getUser();
+      // On initial load, use getSession() which reads from local storage first
+      // This avoids a network call and fixes session persistence on page refresh
+      let u = null;
+      if (initial) {
+        const { data: { session } } = await supabase.auth.getSession();
+        u = session?.user ?? null;
+      }
+      if (!u) {
+        const { data: { user } } = await supabase.auth.getUser();
+        u = user;
+      }
       if (!u) { setUser(null); setProfile(null); setLoading(false); return; }
       setUser({ id: u.id });
       const { data } = await supabase.from("profiles").select("full_name, email, role").eq("id", u.id).single();
@@ -40,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    load();
+    load(true);
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => load());
     return () => subscription.unsubscribe();
