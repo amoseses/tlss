@@ -50,7 +50,14 @@ export function LoginPrompt() {
           Log in so Givit can save your people, dates, reminders, and approval queue on your account.
         </p>
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
-          <Button asChild className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
+          <Button
+            asChild
+            className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover"
+            onClick={() => {
+              window.localStorage.setItem(KEY, "1");
+              window.localStorage.setItem("givit-just-signed-up", "1");
+            }}
+          >
             <Link href="/login?next=/concierge">Log in</Link>
           </Button>
           <Button

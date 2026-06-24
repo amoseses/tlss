@@ -15,7 +15,7 @@ import {
 export default function HomePage() {
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
   const featured = MARKETPLACE_PRODUCTS.slice(0, 4);
-  const deals = MARKETPLACE_PRODUCTS.filter((p) => p.sale_price_cents && p.gift_match_score >= 88).slice(0, 8);
+  const deals = MARKETPLACE_PRODUCTS.filter((p) => p.sale_price_cents && p.gift_match_score >= 75).slice(0, 8);
   const trending = MARKETPLACE_PRODUCTS.filter((p) => ["tech", "gaming", "writing", "home"].includes(p.category?.slug ?? "")).slice(0, 6);
 
   return (
@@ -63,7 +63,7 @@ export default function HomePage() {
                   <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">AutoGift preview</p>
                   <h2 className="font-serif text-xl font-bold">For Mom's birthday</h2>
                 </div>
-                <Badge className="bg-givit-ember text-white">96% match</Badge>
+              <Badge className="bg-givit-ember text-white">82% match</Badge>
               </div>
               <div className="space-y-2.5">
                 {MARKETPLACE_PRODUCTS.filter((p) => ["aeropress-clear", "apple-airtags-4-pack", "patagonia-black-hole-duffel"].includes(p.slug)).map((product) => (
