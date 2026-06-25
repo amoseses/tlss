@@ -1,6 +1,10 @@
 {
   "buildCommand": "pnpm --filter @workspace/givit-platform run build",
-  "outputDirectory": "artifacts/givit-platform/dist/public",
+  "outputDirectory": "artifacts/givit-platform/dist",
   "installCommand": "pnpm install --no-frozen-lockfile",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "env": {
+    "VITE_SUPABASE_URL": "https://zbhumepxaywxnluapcbs.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpiaHVtZXB4YXl3eG5sdWFwY2JzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNTQ1MTYsImV4cCI6MjA5NzgzMDUxNn0.-P60mPwXUC8tQ7CXWh89em7HAvktEMQpj9sjSo1PowE"
+  }
 }
