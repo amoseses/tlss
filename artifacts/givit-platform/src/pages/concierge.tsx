@@ -279,34 +279,35 @@ function RecipientCard({ recipient, onDelete }: { recipient: Recipient; onDelete
 export default function ConciergePage() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
+  const [localReady, setLocalReady] = useState(false);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      setShowOnboarding(true);
-    }
-  }, [loading, user, navigate]);
-
+  // Load local data immediately, independent of auth
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("givit-recipients");
       if (saved) {
         const parsed = JSON.parse(saved) as Recipient[];
         setRecipients(parsed);
-        // Auto-generate notifications
         const notifs = generateNotifications(parsed);
         setNotifications(notifs);
-      } else {
-        // First visit: offer onboarding
-        const onboarded = window.localStorage.getItem("givit-autogift-onboarded");
-        if (!onboarded) setShowOnboarding(true);
       }
     } catch {}
+    setLocalReady(true);
   }, []);
+
+  // Show onboarding for non-logged-in users (only after local data loaded)
+  useEffect(() => {
+    if (!localReady) return;
+    if (!loading && !user) {
+      const onboarded = window.localStorage.getItem("givit-autogift-onboarded");
+      if (!onboarded) setShowOnboarding(true);
+    }
+  }, [loading, user, localReady]);
 
   function saveRecipients(list: Recipient[]) {
     setRecipients(list);
