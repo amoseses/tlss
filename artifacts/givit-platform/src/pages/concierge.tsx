@@ -6,6 +6,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getTodaySpecialDate } from "@/lib/data/special-dates";
 import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
+import { GiftSurveyModal } from "@/components/autogift/autogift-survey-modal";
 
 type Occasion = { label: string; date: string };
 type Recipient = { id: string; name: string; relationship: string; occasions: Occasion[] };
@@ -285,6 +286,7 @@ export default function ConciergePage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [surveyNotification, setSurveyNotification] = useState<Notification | null>(null);
 
   // Load local data immediately, independent of auth
   useEffect(() => {
@@ -374,6 +376,14 @@ export default function ConciergePage() {
           onClose={() => setShowModal(false)}
         />
       )}
+      {surveyNotification && !showOnboarding && (
+        <GiftSurveyModal
+          recipientName={surveyNotification.recipientName}
+          occasion={surveyNotification.occasion}
+          occasionDate={surveyNotification.date}
+          onClose={() => setSurveyNotification(null)}
+        />
+      )}
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -412,8 +422,15 @@ export default function ConciergePage() {
                             <p className="text-muted-foreground">{n.daysUntil} days away</p>
                           </div>
                           <button
+                            onClick={() => setSurveyNotification(n)}
+                            className="shrink-0 rounded bg-givit-ember px-2 py-1 font-semibold text-white hover:bg-givit-ember-hover"
+                          >
+                            Survey
+                          </button>
+                          <button
                             onClick={() => dismissNotification(n.id)}
                             className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                            aria-label="Dismiss AutoGift reminder"
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -498,9 +515,9 @@ export default function ConciergePage() {
                 <h2 className="font-semibold text-givit-ink">How AutoGift works</h2>
                 <ol className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
                   <li>1. Add people and their key dates</li>
-                  <li>2. We remind you 5–6 weeks before each</li>
-                  <li>3. Pick a gift from AI suggestions</li>
-                  <li>4. We order, write a card, and deliver</li>
+                  <li>2. 35 days before, we send the recipient survey</li>
+                  <li>3. AI suggests gifts, cards (+$5), flowers (+$25), and activities</li>
+                  <li>4. You approve, we charge the saved card, then admin fulfills and ships</li>
                 </ol>
                 <div className="mt-3 rounded-lg bg-white/60 p-2.5 text-xs">
                   <p className="font-semibold text-givit-ink">Pricing</p>

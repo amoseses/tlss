@@ -10,6 +10,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { extractProductFromUrl, getImportedCount, saveImportedProduct } from "@/lib/admin/imported-products";
 import { getAnalytics, getProductSubmissions, updateProductSubmission, getProducts, upsertProduct, deleteProduct, getAllProfiles, getOrders, trackEvent } from "@/lib/supabase/db";
+import { getAutoGiftOrders } from "@/lib/autogift/survey";
 
 type ParsedRow = { url: string; name: string; brand: string; price: string; category: string; status: "pending" | "processing" | "done" | "error" };
 
@@ -51,6 +52,7 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [allOrders, setAllOrders] = useState<any[]>([]);
+  const [autoGiftOrders, setAutoGiftOrders] = useState<ReturnType<typeof getAutoGiftOrders>>([]);
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -81,6 +83,7 @@ export default function AdminPage() {
       } else if (activeTab === "orders") {
         const data = await getOrders({ limit: 50 });
         setAllOrders(data);
+        setAutoGiftOrders(getAutoGiftOrders());
       } else if (activeTab === "users") {
         const data = await getAllProfiles();
         setAllProfiles(data);
@@ -536,6 +539,28 @@ export default function AdminPage() {
 
       {/* ORDERS TAB */}
       {activeTab === "orders" && (
+        <div className="space-y-4">
+          {autoGiftOrders.length > 0 && (
+            <div className="rounded-lg border border-givit-ember/30 bg-givit-ember/5 p-4">
+              <h3 className="font-semibold text-givit-ink">AutoGift admin fulfillment queue</h3>
+              <div className="mt-3 space-y-3">
+                {autoGiftOrders.map((order) => (
+                  <div key={order.id} className="rounded-lg border border-border bg-card p-3 text-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold">{order.recipientName} · {order.occasion}</p>
+                        <p className="text-xs text-muted-foreground">{order.chargeNote}</p>
+                      </div>
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{order.status}</span>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">Ship to {order.shippingAddress.line1}, {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Items: {order.items.map((item) => `${item.productName} ($${(item.price / 100).toFixed(2)})`).join(", ")}</p>
+                    <p className="mt-2 font-semibold">Charge saved card: ${(order.total / 100).toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
@@ -566,6 +591,7 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       )}
 

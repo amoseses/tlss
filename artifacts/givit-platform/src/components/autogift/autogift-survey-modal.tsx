@@ -256,7 +256,7 @@ export function GiftSurveyModal({
           {step === "review" && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground">
-                Finalize the order. We'll charge your saved card on file and ship everything to the address below.
+                Finalize the package. Nothing is charged until you approve; after approval we charge the saved card from your first AutoGift setup/order and send the order to admin fulfillment.
               </p>
 
               <div className="space-y-2">
@@ -303,7 +303,7 @@ export function GiftSurveyModal({
                   disabled={!address.line1 || !address.city || !address.state || !address.zip}
                   className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"
                 >
-                  <Sparkles className="h-4 w-4" /> Place order — ${(grandTotal / 100).toFixed(2)}
+                  <Sparkles className="h-4 w-4" /> Approve & send to admin — ${(grandTotal / 100).toFixed(2)}
                 </Button>
               </div>
             </div>
@@ -318,7 +318,7 @@ export function GiftSurveyModal({
               <h3 className="mt-4 font-serif text-xl font-bold text-givit-ink">Gift order placed!</h3>
               <p className="mt-2 max-w-md mx-auto text-sm text-muted-foreground">
                 Your AutoGift order for {recipientName}'s {occasion} has been submitted.
-                Our team will review it and process the charge. You'll receive a confirmation soon.
+                Your saved card will be charged for the approved total, then the order goes to the admin queue for sourcing, packaging, and shipping.
               </p>
               <div className="mt-4 text-xs text-muted-foreground">
                 <p>Card message: "{cardMessage || "No card message"}"</p>
