@@ -21,7 +21,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
   const [error, setError] = useState("");
 
   // Address
-  const [address, setAddress] = useState({ label: "", line1: "", city: "", state: "", zip: "", country: "US" });
+  const [addresses, setAddresses] = useState([{ label: "", line1: "", city: "", state: "", zip: "", country: "US" }]);
   // Payment (simplified - in production use Stripe Elements)
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
@@ -34,7 +34,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
     setError("");
     if (step === "welcome") setStep("address");
     else if (step === "address") {
-      if (!address.line1 || !address.city || !address.state || !address.zip) {
+      if (!addresses.some((address) => address.line1 && address.city && address.state && address.zip)) {
         setError("Shipping address is required before AutoGift can continue.");
         return;
       }
@@ -70,18 +70,20 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
         concierge_onboarding_completed: true,
         gift_automation_enabled: true,
       });
-      if (address.line1.trim()) {
+      const validAddresses = addresses.filter((address) => address.line1.trim() && address.city.trim() && address.state.trim() && address.zip.trim());
+      for (const [index, address] of validAddresses.entries()) {
         await saveUserAddress({
           user_id: user.id,
-          label: address.label.trim() || "AutoGift shipping",
+          label: address.label.trim() || (index === 0 ? "AutoGift shipping" : `AutoGift shipping ${index + 1}`),
           line1: address.line1.trim(),
           city: address.city.trim(),
           state: address.state.trim(),
           zip: address.zip.trim(),
           country: address.country || "US",
-          is_default: true,
+          is_default: index === 0,
         });
       }
+      window.localStorage.setItem("givit-autogift-addresses", JSON.stringify(validAddresses));
       await saveUserPaymentMethod({
         user_id: user.id,
         stripe_payment_method_id: `pm_demo_${cardNumber.replace(/\D/g, "").slice(-8)}`,
@@ -144,7 +146,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
               {step === "done" && "You're all set!"}
             </h2>
           </div>
-          {!required && (
+          {step === "welcome" && (
             <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
               <X className="h-4 w-4" />
             </button>
@@ -168,7 +170,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 
           {step === "welcome" && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">AutoGift makes gift-giving effortless. We'll remind you before important dates and help you find the perfect gift.</p>
+              <p className="text-sm text-muted-foreground">AutoGift saves the setup details once, then asks for approval before any purchase.</p>
               <ul className="space-y-2 text-sm">
                 <li>• Save shipping addresses</li>
                 <li>• Keep a payment method on file</li>
@@ -180,28 +182,17 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 
           {step === "address" && (
             <div className="space-y-3">
-              <div className="grid gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Label</label>
-                <input value={address.label} onChange={(e) => setAddress({ ...address, label: e.target.value })} placeholder="Home" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
-              </div>
-              <div className="grid gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Address</label>
-                <input value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value })} placeholder="123 Main St" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground">City</label>
-                  <input value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} placeholder="City" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
+              <p className="text-sm text-muted-foreground">Add one or more shipping addresses. If you add more than one, the survey asks which one to use.</p>
+              {addresses.map((address, index) => (
+                <div key={index} className="space-y-3 rounded-lg border border-border/60 p-3">
+                  <div className="flex items-center justify-between"><p className="text-sm font-semibold text-givit-ink">Address {index + 1}</p>{addresses.length > 1 && <button type="button" onClick={() => setAddresses((prev) => prev.filter((_, i) => i !== index))} className="text-xs text-destructive">Remove</button>}</div>
+                  <div className="grid gap-1.5"><label className="text-xs font-semibold text-muted-foreground">Label</label><input value={address.label} onChange={(e) => setAddresses((prev) => prev.map((item, i) => i === index ? { ...item, label: e.target.value } : item))} placeholder="Home" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" /></div>
+                  <div className="grid gap-1.5"><label className="text-xs font-semibold text-muted-foreground">Address</label><input value={address.line1} onChange={(e) => setAddresses((prev) => prev.map((item, i) => i === index ? { ...item, line1: e.target.value } : item))} placeholder="123 Main St" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" /></div>
+                  <div className="grid grid-cols-2 gap-3"><input value={address.city} onChange={(e) => setAddresses((prev) => prev.map((item, i) => i === index ? { ...item, city: e.target.value } : item))} placeholder="City" className="h-9 rounded-md border border-border bg-background px-3 text-sm" /><input value={address.state} onChange={(e) => setAddresses((prev) => prev.map((item, i) => i === index ? { ...item, state: e.target.value } : item))} placeholder="State" className="h-9 rounded-md border border-border bg-background px-3 text-sm" /></div>
+                  <input value={address.zip} onChange={(e) => setAddresses((prev) => prev.map((item, i) => i === index ? { ...item, zip: e.target.value } : item))} placeholder="ZIP" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
                 </div>
-                <div className="grid gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground">State</label>
-                  <input value={address.state} onChange={(e) => setAddress({ ...address, state: e.target.value })} placeholder="State" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
-                </div>
-              </div>
-              <div className="grid gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">ZIP</label>
-                <input value={address.zip} onChange={(e) => setAddress({ ...address, zip: e.target.value })} placeholder="10001" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
-              </div>
+              ))}
+              <button type="button" onClick={() => setAddresses((prev) => [...prev, { label: "", line1: "", city: "", state: "", zip: "", country: "US" }])} className="w-full rounded-md border border-dashed border-givit-ember/50 py-2 text-sm font-semibold text-givit-ember">+ Add another address</button>
             </div>
           )}
 
@@ -235,7 +226,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 
           {step === "recipient" && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Add one or more people. Birthday asks for date of birth so AI can calculate age; Father’s Day/Mother’s Day/anniversaries capture the year/context so recommendations feel human.</p>
+              <p className="text-sm text-muted-foreground">Add one or more people. Use the date field for the occasion date, then add age, year, or relationship context below only when it helps the AI.</p>
               {recipients.map((r, index) => (
                 <div key={index} className="space-y-3 rounded-lg border border-border/60 p-3">
                   <div className="flex items-center justify-between"><p className="text-sm font-semibold text-givit-ink">Recipient {index + 1}</p>{recipients.length > 1 && <button type="button" onClick={() => setRecipients((prev) => prev.filter((_, i) => i !== index))} className="text-xs text-destructive">Remove</button>}</div>

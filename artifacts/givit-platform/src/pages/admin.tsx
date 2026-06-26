@@ -144,7 +144,7 @@ export default function AdminPage() {
       await upsertProduct({
         name: submission.name || "Approved customer gift",
         slug: slugSafe(`${submission.name || "customer-gift"}-${submission.id.slice(0, 8)}`),
-        description: submission.description || submission.ai_summary || "Customer-submitted product approved by admin.",
+        description: submission.description || submission.scraped_metadata?.aiSummary || "Customer-submitted product approved by admin.",
         price_cents: submission.price_cents || 4999,
         stock: 25,
         is_published: true,
@@ -157,7 +157,7 @@ export default function AdminPage() {
         interests: [submission.category || "giftable"],
         occasions: ["birthday", "holiday"],
         recipients: ["friend", "family"],
-        ai_summary: submission.ai_summary || `AI scraped ${submission.url} and prepared it for the marketplace.`,
+        ai_summary: submission.scraped_metadata?.aiSummary || `AI scraped ${submission.url} and prepared it for the marketplace.`,
         why_we_picked_it: "Approved from a customer link submission after AI scraping and admin review.",
         images: submission.image_url ? [{ storage_path: submission.image_url, sort_order: 0 }] : [],
         metadata: { sourceSubmissionId: submission.id, scraped: submission.scraped_metadata || {} },
@@ -533,7 +533,7 @@ export default function AdminPage() {
                     <p className="text-xs text-muted-foreground truncate">{sub.url}</p>
                     {sub.brand && <p className="text-xs text-muted-foreground">Brand: {sub.brand}</p>}
                     {sub.category && <p className="text-xs text-muted-foreground">AI category: {sub.category}</p>}
-                    {sub.ai_summary && <p className="mt-1 text-xs text-muted-foreground">{sub.ai_summary}</p>}
+                    {(sub.scraped_metadata?.aiSummary || sub.description) && <p className="mt-1 text-xs text-muted-foreground">{sub.scraped_metadata?.aiSummary || sub.description}</p>}
                     {sub.price_cents && <p className="text-xs font-semibold text-givit-ember">${(sub.price_cents / 100).toFixed(2)}</p>}
                     <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                       <span>Submitted by {sub.profiles?.full_name || sub.profiles?.email || "Anonymous"}</span>
