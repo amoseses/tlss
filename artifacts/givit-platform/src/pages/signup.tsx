@@ -22,7 +22,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       const supabase = createClient();
-      const { error: authError } = await supabase.auth.signUp({
+      const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: { 
@@ -31,9 +31,19 @@ export default function SignupPage() {
         },
       });
       if (authError) { setError(authError.message); return; }
-      // Set flag so login prompt auto-dismisses after signup
+
+      if (data.user) {
+        await supabase.from("profiles").upsert({
+          id: data.user.id,
+          full_name: name.trim() || null,
+          email: data.user.email ?? email,
+          role: "customer",
+        }, { onConflict: "id" });
+      }
+
       window.localStorage.setItem("givit-just-signed-up", "1");
-      setDone(true);
+      if (data.session) navigate(nextPath);
+      else setDone(true);
     } finally {
       setLoading(false);
     }

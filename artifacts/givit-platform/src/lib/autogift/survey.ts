@@ -44,11 +44,14 @@ export type AutoGiftOrder = {
   subtotal: number;
   serviceFee: number;
   total: number;
-  status: "pending_approval" | "approved" | "charged" | "ordered" | "shipped" | "delivered" | "cancelled";
+  status: "pending_approval" | "approved" | "charged" | "admin_fulfillment" | "ordered" | "shipped" | "delivered" | "cancelled";
+  chargeMode: "saved_card_after_approval";
+  chargeNote: string;
   shippingAddress: ShippingAddress;
   cardMessage: string;
   createdAt: string;
   adminNotes?: string;
+  approvedAt?: string;
 };
 
 export type AutoGiftOrderItem = {
@@ -205,6 +208,18 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
       { name: "Patagonia Black Hole Duffel", price: 15900 },
       { name: "Apple AirTag 4 Pack", price: 9900 },
     ],
+    plants: [
+      { name: "Easy-Care Plant Delivery", price: 4500 },
+      { name: "Ceramic Planter Set", price: 3800 },
+    ],
+    art: [
+      { name: "Local Pottery Class Credit", price: 6500 },
+      { name: "Premium Sketchbook + Pens", price: 4200 },
+    ],
+    pets: [
+      { name: "Custom Pet Portrait", price: 8500 },
+      { name: "Pet-and-Owner Movie Night Kit", price: 3900 },
+    ],
   };
 
   for (const interest of response.interests) {
@@ -222,6 +237,18 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
         });
       }
     }
+  }
+
+  const hasActivity = suggestions.some((s) => s.category === "activity");
+  if (!hasActivity && suggestions.length < 6) {
+    suggestions.push({
+      id: `activity-variety-${crypto.randomUUID()}`,
+      name: "At-Home Experience Night",
+      price: 4000,
+      reason: "A flexible activity package such as movie night, game night, craft night, or a local outing credit chosen by the AI concierge.",
+      category: "activity",
+      rating: 82,
+    });
   }
 
   // If nothing matched, add general options
@@ -272,6 +299,8 @@ export function createAutoGiftOrder(params: {
     serviceFee,
     total,
     status: "pending_approval",
+    chargeMode: "saved_card_after_approval",
+    chargeNote: "Customer must approve; then charge the saved card from AutoGift onboarding / first AutoGift checkout before admin fulfillment.",
     shippingAddress: params.shippingAddress,
     cardMessage: params.cardMessage,
     createdAt: new Date().toISOString(),
@@ -296,7 +325,12 @@ function saveAutoGiftOrders(orders: AutoGiftOrder[]) {
 
 export function approveAutoGiftOrder(orderId: string) {
   const orders = getAutoGiftOrders().map(o => 
-    o.id === orderId ? { ...o, status: "approved" as const } : o
+    o.id === orderId ? {
+      ...o,
+      status: "admin_fulfillment" as const,
+      approvedAt: new Date().toISOString(),
+      adminNotes: "Approved by customer. Charge saved card for the calculated total, then source/package items and ship to the saved recipient address.",
+    } : o
   );
   saveAutoGiftOrders(orders);
 }
