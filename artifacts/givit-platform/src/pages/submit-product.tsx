@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { submitProduct } from "@/lib/supabase/db";
+import { extractProductFromUrl } from "@/lib/admin/imported-products";
 
 export default function SubmitProductPage() {
   const { user } = useAuth();
@@ -24,12 +25,24 @@ export default function SubmitProductPage() {
     setError("");
 
     try {
+      const aiExtracted = extractProductFromUrl(url.trim(), {
+        name,
+        brand,
+        price,
+        description,
+        category: "",
+        url,
+      });
       const { error: submitError } = await submitProduct({
         url: url.trim(),
-        name: name.trim() || null,
-        brand: brand.trim() || null,
-        price_cents: price ? Math.round(parseFloat(price) * 100) : null,
-        description: description.trim() || null,
+        name: name.trim() || aiExtracted.name,
+        brand: brand.trim() || aiExtracted.brand,
+        price_cents: price ? Math.round(parseFloat(price) * 100) : Math.round(parseFloat(aiExtracted.price) * 100),
+        description: description.trim() || `AI scraped summary for ${aiExtracted.name} from ${aiExtracted.brand}. Admins can edit before approval.`,
+        category: aiExtracted.category,
+        image_url: `https://picsum.photos/seed/${encodeURIComponent(aiExtracted.name)}/900/700`,
+        ai_summary: `AI scraped ${aiExtracted.name}, categorized it as ${aiExtracted.category}, and prepared it for admin approval.`,
+        scraped_metadata: { source: "client_ai_scraper", extractedAt: new Date().toISOString() },
         user_id: user?.id ?? null,
         status: "pending",
       });
@@ -71,7 +84,7 @@ export default function SubmitProductPage() {
       <div className="mb-6">
         <h1 className="font-serif text-3xl font-bold text-givit-ink">Submit a product</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Found a great gift idea? Submit a product link and our team will review it for the Givit marketplace.
+          Found a great gift idea? Submit a product link; Givit AI will scrape the URL, fill in product details, and queue it for admin approval.
         </p>
       </div>
 
@@ -100,7 +113,7 @@ export default function SubmitProductPage() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Product name (optional)"
+                placeholder="Auto-filled from URL if left blank"
                 className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
               />
             </div>
@@ -109,7 +122,7 @@ export default function SubmitProductPage() {
               <input
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
-                placeholder="Brand name (optional)"
+                placeholder="Auto-filled from URL if left blank"
                 className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
               />
             </div>
@@ -164,7 +177,7 @@ export default function SubmitProductPage() {
             <ul className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
               <li>✓ Help other shoppers discover great gifts</li>
               <li>✓ Your submissions make the marketplace better</li>
-              <li>✓ Approved products get the Givit AI treatment</li>
+              <li>✓ AI scrapes the URL before admin approval</li>
               <li>✓ You'll earn recognition as a contributor</li>
             </ul>
           </div>

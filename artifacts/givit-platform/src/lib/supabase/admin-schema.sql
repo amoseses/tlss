@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   full_name TEXT,
   email TEXT,
   company_name TEXT,
+  phone TEXT,
   role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'seller')),
   is_banned BOOLEAN DEFAULT false,
   stripe_connect_account_id TEXT,
@@ -279,6 +280,10 @@ CREATE TABLE IF NOT EXISTS product_submissions (
   brand TEXT,
   price_cents INTEGER,
   description TEXT,
+  category TEXT,
+  image_url TEXT,
+  ai_summary TEXT,
+  scraped_metadata JSONB DEFAULT '{}'::jsonb,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   reviewed_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -428,6 +433,11 @@ CREATE POLICY "Users can manage their own occasions" ON gift_occasions FOR ALL U
 
 -- GIFT NOTIFICATIONS
 CREATE POLICY "Users can view their own notifications" ON gift_notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own notifications" ON gift_notifications FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own notifications" ON gift_notifications FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Admins can manage all notifications" ON gift_notifications FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
 
 -- GIFT APPROVALS
 CREATE POLICY "Users can manage their own approvals" ON gift_approvals FOR ALL USING (auth.uid() = user_id);
@@ -526,6 +536,13 @@ FROM orders
 WHERE status NOT IN ('cancelled', 'refunded')
 GROUP BY DATE(created_at)
 ORDER BY day DESC;
+
+-- Product submissions migration helpers for existing installs
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE product_submissions ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE product_submissions ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE product_submissions ADD COLUMN IF NOT EXISTS ai_summary TEXT;
+ALTER TABLE product_submissions ADD COLUMN IF NOT EXISTS scraped_metadata JSONB DEFAULT '{}'::jsonb;
 
 -- Product submissions pending
 CREATE OR REPLACE VIEW analytics_pending_submissions AS

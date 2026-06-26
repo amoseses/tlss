@@ -50,27 +50,29 @@ export function LoginPrompt() {
           Log in so Givit can save your people, dates, reminders, and approval queue on your account.
         </p>
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
-          <Button
-            asChild
-            className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover"
-            onClick={() => {
-              window.localStorage.setItem(KEY, "1");
-              window.localStorage.setItem("givit-just-signed-up", "1");
-            }}
-          >
-            <Link href="/login?next=/concierge">Log in</Link>
+          <Button asChild className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
+            <Link
+              href="/login?next=/concierge"
+              onClick={() => {
+                window.localStorage.setItem(KEY, "1");
+                window.localStorage.setItem("givit-just-signed-up", "1");
+                setOpen(false);
+              }}
+            >
+              Log in
+            </Link>
           </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="rounded-full"
-            onClick={() => {
-              window.localStorage.setItem("givit-login-prompt-dismissed", "1");
-              window.localStorage.setItem("givit-just-signed-up", "1");
-              setOpen(false);
-            }}
-          >
-            <Link href="/signup?next=/concierge">Create account</Link>
+          <Button asChild variant="outline" className="rounded-full">
+            <Link
+              href="/signup?next=/concierge"
+              onClick={() => {
+                window.localStorage.setItem("givit-login-prompt-dismissed", "1");
+                window.localStorage.setItem("givit-just-signed-up", "1");
+                setOpen(false);
+              }}
+            >
+              Create account
+            </Link>
           </Button>
         </div>
         <button
