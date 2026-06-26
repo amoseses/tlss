@@ -18,6 +18,34 @@ import { getPublicBoards, getUserBoardsFromDb, saveBoardsToDb, addBoardItem, sav
 
 const LIKED_BOARDS_KEY = "givit-liked-board-ids";
 
+function dbBoardToUserBoard(board: any): UserBoard {
+  const items = Array.isArray(board.gift_board_items) ? board.gift_board_items : [];
+  const images = items.map((item: any) => ({
+    id: item.id ?? crypto.randomUUID(),
+    src: item.image_url || item.product_image || item.metadata?.image_url || "",
+    caption: item.caption || item.product_name || item.title || "Gift idea",
+  })).filter((img: BoardImage) => img.src);
+  return {
+    id: board.id,
+    title: board.title ?? "Gift board",
+    description: board.description ?? "",
+    coverImage: board.cover_image || images[0]?.src || undefined,
+    images,
+    likes: board.likes ?? 0,
+    liked: false,
+    isPublic: board.is_public ?? true,
+  };
+}
+
+function boardSearchScore(board: UserBoard, query: string) {
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return 1;
+  const title = board.title.toLowerCase();
+  const description = board.description.toLowerCase();
+  const captions = board.images.map((img) => img.caption.toLowerCase()).join(" ");
+  return terms.reduce((score, term) => score + (title.includes(term) ? 5 : 0) + (description.includes(term) ? 3 : 0) + (captions.includes(term) ? 2 : 0), 0);
+}
+
 function CreateBoardModal({ onAdd, onClose }: { onAdd: (b: UserBoard) => void; onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -196,21 +224,35 @@ export default function BoardsPage() {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [productSearchQuery, setProductSearchQuery] = useState("");
+  const [boardSearchQuery, setBoardSearchQuery] = useState("");
 
   useEffect(() => {
-    const saved = mergeBoardLikes(readUserBoards());
-    const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
-    setUserBoards(saved.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
+    async function loadBoards() {
+      const saved = mergeBoardLikes(readUserBoards());
+      try {
+        const publicBoards = (await getPublicBoards()).map(dbBoardToUserBoard);
+        const merged = mergeBoardLikes([...publicBoards, ...saved]);
+        const deduped = Array.from(new Map(merged.map((b) => [b.id, b])).values());
+        const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
+        setUserBoards(deduped.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
+      } catch {
+        const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
+        setUserBoards(saved.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
+      }
+    }
+    void loadBoards();
   }, []);
 
   // Load user's gift boards from Supabase when logged in
   useEffect(() => {
-    if (!user || authLoading) return;
+    const userId = user?.id;
+    if (!userId || authLoading) return;
     async function loadUserBoards() {
       try {
-        const userBoardsData = await getUserBoardsFromDb(user.id);
+        const userBoardsData = (await getUserBoardsFromDb(userId)).map(dbBoardToUserBoard);
+        const publicBoards = (await getPublicBoards()).map(dbBoardToUserBoard);
         const localStorageBoards = readUserBoards();
-        const merged = mergeBoardLikes([...userBoardsData, ...localStorageBoards]);
+        const merged = mergeBoardLikes([...publicBoards, ...userBoardsData, ...localStorageBoards]);
         const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
         setUserBoards(merged.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
       } catch (err) {
@@ -222,7 +264,7 @@ export default function BoardsPage() {
 
   async function persistBoards(boards: UserBoard[]) {
     setUserBoards(boards);
-    writeUserBoards(boards.map(({ liked, ...rest }) => rest));
+    writeUserBoards(boards.map(({ liked, ...rest }) => ({ ...rest, liked: false })));
     if (user) {
       try {
         await saveBoardsToDb(user.id, boards);
@@ -293,7 +335,7 @@ export default function BoardsPage() {
   async function addProductToBoard(product: typeof MARKETPLACE_PRODUCTS[0]) {
     if (!selectedBoardId) return;
     
-    const imgSrc = (product as any).image || product.images?.[0]?.src || "";
+    const imgSrc = (product as any).image || (product.images?.[0] as any)?.src || (product.images?.[0] as any)?.image_url || "";
     const priceCents = (product as any).priceCents ?? (product as any).price_cents ?? 0;
 
     const productImage: BoardImage = {
@@ -328,6 +370,7 @@ export default function BoardsPage() {
   }
 
   const selectedBoard = userBoards.find((b) => b.id === selectedBoardId);
+  const publicBoards = userBoards.filter((b) => b.isPublic).map((b) => ({ board: b, score: boardSearchScore(b, boardSearchQuery) })).filter(({ score }) => score > 0).sort((a, b) => b.score - a.score).map(({ board }) => board);
 
   // Filter products based on search
   const filteredProducts = MARKETPLACE_PRODUCTS.filter(p => {
@@ -335,7 +378,7 @@ export default function BoardsPage() {
     const query = productSearchQuery.toLowerCase();
     return p.name.toLowerCase().includes(query) || 
            p.brand.toLowerCase().includes(query) ||
-           p.category.toLowerCase().includes(query);
+           (p.category?.name?.toLowerCase().includes(query) || p.category?.slug?.toLowerCase().includes(query));
   });
 
   return (
@@ -371,11 +414,11 @@ export default function BoardsPage() {
                     className="group rounded-lg border border-border bg-white p-2 text-left transition hover:border-givit-ember/40 hover:shadow-sm"
                   >
                     <div className="aspect-square overflow-hidden rounded-md bg-muted">
-                      {product.image && <img src={product.image} alt={product.name} className="h-full w-full object-cover transition group-hover:scale-105" />}
+                      {((product as any).image || (product.images?.[0] as any)?.src || (product.images?.[0] as any)?.image_url) && <img src={(product as any).image || (product.images?.[0] as any)?.src || (product.images?.[0] as any)?.image_url} alt={product.name} className="h-full w-full object-cover transition group-hover:scale-105" />}
                     </div>
                     <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-givit-ink">{product.name}</p>
                     <p className="text-[10px] text-muted-foreground">{product.brand}</p>
-                    {product.priceCents && <p className="mt-0.5 text-xs font-bold text-givit-ember">${(product.priceCents / 100).toFixed(2)}</p>}
+                    {((product as any).priceCents || product.price_cents) && <p className="mt-0.5 text-xs font-bold text-givit-ember">${(((product as any).priceCents ?? product.price_cents) / 100).toFixed(2)}</p>}
                   </button>
                 ))}
               </div>
@@ -403,23 +446,32 @@ export default function BoardsPage() {
         )}
       </div>
 
-      <div className="mb-5 flex gap-1 rounded-lg bg-muted p-1 w-fit">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[260px] flex-1 sm:max-w-md"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={boardSearchQuery} onChange={(e) => setBoardSearchQuery(e.target.value)} placeholder="Search boards by vibe, name, or description..." className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" /></div>
+        <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit">
         <button type="button" onClick={() => setActiveTab("public")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "public" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
           Public boards
         </button>
         <button type="button" onClick={() => setActiveTab("mine")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "mine" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
           My boards {userBoards.length > 0 && <span className="ml-1 rounded-full bg-givit-ember/10 px-1.5 py-0.5 text-xs text-givit-ember">{userBoards.length}</span>}
         </button>
+        </div>
       </div>
 
-      {activeTab === "public" && (
+      {selectedBoard && selectedBoardId && activeTab === "public" ? (
+        <div className="mb-6 rounded-xl border border-border bg-white p-5">
+          <button type="button" onClick={() => setSelectedBoardId(null)} className="mb-4 text-sm font-semibold text-givit-ember hover:underline">← Back to public boards</button>
+          <div className="mb-4 flex items-center gap-3">{selectedBoard.coverImage && <img src={selectedBoard.coverImage} alt="" className="h-14 w-14 rounded-lg object-cover" />}<div><h2 className="font-serif text-2xl font-bold text-givit-ink">{selectedBoard.title}</h2>{selectedBoard.description && <p className="text-sm text-muted-foreground">{selectedBoard.description}</p>}</div></div>
+          {selectedBoard.images.length > 0 ? <PinterestGrid images={selectedBoard.images} /> : <p className="text-sm text-muted-foreground">No items yet.</p>}
+        </div>
+      ) : activeTab === "public" && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {userBoards.filter(b => b.isPublic).length > 0 ? (
-            userBoards.filter(b => b.isPublic).map((b) => (
+          {publicBoards.length > 0 ? (
+            publicBoards.map((b) => (
               <BoardCard key={b.id} board={b} onOpen={() => setSelectedBoardId(b.id)} />
             ))
           ) : (
-            <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No public boards yet. Create one to share with everyone.</div>
+            <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No public boards match yet. Try a different search or create one to share with everyone.</div>
           )}
         </div>
       )}

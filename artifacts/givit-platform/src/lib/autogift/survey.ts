@@ -134,33 +134,39 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
   const suggestions: GiftSuggestion[] = [];
   const remainingBudget = response.budget * 100; // convert to cents
 
-  // Always add a card option
-  suggestions.push({
-    id: `card-${crypto.randomUUID()}`,
-    name: "Handwritten Card",
-    price: ADDON_PRICING.card,
-    reason: response.giftStyle === "sentimental"
-      ? "A short, specific note tied to the occasion keeps the package personal."
-      : "A simple card keeps the gift from feeling like a blind shipment.",
-    imageUrl: "https://images.unsplash.com/photo-1512909006721-3d6018887383?auto=format&fit=crop&w=600&q=80",
-    productUrl: "https://www.papyrusonline.com/",
-    category: "card",
-    rating: response.giftStyle === "sentimental" ? 95 : 85,
-  });
+  const occasionText = `${response.notes} ${response.giftStyle} ${response.interests.join(" ")}`.toLowerCase();
+  const shouldIncludeCard = response.giftStyle === "sentimental" || /birthday|anniversary|wedding|sympathy|condolence|graduation|mother|father|love|miss you|thank/.test(occasionText);
+  const shouldIncludeFlowers = response.interests.includes("plants") || /flower|garden|plant|sympathy|condolence|romantic|anniversary|mother/.test(occasionText);
 
-  // Always add flowers option
-  suggestions.push({
-    id: `flowers-${crypto.randomUUID()}`,
-    name: "Fresh Flowers Delivery",
-    price: ADDON_PRICING.flowers,
-    imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=600&q=80",
-    productUrl: "https://www.1800flowers.com/",
-    reason: response.interests.includes("plants") || response.giftStyle === "sentimental"
-      ? "Fresh flowers that match their style — perfect for any occasion."
-      : "A classic way to brighten their day.",
-    category: "flowers",
-    rating: response.interests.includes("plants") ? 92 : 78,
-  });
+  if (shouldIncludeCard) {
+    suggestions.push({
+      id: `card-${crypto.randomUUID()}`,
+      name: "Handwritten Card",
+      price: ADDON_PRICING.card,
+      reason: response.giftStyle === "sentimental"
+        ? "A short, specific note tied to the occasion keeps the package personal."
+        : "A card makes sense for this occasion and keeps the gift from feeling generic.",
+      imageUrl: "https://images.unsplash.com/photo-1512909006721-3d6018887383?auto=format&fit=crop&w=600&q=80",
+      productUrl: "https://www.papyrusonline.com/",
+      category: "card",
+      rating: response.giftStyle === "sentimental" ? 95 : 86,
+    });
+  }
+
+  if (shouldIncludeFlowers) {
+    suggestions.push({
+      id: `flowers-${crypto.randomUUID()}`,
+      name: response.interests.includes("plants") ? "Living Plant Delivery" : "Fresh Flowers Delivery",
+      price: ADDON_PRICING.flowers,
+      imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=600&q=80",
+      productUrl: "https://www.1800flowers.com/",
+      reason: response.interests.includes("plants")
+        ? "A plant fits their interests better than default flowers and lasts longer."
+        : "Flowers are included only because the occasion and tone make them feel appropriate.",
+      category: "flowers",
+      rating: response.interests.includes("plants") ? 92 : 84,
+    });
+  }
 
   // Activity suggestions based on gift style
   if (response.giftStyle === "experience" || response.budget >= 75) {
@@ -237,8 +243,9 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
   for (const interest of response.interests) {
     const matches = INTEREST_MAP[interest.toLowerCase()] ?? [];
     for (const match of matches) {
-      const totalWithFees = match.price + ADDON_PRICING.card + ADDON_PRICING.flowers;
-      if (totalWithFees <= remainingBudget || suggestions.length < 3) {
+      const relevantAddonCost = (shouldIncludeCard ? ADDON_PRICING.card : 0) + (shouldIncludeFlowers ? ADDON_PRICING.flowers : 0);
+      const totalWithFees = match.price + relevantAddonCost;
+      if (totalWithFees <= remainingBudget || suggestions.filter((item) => item.category === "gift" || item.category === "activity").length < 3) {
         suggestions.push({
           id: `product-${interest}-${suggestions.length}`,
           name: match.name,

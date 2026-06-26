@@ -79,6 +79,10 @@ function extractNameFromUrl(url: string): string {
   }
 }
 
+export function productPageImageUrl(url: string) {
+  return `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&embed=screenshot.url`;
+}
+
 export function extractProductFromUrl(url: string, hints?: Partial<ImportedProductRow>): Omit<ImportedProductRow, "status"> {
   const name = hints?.name?.trim() || extractNameFromUrl(url);
   const brand = hints?.brand?.trim() || guessBrand(url, name);

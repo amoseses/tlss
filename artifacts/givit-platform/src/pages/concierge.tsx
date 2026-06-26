@@ -251,7 +251,7 @@ function RecipientCard({ recipient, onDelete }: { recipient: Recipient; onDelete
       </div>
 
       <Link href={`/autogift/recommend?recipient=${encodeURIComponent(recipient.name)}&relationship=${encodeURIComponent(recipient.relationship)}&occasion=${encodeURIComponent(upcoming?.label ?? recipient.occasions[0]?.label ?? "")}&date=${encodeURIComponent(upcoming?.date ?? recipient.occasions[0]?.date ?? "")}`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-givit-ember/30 py-1.5 text-xs font-semibold text-givit-ember transition hover:bg-givit-ember/5">
-        <Sparkles className="h-3 w-3" /> Find a gift
+        <Sparkles className="h-3 w-3" /> Find a gift now
       </Link>
     </div>
   );

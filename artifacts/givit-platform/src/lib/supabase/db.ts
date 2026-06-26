@@ -186,7 +186,16 @@ export async function getAiLearning(userId: string) {
 export async function submitProduct(submission: Record<string, unknown>) {
   const supabase = getDb();
   const { data, error } = await supabase.from("product_submissions").insert(submission).select().single();
-  return { data, error };
+  if (!error || !/schema cache|category|image_url|ai_summary|scraped_metadata/i.test(error.message ?? "")) return { data, error };
+
+  const compatibleSubmission: Record<string, unknown> = { ...submission, description: [submission.description, `AI category: ${submission.category ?? "gift"}`, `Image: ${submission.image_url ?? ""}`].filter(Boolean).join("\n\n") };
+  delete compatibleSubmission.category;
+  delete compatibleSubmission.image_url;
+  delete compatibleSubmission.ai_summary;
+  delete compatibleSubmission.scraped_metadata;
+
+  const fallback = await supabase.from("product_submissions").insert(compatibleSubmission).select().single();
+  return { data: fallback.data, error: fallback.error };
 }
 
 export async function getProductSubmissions(status?: string) {
@@ -247,6 +256,12 @@ export async function saveUserAddress(address: Record<string, unknown>) {
   return { data, error };
 }
 
+export async function deleteUserAddress(userId: string, addressId: string) {
+  const supabase = getDb();
+  const { error } = await supabase.from("user_addresses").delete().eq("id", addressId).eq("user_id", userId);
+  return { error };
+}
+
 // ============================================================
 // USER PAYMENT METHODS
 // ============================================================
@@ -260,6 +275,12 @@ export async function saveUserPaymentMethod(paymentMethod: Record<string, unknow
   const supabase = getDb();
   const { data, error } = await supabase.from("user_payment_methods").upsert(paymentMethod).select().single();
   return { data, error };
+}
+
+export async function deleteUserPaymentMethod(userId: string, paymentMethodId: string) {
+  const supabase = getDb();
+  const { error } = await supabase.from("user_payment_methods").delete().eq("id", paymentMethodId).eq("user_id", userId);
+  return { error };
 }
 
 // ============================================================
