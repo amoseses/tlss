@@ -1,6 +1,6 @@
 /**
  * AutoGift Survey + Suggestion Engine
- * 
+ *
  * 35 days before an occasion, a gift survey is triggered.
  * Recipient fills out preferences → AI generates suggestions → user approves → order is placed.
  */
@@ -32,6 +32,8 @@ export type GiftSuggestion = {
   reason: string;
   category: string;
   rating: number;
+  imageUrl?: string;
+  productUrl?: string;
 };
 
 export type AutoGiftOrder = {
@@ -56,6 +58,8 @@ export type AutoGiftOrder = {
 
 export type AutoGiftOrderItem = {
   productName: string;
+  productUrl?: string;
+  imageUrl?: string;
   category: "card" | "flowers" | "gift" | "activity" | "addon";
   price: number;
   quantity: number;
@@ -108,7 +112,7 @@ function saveSurveys(surveys: GiftSurvey[]) {
 }
 
 export function respondToSurvey(surveyId: string, response: SurveyResponse) {
-  const surveys = getSurveys().map(s => 
+  const surveys = getSurveys().map(s =>
     s.id === surveyId ? { ...s, status: "responded" as const, respondedAt: new Date().toISOString() } : s
   );
   saveSurveys(surveys);
@@ -135,9 +139,11 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
     id: `card-${crypto.randomUUID()}`,
     name: "Handwritten Card",
     price: ADDON_PRICING.card,
-    reason: response.giftStyle === "sentimental" 
-      ? "A personal note makes every gift feel more meaningful." 
-      : "Every gift includes a handwritten card.",
+    reason: response.giftStyle === "sentimental"
+      ? "A short, specific note tied to the occasion keeps the package personal."
+      : "A simple card keeps the gift from feeling like a blind shipment.",
+    imageUrl: "https://images.unsplash.com/photo-1512909006721-3d6018887383?auto=format&fit=crop&w=600&q=80",
+    productUrl: "https://www.papyrusonline.com/",
     category: "card",
     rating: response.giftStyle === "sentimental" ? 95 : 85,
   });
@@ -147,6 +153,8 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
     id: `flowers-${crypto.randomUUID()}`,
     name: "Fresh Flowers Delivery",
     price: ADDON_PRICING.flowers,
+    imageUrl: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=600&q=80",
+    productUrl: "https://www.1800flowers.com/",
     reason: response.interests.includes("plants") || response.giftStyle === "sentimental"
       ? "Fresh flowers that match their style — perfect for any occasion."
       : "A classic way to brighten their day.",
@@ -160,14 +168,18 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
       id: `activity-${crypto.randomUUID()}`,
       name: "Movie Night Box",
       price: 3000,
+      imageUrl: "https://images.unsplash.com/photo-1521967906867-14ec9d64bee8?auto=format&fit=crop&w=600&q=80",
+      productUrl: "https://www.uncommongoods.com/",
       reason: "A cozy movie night kit with gourmet popcorn, candy, and a streaming gift card.",
       category: "activity",
       rating: 84,
     });
     suggestions.push({
       id: `activity2-${crypto.randomUUID()}`,
-      name: "Date Night Experience Credit",
+      name: "Local Experience Credit",
       price: 5000,
+      imageUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=600&q=80",
+      productUrl: "https://www.airbnb.com/experiences",
       reason: "Credit toward a local cooking class, pottery session, or wine tasting — arranged by our concierge.",
       category: "activity",
       rating: 88,
@@ -175,22 +187,22 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
   }
 
   // Product suggestions based on interests
-  const INTEREST_MAP: Record<string, { name: string; price: number }[]> = {
+  const INTEREST_MAP: Record<string, { name: string; price: number; url?: string; image?: string; reason?: string }[]> = {
     tech: [
-      { name: "Anker 737 Power Bank", price: 14999 },
-      { name: "Tile Mate Tracker", price: 2499 },
+      { name: "Anker 737 Power Bank", price: 14999, url: "https://www.anker.com/", image: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?auto=format&fit=crop&w=600&q=80" },
+      { name: "Tile Mate Tracker", price: 2499, url: "https://www.tile.com/", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
     ],
     reading: [
-      { name: "Kindle Paperwhite", price: 15999 },
-      { name: "Bookshop.org Gift Card", price: 5000 },
+      { name: "Kindle Paperwhite", price: 15999, url: "https://www.amazon.com/kindle", image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80" },
+      { name: "Bookshop.org Gift Card", price: 5000, url: "https://bookshop.org/gift_cards", image: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=600&q=80" },
     ],
     cooking: [
-      { name: "AeroPress Coffee Maker", price: 4995 },
-      { name: "OXO Cold Brew Maker", price: 5199 },
+      { name: "AeroPress Coffee Maker", price: 4995, url: "https://aeropress.com/", image: "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&w=600&q=80" },
+      { name: "OXO Cold Brew Maker", price: 5199, url: "https://www.oxo.com/", image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=600&q=80" },
     ],
     fitness: [
-      { name: "Stanley Quencher Tumbler", price: 4500 },
-      { name: "Theragun Mini", price: 19900 },
+      { name: "Stanley Quencher Tumbler", price: 4500, url: "https://www.stanley1913.com/", image: "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=600&q=80" },
+      { name: "Theragun Mini", price: 19900, url: "https://www.therabody.com/", image: "https://images.unsplash.com/photo-1571019613914-85f342c6a11e?auto=format&fit=crop&w=600&q=80" },
     ],
     music: [
       { name: "Sony WH-1000XM5 Headphones", price: 39800 },
@@ -231,7 +243,9 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
           id: `product-${interest}-${suggestions.length}`,
           name: match.name,
           price: match.price,
-          reason: `Based on their interest in ${interest}, this makes a thoughtful choice.`,
+          reason: match.reason || `Matches their interest in ${interest} without needing extra explanation.`,
+          imageUrl: match.image,
+          productUrl: match.url,
           category: "gift",
           rating: Math.max(70, 92 - suggestions.length * 3),
         });
@@ -245,6 +259,8 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
       id: `activity-variety-${crypto.randomUUID()}`,
       name: "At-Home Experience Night",
       price: 4000,
+      imageUrl: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=600&q=80",
+      productUrl: "https://www.uncommongoods.com/",
       reason: "A flexible activity package such as movie night, game night, craft night, or a local outing credit chosen by the AI concierge.",
       category: "activity",
       rating: 82,
@@ -263,7 +279,7 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
     });
   }
 
-  return suggestions.slice(0, 6); // max 6 suggestions
+  return suggestions.slice(0, 10); // enough options for a paged bundle review
 }
 
 /**
@@ -287,7 +303,7 @@ export function createAutoGiftOrder(params: {
   cardMessage: string;
 }): AutoGiftOrder {
   const { subtotal, serviceFee, total } = calculateOrderTotal(params.items);
-  
+
   const order: AutoGiftOrder = {
     id: `autogift-${crypto.randomUUID()}`,
     userId: params.userId,
@@ -309,7 +325,7 @@ export function createAutoGiftOrder(params: {
   const orders = getAutoGiftOrders();
   orders.push(order);
   saveAutoGiftOrders(orders);
-  
+
   return order;
 }
 
@@ -324,7 +340,7 @@ function saveAutoGiftOrders(orders: AutoGiftOrder[]) {
 }
 
 export function approveAutoGiftOrder(orderId: string) {
-  const orders = getAutoGiftOrders().map(o => 
+  const orders = getAutoGiftOrders().map(o =>
     o.id === orderId ? {
       ...o,
       status: "admin_fulfillment" as const,
@@ -336,7 +352,7 @@ export function approveAutoGiftOrder(orderId: string) {
 }
 
 export function cancelAutoGiftOrder(orderId: string) {
-  const orders = getAutoGiftOrders().map(o => 
+  const orders = getAutoGiftOrders().map(o =>
     o.id === orderId ? { ...o, status: "cancelled" as const } : o
   );
   saveAutoGiftOrders(orders);

@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles, CheckCircle } from "lucide-react";
 import { respondToSurvey, generateGiftSuggestions, createAutoGiftOrder, getAutoGiftOrders, type SurveyResponse, type GiftSuggestion, type AutoGiftOrderItem } from "@/lib/autogift/survey";
 
 const INTEREST_OPTIONS = [
-  "tech", "reading", "cooking", "fitness", "music", "coffee", 
-  "gaming", "travel", "plants", "art", "fashion", "outdoor", "pets"
+  "tech", "reading", "cooking", "fitness", "music", "coffee",
+  "gaming", "travel", "plants", "art", "fashion", "outdoor", "pets",
+  "wellness", "crafts", "beauty", "home", "foodie", "sports", "learning", "local experiences"
 ];
 
 const STYLE_OPTIONS = [
@@ -30,15 +31,24 @@ export function GiftSurveyModal({
   const [interests, setInterests] = useState<string[]>([]);
   const [budget, setBudget] = useState(50);
   const [giftStyle, setGiftStyle] = useState<string>("practical");
-  const [packageType, setPackageType] = useState<"full" | "single">("full");
-  const [includeFlowers, setIncludeFlowers] = useState(true);
-  const [includeCard, setIncludeCard] = useState(true);
-  const [includeExcursion, setIncludeExcursion] = useState(false);
+  const [packageType, setPackageType] = useState<"full" | "recommendations">("full");
   const [notes, setNotes] = useState("");
   const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
   const [selectedSuggestionIds, setSelectedSuggestionIds] = useState<Set<string>>(new Set());
   const [cardMessage, setCardMessage] = useState("");
-  const [address, setAddress] = useState({ line1: "", city: "", state: "", zip: "" });
+  const [addressOptions, setAddressOptions] = useState<Array<{ label?: string; line1: string; city: string; state: string; zip: string }>>([]);
+  const [address, setAddress] = useState({ label: "", line1: "", city: "", state: "", zip: "" });
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("givit-autogift-addresses") ?? "[]");
+      if (Array.isArray(saved) && saved.length) {
+        setAddressOptions(saved);
+        setAddress({ label: saved[0].label || "", line1: saved[0].line1, city: saved[0].city, state: saved[0].state, zip: saved[0].zip });
+      }
+    } catch { /* ignore malformed local demo data */ }
+  }, []);
 
   function handleSurveySubmit() {
     const response: SurveyResponse = {
@@ -46,13 +56,12 @@ export function GiftSurveyModal({
       budget,
       avoidItems: [],
       giftStyle: giftStyle as SurveyResponse["giftStyle"],
-      notes: `${notes}${packageType === "full" ? " Full package requested." : " One present only requested."}${includeFlowers ? " Include flowers if appropriate." : " No flowers."}${includeCard ? " Include a card." : " No card."}${includeExcursion ? " Include an excursion/experience option." : ""}`,
+      notes: `${notes}${packageType === "full" ? " Full bundle requested." : " Recommendations only requested."}`,
     };
     const surveyId = `survey-${Date.now()}`;
     respondToSurvey(surveyId, response);
     let results = generateGiftSuggestions(response);
-    if (packageType === "single") results = results.filter((item) => item.category === "gift").slice(0, 3);
-    else results = results.filter((item) => (includeCard || item.category !== "card") && (includeFlowers || item.category !== "flowers") && (includeExcursion || item.category !== "activity" || giftStyle === "experience"));
+    if (packageType === "recommendations") results = results.filter((item) => item.category === "gift" || item.category === "activity").slice(0, 5);
     setSuggestions(results);
     setSelectedSuggestionIds(new Set(results.map(r => r.id)));
     setStep("suggestions");
@@ -72,6 +81,8 @@ export function GiftSurveyModal({
         productName: s.name,
         category: s.category as AutoGiftOrderItem["category"],
         price: s.price,
+        productUrl: s.productUrl,
+        imageUrl: s.imageUrl,
         quantity: 1,
       }));
 
@@ -116,10 +127,9 @@ export function GiftSurveyModal({
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Package size</label>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <button type="button" onClick={() => setPackageType("full")} className={`rounded-lg border p-3 text-left text-sm ${packageType === "full" ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}><b>Full package</b><br /><span className="text-xs text-muted-foreground">Gift plus optional card, flowers, and excursion.</span></button>
-                  <button type="button" onClick={() => setPackageType("single")} className={`rounded-lg border p-3 text-left text-sm ${packageType === "single" ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}><b>One present</b><br /><span className="text-xs text-muted-foreground">Keep it focused on one strong gift.</span></button>
+                  <button type="button" onClick={() => setPackageType("full")} className={`rounded-lg border p-3 text-left text-sm ${packageType === "full" ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}><b>Full package</b><br /><span className="text-xs text-muted-foreground">Gift, card, flowers, and/or experience. Edit or remove each item before approval.</span></button>
+                  <button type="button" onClick={() => setPackageType("recommendations")} className={`rounded-lg border p-3 text-left text-sm ${packageType === "recommendations" ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}><b>Recommendations only</b><br /><span className="text-xs text-muted-foreground">Show gift ideas without the complete bundle add-ons.</span></button>
                 </div>
-                {packageType === "full" && <div className="flex flex-wrap gap-2 text-xs"><label><input type="checkbox" checked={includeCard} onChange={(e) => setIncludeCard(e.target.checked)} /> Card</label><label><input type="checkbox" checked={includeFlowers} onChange={(e) => setIncludeFlowers(e.target.checked)} /> Flowers</label><label><input type="checkbox" checked={includeExcursion} onChange={(e) => setIncludeExcursion(e.target.checked)} /> Excursion/experience</label></div>}
               </div>
 
               <div className="space-y-2">
@@ -205,43 +215,23 @@ export function GiftSurveyModal({
                 Select the items to include in their gift package.
               </p>
 
-              <div className="space-y-2.5">
-                {suggestions.map(suggestion => (
-                  <button
-                    key={suggestion.id}
-                    type="button"
-                    onClick={() => toggleSuggestion(suggestion.id)}
-                    className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition ${
-                      selectedSuggestionIds.has(suggestion.id)
-                        ? "border-givit-ember bg-givit-ember/5"
-                        : "border-border hover:border-givit-ember/30"
-                    }`}
-                  >
-                    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
-                      selectedSuggestionIds.has(suggestion.id)
-                        ? "border-givit-ember bg-givit-ember text-white"
-                        : "border-border"
-                    }`}>
-                      {selectedSuggestionIds.has(suggestion.id) && (
-                        <CheckCircle className="h-3.5 w-3.5" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-foreground">{suggestion.name}</p>
-                        <span className="text-sm font-bold text-givit-ember">${(suggestion.price / 100).toFixed(2)}</span>
+              <div className="space-y-3">
+                {suggestions.length > 0 && (() => {
+                  const suggestion = suggestions[Math.min(page, suggestions.length - 1)];
+                  return (
+                    <div className={`overflow-hidden rounded-xl border ${selectedSuggestionIds.has(suggestion.id) ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}>
+                      {suggestion.imageUrl && <img src={suggestion.imageUrl} alt="" className="h-44 w-full object-cover" />}
+                      <div className="space-y-3 p-4">
+                        <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-foreground">{suggestion.name}</p><p className="text-xs text-muted-foreground">{suggestion.reason}</p></div><span className="font-bold text-givit-ember">${(suggestion.price / 100).toFixed(2)}</span></div>
+                        {suggestion.productUrl && <a href={suggestion.productUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-givit-ember underline">View source / product site</a>}
+                        <div className="grid gap-2 sm:grid-cols-2"><input value={suggestion.name} onChange={(e) => setSuggestions((prev) => prev.map((item) => item.id === suggestion.id ? { ...item, name: e.target.value } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /><input type="number" value={(suggestion.price / 100).toFixed(2)} onChange={(e) => setSuggestions((prev) => prev.map((item) => item.id === suggestion.id ? { ...item, price: Math.round(Number(e.target.value || 0) * 100) } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /></div>
+                        <div className="flex gap-2"><Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={() => setPage((prev) => Math.max(0, prev - 1))} disabled={page === 0}>Previous</Button><Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={() => setPage((prev) => Math.min(suggestions.length - 1, prev + 1))} disabled={page >= suggestions.length - 1}>Next</Button><Button type="button" className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={() => toggleSuggestion(suggestion.id)}>{selectedSuggestionIds.has(suggestion.id) ? "Remove" : "Add"}</Button></div>
+                        <p className="text-center text-xs text-muted-foreground">Option {page + 1} of {suggestions.length}</p>
                       </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{suggestion.reason}</p>
-                      {suggestion.category !== "card" && suggestion.category !== "flowers" && (
-                        <span className="mt-1 inline-block rounded-full bg-givit-ember/10 px-2 py-0.5 text-[10px] font-medium text-givit-ember">
-                          {suggestion.rating}/100 match
-                        </span>
-                      )}
                     </div>
-                  </button>
-                ))}
+                  );
+                })()}
               </div>
-
               <div className="rounded-lg bg-muted/50 p-3 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal</span>
@@ -276,6 +266,8 @@ export function GiftSurveyModal({
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Shipping address</label>
+                {addressOptions.length > 1 && <select value={address.label || address.line1} onChange={(e) => { const selected = addressOptions.find((item) => (item.label || item.line1) === e.target.value); if (selected) setAddress({ label: selected.label || "", line1: selected.line1, city: selected.city, state: selected.state, zip: selected.zip }); }} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"><option value="">Choose saved address...</option>{addressOptions.map((item) => <option key={`${item.label}-${item.line1}`} value={item.label || item.line1}>{item.label || item.line1}</option>)}</select>}
+                {addressOptions.length === 1 && <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">Using saved address: {addressOptions[0].label || addressOptions[0].line1}</p>}
                 <input value={address.line1} onChange={(e) => setAddress(a => ({ ...a, line1: e.target.value }))} placeholder="Street address *" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
                 <div className="grid grid-cols-3 gap-2">
                   <input value={address.city} onChange={(e) => setAddress(a => ({ ...a, city: e.target.value }))} placeholder="City *" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />

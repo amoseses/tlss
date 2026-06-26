@@ -86,16 +86,8 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
   const emptyPerson = (): PersonForm => ({ name: "", relationship: "", occasions: [{ label: "Birthday", date: "" }] });
   const [people, setPeople] = useState<PersonForm[]>([emptyPerson()]);
 
-  // Auto-fill special date if applicable
-  useEffect(() => {
-    const special = getTodaySpecialDate();
-    if (special) {
-      const year = new Date().getFullYear();
-      const date = special.getDate(year);
-      const dateStr = date.toISOString().split("T")[0];
-      setPeople([{ name: "", relationship: "", occasions: [{ label: special.name, date: dateStr }] }]);
-    }
-  }, []);
+  // Dates are added in the occasions section below so this dialog only asks once.
+
 
   function addPerson() {
     setPeople((prev) => [...prev, emptyPerson()]);
@@ -587,7 +579,7 @@ export default function ConciergePage() {
             </div>
             <div className="mt-4">
               <Button asChild className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover text-xs h-9 w-full">
-                <Link href="/gift"><Gift className="h-3.5 w-3.5" /> Find a gift with AI</Link>
+                <Link href="/gift"><Gift className="h-3.5 w-3.5" /> Find a gift now!</Link>
               </Button>
             </div>
           </div>

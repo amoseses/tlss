@@ -41,8 +41,11 @@ export default function SubmitProductPage() {
         description: description.trim() || `AI scraped summary for ${aiExtracted.name} from ${aiExtracted.brand}. Admins can edit before approval.`,
         category: aiExtracted.category,
         image_url: `https://picsum.photos/seed/${encodeURIComponent(aiExtracted.name)}/900/700`,
-        ai_summary: `AI scraped ${aiExtracted.name}, categorized it as ${aiExtracted.category}, and prepared it for admin approval.`,
-        scraped_metadata: { source: "client_ai_scraper", extractedAt: new Date().toISOString() },
+        scraped_metadata: {
+          source: "client_ai_scraper",
+          extractedAt: new Date().toISOString(),
+          aiSummary: `AI scraped ${aiExtracted.name}, categorized it as ${aiExtracted.category}, and prepared it for admin approval.`,
+        },
         user_id: user?.id ?? null,
         status: "pending",
       });
@@ -62,7 +65,7 @@ export default function SubmitProductPage() {
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
             <CheckCircle className="h-8 w-8 text-emerald-600" />
           </div>
-          <h2 className="mt-4 font-serif text-2xl font-bold text-givit-ink">Product submitted!</h2>
+          <h2 className="mt-4 font-serif text-2xl font-bold text-givit-ink">Product added for review!</h2>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
             Our admin team will review your submission and approve it if it meets our quality standards. You'll be notified when it's live.
           </p>
@@ -71,7 +74,7 @@ export default function SubmitProductPage() {
               <Link href="/products">Browse marketplace</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-lg">
-              <Link href="/submit-product">Submit another</Link>
+              <Link href="/submit-product">Add another</Link>
             </Button>
           </div>
         </div>
@@ -82,9 +85,9 @@ export default function SubmitProductPage() {
   return (
     <PageShell narrow>
       <div className="mb-6">
-        <h1 className="font-serif text-3xl font-bold text-givit-ink">Submit a product</h1>
+        <h1 className="font-serif text-3xl font-bold text-givit-ink">Add your own product</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Found a great gift idea? Submit a product link; Givit AI will scrape the URL, fill in product details, and queue it for admin approval.
+          Found a great gift idea? Add your own product link; Givit AI will scrape the URL, fill in product details, and queue it for admin approval.
         </p>
       </div>
 
@@ -161,7 +164,7 @@ export default function SubmitProductPage() {
             {loading ? (
               <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</>
             ) : (
-              <><Send className="h-4 w-4" /> Submit for review</>
+              <><Send className="h-4 w-4" /> Add for review</>
             )}
           </Button>
         </form>
@@ -173,7 +176,7 @@ export default function SubmitProductPage() {
             <Sparkles className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="font-semibold text-givit-ink">Why submit products?</h2>
+            <h2 className="font-semibold text-givit-ink">Why add your own products?</h2>
             <ul className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
               <li>✓ Help other shoppers discover great gifts</li>
               <li>✓ Your submissions make the marketplace better</li>

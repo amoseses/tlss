@@ -79,6 +79,21 @@ The AutoGift system works in 4 stages:
 8. Admin sources items, writes card, arranges shipping
 9. Status updates: `approved` → `charged` → `ordered` → `shipped` → `delivered`
 
+
+### Testing the AutoGift notification system
+
+Use this checklist to test the local demo flow end-to-end:
+
+1. Start the app with `pnpm run dev` and open `/concierge`.
+2. Sign in, complete AutoGift onboarding, and save at least one payment method plus one shipping address. Add two addresses if you want to verify that the survey asks the user to choose a shipping address.
+3. Add a recipient with an occasion date within the next 42 days. AutoGift creates a local reminder when the occasion is inside the 35-day lead window plus the testing buffer.
+4. Use **Test AutoGift** on `/concierge` to open the recipient survey immediately without waiting for the scheduled email job.
+5. Choose **Full package** or **Recommendations only**, pick interests, generate suggestions, page through the image/link cards, edit or remove bundle items, choose the saved shipping address, and approve the order.
+6. Open `/admin` and check the **AutoGift admin fulfillment queue** for the order that was just created in local storage.
+7. In Supabase, verify `gift_notifications` rows for the user. Scheduled email notifications should use `channel = 'email'`, `status = 'scheduled'`, and `metadata.automation = 'autogift'`.
+
+For production email testing, point your scheduler/email worker at rows in `gift_notifications` where `scheduled_for <= now()`, `status = 'scheduled'`, and `channel = 'email'`, then mark successful sends as `sent`.
+
 ## Key Pages
 
 | Route | Page | Access |
