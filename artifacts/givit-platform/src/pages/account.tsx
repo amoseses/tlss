@@ -4,7 +4,7 @@ import { User, Package, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, 
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
-import { getUserOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile } from "@/lib/supabase/db";
+import { getUserOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile, saveUserAddress, saveUserPaymentMethod } from "@/lib/supabase/db";
 
 export default function AccountPage() {
   const { user, profile, loading } = useAuth();
@@ -21,6 +21,9 @@ export default function AccountPage() {
   const [phone, setPhone] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
+  const [addressForm, setAddressForm] = useState({ label: "Home", line1: "", city: "", state: "", zip: "", country: "US" });
+  const [cardForm, setCardForm] = useState({ name: "", number: "", expiry: "", cvc: "" });
+  const [accountNotice, setAccountNotice] = useState("");
 
   useEffect(() => {
     if (!loading && !user) navigate("/login?next=/account");
@@ -28,14 +31,15 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (!user) return;
+    const userId = user.id;
     async function load() {
       setDataLoading(true);
       try {
         const [ordersData, addressesData, paymentData, wishlistData] = await Promise.all([
-          getUserOrders(user.id),
-          getUserAddresses(user.id),
-          getUserPaymentMethods(user.id),
-          getWishlist(user.id),
+          getUserOrders(userId),
+          getUserAddresses(userId),
+          getUserPaymentMethods(userId),
+          getWishlist(userId),
         ]);
         setOrders(ordersData);
         setAddresses(addressesData);
@@ -54,7 +58,7 @@ export default function AccountPage() {
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || "");
-      setPhone(profile.phone || "");
+      setPhone((profile as any).phone || "");
     }
   }, [profile]);
 
@@ -75,6 +79,37 @@ export default function AccountPage() {
     } finally {
       setSavingProfile(false);
     }
+  }
+
+  async function handleAddressSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    const { error } = await saveUserAddress({ user_id: user.id, ...addressForm, is_default: addresses.length === 0 });
+    if (error) { setAccountNotice(error.message); return; }
+    setAddresses(await getUserAddresses(user.id));
+    setAddressForm({ label: "Home", line1: "", city: "", state: "", zip: "", country: "US" });
+    setAccountNotice("Address saved.");
+  }
+
+  async function handlePaymentSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    const digits = cardForm.number.replace(/\D/g, "");
+    if (!cardForm.name || digits.length < 13 || !cardForm.expiry || cardForm.cvc.replace(/\D/g, "").length < 3) {
+      setAccountNotice("Enter complete card details before saving. Stripe Elements should tokenize this in production.");
+      return;
+    }
+    const { error } = await saveUserPaymentMethod({
+      user_id: user.id,
+      stripe_payment_method_id: `pm_demo_${digits.slice(-8)}`,
+      card_brand: detectCardBrand(digits),
+      card_last4: digits.slice(-4),
+      is_default: paymentMethods.length === 0,
+    });
+    if (error) { setAccountNotice(error.message); return; }
+    setPaymentMethods(await getUserPaymentMethods(user.id));
+    setCardForm({ name: "", number: "", expiry: "", cvc: "" });
+    setAccountNotice("Payment method saved for Stripe checkout / AutoGift approvals.");
   }
 
   if (loading || dataLoading) return <PageShell><div className="flex min-h-[400px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-givit-ember border-t-transparent" /></div></PageShell>;
@@ -132,6 +167,8 @@ export default function AccountPage() {
           )}
         </div>
       </div>
+
+      {accountNotice && <div className="mb-4 rounded-xl bg-givit-ember/10 px-4 py-3 text-sm text-givit-ink">{accountNotice}</div>}
 
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Orders */}
@@ -204,20 +241,13 @@ export default function AccountPage() {
             <MapPin className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Saved Addresses</h2>
           </div>
-          {addresses.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No saved addresses.</p>
-          ) : (
-            <div className="space-y-2">
-              {addresses.map((addr: any) => (
-                <div key={addr.id} className="rounded-lg bg-muted/50 p-2.5 text-xs">
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-foreground">{addr.label}</span>
-                    {addr.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}
-                  </div>
-                  <p className="mt-0.5 text-muted-foreground">{addr.line1}, {addr.city}, {addr.state} {addr.zip}</p>
-                </div>
-              ))}
-            </div>
+          <form onSubmit={handleAddressSave} className="mb-3 grid gap-2 rounded-lg border border-border/60 p-3">
+            <div className="grid gap-2 sm:grid-cols-2"><input value={addressForm.label} onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })} placeholder="Label" className="h-9 rounded-md border border-border bg-background px-3 text-xs" /><input value={addressForm.line1} onChange={(e) => setAddressForm({ ...addressForm, line1: e.target.value })} placeholder="Street address" required className="h-9 rounded-md border border-border bg-background px-3 text-xs" /></div>
+            <div className="grid gap-2 sm:grid-cols-3"><input value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} placeholder="City" required className="h-9 rounded-md border border-border bg-background px-3 text-xs" /><input value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} placeholder="State" required className="h-9 rounded-md border border-border bg-background px-3 text-xs" /><input value={addressForm.zip} onChange={(e) => setAddressForm({ ...addressForm, zip: e.target.value })} placeholder="ZIP" required className="h-9 rounded-md border border-border bg-background px-3 text-xs" /></div>
+            <Button type="submit" size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Add address</Button>
+          </form>
+          {addresses.length === 0 ? <p className="text-sm text-muted-foreground">No saved addresses.</p> : (
+            <div className="space-y-2">{addresses.map((addr: any) => (<div key={addr.id} className="rounded-lg bg-muted/50 p-2.5 text-xs"><div className="flex items-center gap-1"><span className="font-medium text-foreground">{addr.label}</span>{addr.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}</div><p className="mt-0.5 text-muted-foreground">{addr.line1}, {addr.city}, {addr.state} {addr.zip}</p></div>))}</div>
           )}
         </div>
 
@@ -227,18 +257,14 @@ export default function AccountPage() {
             <CreditCard className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Payment Methods</h2>
           </div>
-          {paymentMethods.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No saved payment methods.</p>
-          ) : (
-            <div className="space-y-2">
-              {paymentMethods.map((pm: any) => (
-                <div key={pm.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2.5 text-xs">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-foreground">{pm.card_brand} •••• {pm.card_last4}</span>
-                  {pm.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}
-                </div>
-              ))}
-            </div>
+          <form onSubmit={handlePaymentSave} className="mb-3 grid gap-2 rounded-lg border border-border/60 p-3">
+            <input value={cardForm.name} onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })} placeholder="Name on card" className="h-9 rounded-md border border-border bg-background px-3 text-xs" />
+            <input value={cardForm.number} onChange={(e) => setCardForm({ ...cardForm, number: formatCardNumber(e.target.value) })} placeholder="Card number" inputMode="numeric" className="h-9 rounded-md border border-border bg-background px-3 text-xs" />
+            <div className="grid grid-cols-2 gap-2"><input value={cardForm.expiry} onChange={(e) => setCardForm({ ...cardForm, expiry: formatExpiry(e.target.value) })} placeholder="MM/YY" inputMode="numeric" className="h-9 rounded-md border border-border bg-background px-3 text-xs" /><input value={cardForm.cvc} onChange={(e) => setCardForm({ ...cardForm, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="CVC" inputMode="numeric" className="h-9 rounded-md border border-border bg-background px-3 text-xs" /></div>
+            <Button type="submit" size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Save payment method</Button>
+          </form>
+          {paymentMethods.length === 0 ? <p className="text-sm text-muted-foreground">No saved payment methods.</p> : (
+            <div className="space-y-2">{paymentMethods.map((pm: any) => (<div key={pm.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2.5 text-xs"><CreditCard className="h-4 w-4 text-muted-foreground" /><span className="font-medium text-foreground">{pm.card_brand} •••• {pm.card_last4}</span>{pm.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}</div>))}</div>
           )}
         </div>
       </div>
@@ -276,3 +302,6 @@ export default function AccountPage() {
     </PageShell>
   );
 }
+function formatCardNumber(value: string) { return value.replace(/\D/g, "").slice(0, 19).replace(/(.{4})/g, "$1 ").trim(); }
+function formatExpiry(value: string) { const digits = value.replace(/\D/g, "").slice(0, 4); return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits; }
+function detectCardBrand(digits: string) { if (/^4/.test(digits)) return "Visa"; if (/^(5[1-5]|2[2-7])/.test(digits)) return "Mastercard"; if (/^3[47]/.test(digits)) return "Amex"; if (/^6/.test(digits)) return "Discover"; return "Card"; }

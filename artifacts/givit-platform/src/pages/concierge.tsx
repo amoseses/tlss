@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getTodaySpecialDate } from "@/lib/data/special-dates";
+import { createNotification, getGiftRecipients, saveGiftOccasion, saveGiftRecipient } from "@/lib/supabase/db";
 import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
 import { GiftSurveyModal } from "@/components/autogift/autogift-survey-modal";
 
@@ -278,7 +279,7 @@ function RecipientCard({ recipient, onDelete }: { recipient: Recipient; onDelete
 }
 
 export default function ConciergePage() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [, navigate] = useLocation();
   const [localReady, setLocalReady] = useState(false);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
@@ -287,36 +288,105 @@ export default function ConciergePage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [surveyNotification, setSurveyNotification] = useState<Notification | null>(null);
+  const onboardingComplete = Boolean((profile as any)?.concierge_onboarding_completed) || window.localStorage.getItem("givit-autogift-onboarded") === "1";
 
-  // Load local data immediately, independent of auth
+  // Load DB-backed recipients when signed in, with local fallback for guests/demo.
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("givit-recipients");
-      if (saved) {
-        const parsed = JSON.parse(saved) as Recipient[];
-        setRecipients(parsed);
-        const notifs = generateNotifications(parsed);
-        setNotifications(notifs);
+    let cancelled = false;
+    async function loadRecipients() {
+      try {
+        if (user) {
+          const rows = await getGiftRecipients(user.id);
+          if (!cancelled && rows.length > 0) {
+            const mapped = rows.map((row: any) => ({
+              id: row.id,
+              name: row.name,
+              relationship: row.relationship || "",
+              occasions: (row.gift_occasions ?? []).map((occ: any) => ({ label: occ.occasion, date: occ.occasion_date })),
+            })) as Recipient[];
+            setRecipients(mapped);
+            setNotifications(generateNotifications(mapped));
+            setLocalReady(true);
+            return;
+          }
+        }
+        const saved = window.localStorage.getItem("givit-recipients");
+        if (saved && !cancelled) {
+          const parsed = JSON.parse(saved) as Recipient[];
+          setRecipients(parsed);
+          setNotifications(generateNotifications(parsed));
+        }
+      } catch (err) {
+        console.error("Failed to load AutoGift recipients:", err);
+      } finally {
+        if (!cancelled) setLocalReady(true);
       }
-    } catch {}
-    setLocalReady(true);
-  }, []);
-
-  // Show onboarding for non-logged-in users (only after local data loaded)
-  useEffect(() => {
-    if (!localReady) return;
-    if (!loading && !user) {
-      const onboarded = window.localStorage.getItem("givit-autogift-onboarded");
-      if (!onboarded) setShowOnboarding(true);
     }
-  }, [loading, user, localReady]);
+    loadRecipients();
+    return () => { cancelled = true; };
+  }, [user]);
 
-  function saveRecipients(list: Recipient[]) {
+  // Require onboarding before anyone can enter AutoGift automation.
+  useEffect(() => {
+    if (!localReady || loading) return;
+    if (!user) {
+      if (!window.localStorage.getItem("givit-autogift-onboarded")) setShowOnboarding(true);
+      return;
+    }
+    if (!onboardingComplete) setShowOnboarding(true);
+  }, [loading, user, localReady, onboardingComplete]);
+
+  async function saveRecipients(list: Recipient[]) {
     setRecipients(list);
     window.localStorage.setItem("givit-recipients", JSON.stringify(list));
-    // Regenerate notifications
     const notifs = generateNotifications(list);
     setNotifications(notifs);
+
+    if (!user) return;
+    const added = list.filter((recipient) => !recipients.some((existing) => existing.id === recipient.id));
+    for (const recipient of added) {
+      const { data } = await saveGiftRecipient({
+        id: recipient.id,
+        user_id: user.id,
+        name: recipient.name,
+        relationship: recipient.relationship || null,
+        automation_enabled: true,
+      });
+      const recipientId = data?.id ?? recipient.id;
+      for (const occasion of recipient.occasions.filter((item) => item.date)) {
+        const { data: savedOccasion } = await saveGiftOccasion({
+          user_id: user.id,
+          recipient_id: recipientId,
+          occasion: occasion.label,
+          occasion_date: occasion.date,
+          repeats_yearly: true,
+          approval_lead_days: 35,
+        });
+        const scheduledFor = new Date(new Date(occasion.date).getTime() - NOTIFICATION_LEAD_DAYS * 86400000).toISOString();
+        await createNotification({
+          user_id: user.id,
+          recipient_id: recipientId,
+          occasion_id: savedOccasion?.id ?? null,
+          title: `${recipient.name}'s ${occasion.label} is coming up`,
+          body: "AutoGift is ready to email the recipient survey, generate AI recommendations, and ask you to approve before charging your saved card.",
+          channel: "email",
+          scheduled_for: scheduledFor,
+          status: "scheduled",
+          metadata: { automation: "autogift", recipientName: recipient.name, occasion: occasion.label, occasionDate: occasion.date },
+        });
+        await createNotification({
+          user_id: user.id,
+          recipient_id: recipientId,
+          occasion_id: savedOccasion?.id ?? null,
+          title: `${recipient.name}'s ${occasion.label} reminder`,
+          body: "Open AutoGift to complete the survey and approval flow.",
+          channel: "in_app",
+          scheduled_for: scheduledFor,
+          status: "scheduled",
+          metadata: { automation: "autogift", recipientName: recipient.name, occasion: occasion.label, occasionDate: occasion.date },
+        });
+      }
+    }
   }
 
   function dismissNotification(id: string) {
@@ -364,15 +434,15 @@ export default function ConciergePage() {
     <PageShell>
       {showOnboarding && (
         <AutoGiftOnboardingWizard
+          required={Boolean(user) || !window.localStorage.getItem("givit-autogift-onboarded")}
           onClose={() => {
             setShowOnboarding(false);
-            window.localStorage.setItem("givit-autogift-onboarded", "1");
           }}
         />
       )}
       {showModal && !showOnboarding && (
         <AddRecipientModal
-          onAdd={(added) => saveRecipients([...recipients, ...added])}
+          onAdd={(added) => void saveRecipients([...recipients, ...added])}
           onClose={() => setShowModal(false)}
         />
       )}
@@ -468,7 +538,7 @@ export default function ConciergePage() {
                 <RecipientCard
                   key={r.id}
                   recipient={r}
-                  onDelete={() => saveRecipients(recipients.filter((x) => x.id !== r.id))}
+                  onDelete={() => void saveRecipients(recipients.filter((x) => x.id !== r.id))}
                 />
               ))}
               <button

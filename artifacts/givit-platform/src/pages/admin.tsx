@@ -139,6 +139,30 @@ export default function AdminPage() {
   }
 
   async function handleApproveSubmission(id: string) {
+    const submission = submissions.find((item) => item.id === id);
+    if (submission) {
+      await upsertProduct({
+        name: submission.name || "Approved customer gift",
+        slug: slugSafe(`${submission.name || "customer-gift"}-${submission.id.slice(0, 8)}`),
+        description: submission.description || submission.ai_summary || "Customer-submitted product approved by admin.",
+        price_cents: submission.price_cents || 4999,
+        stock: 25,
+        is_published: true,
+        is_approved: true,
+        submitted_by: submission.user_id || null,
+        affiliate_url: submission.url,
+        retailer: submission.brand || "Customer submitted",
+        brand: submission.brand || null,
+        gift_match_score: 82,
+        interests: [submission.category || "giftable"],
+        occasions: ["birthday", "holiday"],
+        recipients: ["friend", "family"],
+        ai_summary: submission.ai_summary || `AI scraped ${submission.url} and prepared it for the marketplace.`,
+        why_we_picked_it: "Approved from a customer link submission after AI scraping and admin review.",
+        images: submission.image_url ? [{ storage_path: submission.image_url, sort_order: 0 }] : [],
+        metadata: { sourceSubmissionId: submission.id, scraped: submission.scraped_metadata || {} },
+      });
+    }
     await updateProductSubmission(id, { status: "approved", reviewed_by: user?.id });
     loadData();
   }
@@ -508,6 +532,8 @@ export default function AdminPage() {
                     <p className="font-medium text-foreground">{sub.name || "Unnamed product"}</p>
                     <p className="text-xs text-muted-foreground truncate">{sub.url}</p>
                     {sub.brand && <p className="text-xs text-muted-foreground">Brand: {sub.brand}</p>}
+                    {sub.category && <p className="text-xs text-muted-foreground">AI category: {sub.category}</p>}
+                    {sub.ai_summary && <p className="mt-1 text-xs text-muted-foreground">{sub.ai_summary}</p>}
                     {sub.price_cents && <p className="text-xs font-semibold text-givit-ember">${(sub.price_cents / 100).toFixed(2)}</p>}
                     <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                       <span>Submitted by {sub.profiles?.full_name || sub.profiles?.email || "Anonymous"}</span>
@@ -696,4 +722,8 @@ export default function AdminPage() {
       )}
     </PageShell>
   );
+}
+
+function slugSafe(value: string) {
+  return value.toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }

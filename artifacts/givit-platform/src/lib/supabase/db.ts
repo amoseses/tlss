@@ -146,6 +146,18 @@ export async function createNotification(notification: Record<string, unknown>) 
   return { data, error };
 }
 
+export async function upsertNotification(notification: Record<string, unknown>) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("gift_notifications").upsert(notification).select().single();
+  return { data, error };
+}
+
+export async function updateNotification(id: string, updates: Record<string, unknown>) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("gift_notifications").update(updates).eq("id", id).select().single();
+  return { data, error };
+}
+
 // ============================================================
 // AI LEARNING
 // ============================================================
@@ -242,6 +254,12 @@ export async function getUserPaymentMethods(userId: string) {
   const supabase = getDb();
   const { data } = await supabase.from("user_payment_methods").select("*").eq("user_id", userId);
   return data ?? [];
+}
+
+export async function saveUserPaymentMethod(paymentMethod: Record<string, unknown>) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("user_payment_methods").upsert(paymentMethod).select().single();
+  return { data, error };
 }
 
 // ============================================================
