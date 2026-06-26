@@ -8,6 +8,10 @@ import { createNotification, saveGiftOccasion, saveGiftRecipient, saveUserAddres
 type Step = "welcome" | "address" | "payment" | "recipient" | "done";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
+const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
+type RecipientDraft = { name: string; relationship: string; occasionLabel: string; occasionDate: string; yearsContext: string };
+const emptyRecipient = (): RecipientDraft => ({ name: "", relationship: "", occasionLabel: "Birthday", occasionDate: "", yearsContext: "" });
+function scheduledAt10Est(occasionDate: string) { const d = new Date(`${occasionDate}T12:00:00`); d.setDate(d.getDate() - 35); d.setUTCHours(15,0,0,0); return d.toISOString(); }
 
 export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClose: () => void; required?: boolean }) {
   const { user } = useAuth();
@@ -23,11 +27,8 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
-  // Recipient
-  const [recipientName, setRecipientName] = useState("");
-  const [relationship, setRelationship] = useState("");
-  const [occasionLabel, setOccasionLabel] = useState("Birthday");
-  const [occasionDate, setOccasionDate] = useState("");
+  // Recipients
+  const [recipients, setRecipients] = useState<RecipientDraft[]>([emptyRecipient()]);
 
   function next() {
     setError("");
@@ -45,7 +46,13 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
         return;
       }
       setStep("recipient");
-    } else if (step === "recipient") setStep("done");
+    } else if (step === "recipient") {
+      if (!recipients.some((r) => r.name.trim() && r.occasionDate)) {
+        setError("Add at least one recipient with a date so AutoGift knows what to plan for.");
+        return;
+      }
+      setStep("done");
+    }
   }
 
   function back() {
@@ -83,33 +90,34 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
         is_default: true,
       });
       window.localStorage.setItem("givit-autogift-onboarded", "1");
-      if (recipientName.trim()) {
+      for (const draft of recipients.filter((r) => r.name.trim() && r.occasionDate)) {
         const { data: recipient } = await saveGiftRecipient({
           user_id: user.id,
-          name: recipientName.trim(),
-          relationship: relationship || null,
+          name: draft.name.trim(),
+          relationship: draft.relationship || null,
           automation_enabled: true,
+          notes: draft.yearsContext ? `${draft.occasionLabel} context: ${draft.yearsContext}` : null,
         });
-        if (recipient?.id && occasionDate) {
+        if (recipient?.id) {
           const { data: occasion } = await saveGiftOccasion({
             user_id: user.id,
             recipient_id: recipient.id,
-            occasion: occasionLabel,
-            occasion_date: occasionDate,
+            occasion: draft.occasionLabel,
+            occasion_date: draft.occasionDate,
             repeats_yearly: true,
             approval_lead_days: 35,
+            metadata: { yearsContext: draft.yearsContext, dateWording: occasionDateHelp(draft.occasionLabel) },
           });
-          const scheduledFor = new Date(new Date(occasionDate).getTime() - 35 * 86400000).toISOString();
           await createNotification({
             user_id: user.id,
             recipient_id: recipient.id,
             occasion_id: occasion?.id ?? null,
-            title: `${recipientName.trim()}'s ${occasionLabel} is coming up`,
-            body: "AutoGift will email the recipient survey and then ask you to approve AI-selected gifts before charging your saved card.",
+            title: `${draft.name.trim()}'s ${draft.occasionLabel} is coming up`,
+            body: "AutoGift emails the tailored survey at 10:00 AM EST, 35 days before the date, then asks you to approve the AI-built bundle before charging your saved card.",
             channel: "email",
-            scheduled_for: scheduledFor,
+            scheduled_for: scheduledAt10Est(draft.occasionDate),
             status: "scheduled",
-            metadata: { automation: "autogift", source: "onboarding" },
+            metadata: { automation: "autogift", source: "onboarding", yearsContext: draft.yearsContext },
           });
         }
       }
@@ -132,7 +140,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
               {step === "welcome" && "Welcome to AutoGift"}
               {step === "address" && "Where should we ship gifts?"}
               {step === "payment" && "How would you like to pay?"}
-              {step === "recipient" && "Who's your first recipient?"}
+              {step === "recipient" && "Who should AutoGift remember?"}
               {step === "done" && "You're all set!"}
             </h2>
           </div>
@@ -226,34 +234,27 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
           )}
 
           {step === "recipient" && (
-            <div className="space-y-3">
-              <div className="grid gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Full name</label>
-                <input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} placeholder="e.g. Mom" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
-              </div>
-              <div className="grid gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Relationship</label>
-                <select value={relationship} onChange={(e) => setRelationship(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm">
-                  <option value="">Select...</option>
-                  {RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground">Occasion</label>
-                  <select value={occasionLabel} onChange={(e) => setOccasionLabel(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm">
-                    {["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"].map((t) => <option key={t}>{t}</option>)}
-                  </select>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Add one or more people. Birthday asks for date of birth so AI can calculate age; Father’s Day/Mother’s Day/anniversaries capture the year/context so recommendations feel human.</p>
+              {recipients.map((r, index) => (
+                <div key={index} className="space-y-3 rounded-lg border border-border/60 p-3">
+                  <div className="flex items-center justify-between"><p className="text-sm font-semibold text-givit-ink">Recipient {index + 1}</p>{recipients.length > 1 && <button type="button" onClick={() => setRecipients((prev) => prev.filter((_, i) => i !== index))} className="text-xs text-destructive">Remove</button>}</div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <input value={r.name} onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, name: e.target.value } : item))} placeholder="Full name" className="h-9 rounded-md border border-border bg-background px-3 text-sm" />
+                    <select value={r.relationship} onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, relationship: e.target.value } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm"><option value="">Relationship...</option>{RELATIONSHIPS.map((rel) => <option key={rel}>{rel}</option>)}</select>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <select value={r.occasionLabel} onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionLabel: e.target.value } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm">{OCCASIONS.map((item) => <option key={item}>{item}</option>)}</select>
+                    <input type="date" value={r.occasionDate} onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: e.target.value } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm" />
+                  </div>
+                  <input value={r.yearsContext} onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, yearsContext: e.target.value } : item))} placeholder={occasionDateHelp(r.occasionLabel)} className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
                 </div>
-                <div className="grid gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground">Date</label>
-                  <input type="date" value={occasionDate} onChange={(e) => setOccasionDate(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
-                </div>
-              </div>
+              ))}
+              <button type="button" onClick={() => setRecipients((prev) => [...prev, emptyRecipient()])} className="w-full rounded-md border border-dashed border-givit-ember/50 py-2 text-sm font-semibold text-givit-ember">+ Add another recipient</button>
             </div>
           )}
 
-          {step === "done" && (
+                    {step === "done" && (
             <div className="flex flex-col items-center justify-center py-6 text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
                 <CheckCircle2 className="h-6 w-6 text-emerald-600" />
@@ -304,4 +305,14 @@ function detectCardBrand(value: string) {
   if (/^3[47]/.test(digits)) return "Amex";
   if (/^6/.test(digits)) return "Discover";
   return "Card";
+}
+
+function occasionDateHelp(label: string) {
+  const lower = label.toLowerCase();
+  if (lower.includes("birthday")) return "Date of birth — AI calculates age each year";
+  if (lower.includes("father")) return "Year they became a father / how many years a father";
+  if (lower.includes("mother")) return "Year they became a mother / how many years a mother";
+  if (lower.includes("anniversary")) return "Anniversary year and relationship context";
+  if (lower.includes("graduation")) return "Graduation year, school, degree, or milestone";
+  return "Year/context AutoGift should remember for this special day";
 }

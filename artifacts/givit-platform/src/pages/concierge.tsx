@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
-import { Bell, Calendar, Gift, Plus, Sparkles, Trash2, Users, X, DollarSign, ShoppingCart, CheckCircle } from "lucide-react";
+import { Bell, Calendar, Gift, Plus, Sparkles, Trash2, Users, X, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
@@ -38,6 +38,15 @@ function saveNotifications(notifications: Notification[]) {
   window.localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
 }
 
+function scheduledSurveySendAt(occasionDate: string) {
+  const date = new Date(`${occasionDate}T12:00:00`);
+  date.setDate(date.getDate() - NOTIFICATION_LEAD_DAYS);
+  // 10:00 AM America/New_York is 15:00 UTC during EST and 14:00 UTC during EDT.
+  // Store 15:00Z so backend schedulers have a deterministic 10am EST target.
+  date.setUTCHours(15, 0, 0, 0);
+  return date;
+}
+
 function generateNotifications(recipients: Recipient[]): Notification[] {
   const existing = getNotifications();
   const existingKeys = new Set(existing.map(n => `${n.recipientName}-${n.occasion}-${n.date}`));
@@ -50,7 +59,7 @@ function generateNotifications(recipients: Recipient[]): Notification[] {
       if (existingKeys.has(key)) continue;
       
       const occDate = new Date(o.date);
-      const leadDate = new Date(occDate.getTime() - NOTIFICATION_LEAD_DAYS * 86400000);
+      const leadDate = scheduledSurveySendAt(o.date);
       const daysUntil = Math.ceil((occDate.getTime() - now.getTime()) / 86400000);
       
       if (daysUntil > 0 && daysUntil <= NOTIFICATION_LEAD_DAYS + 7) {
@@ -209,11 +218,6 @@ function RecipientCard({ recipient, onDelete }: { recipient: Recipient; onDelete
 
   const daysUntil = upcoming ? Math.ceil((upcoming.parsed.getTime() - today.getTime()) / 86400000) : null;
 
-  // AutoGift pricing: items price + 10% service fee
-  const estimatedItemPrice = 5000; // $50 default estimate
-  const serviceFee = Math.round(estimatedItemPrice * 0.1);
-  const totalPrice = estimatedItemPrice + serviceFee;
-
   return (
     <div className="givit-panel flex flex-col gap-3 p-4">
       <div className="flex items-start justify-between gap-2">
@@ -249,29 +253,12 @@ function RecipientCard({ recipient, onDelete }: { recipient: Recipient; onDelete
         </div>
       )}
 
-      {/* AutoGift Pricing */}
-      <div className="rounded-lg bg-givit-ember/5 border border-givit-ember/20 p-2.5">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-givit-ember mb-1.5">
-          <DollarSign className="h-3 w-3" />
-          AutoGift Pricing
-        </div>
-        <div className="space-y-1 text-xs text-muted-foreground">
-          <div className="flex justify-between">
-            <span>Estimated items</span>
-            <span>${(estimatedItemPrice / 100).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Service fee (10%)</span>
-            <span>${(serviceFee / 100).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between border-t border-border/40 pt-1 font-semibold text-foreground">
-            <span>Total</span>
-            <span>${(totalPrice / 100).toFixed(2)}</span>
-          </div>
-        </div>
+      <div className="rounded-lg border border-givit-ember/20 bg-givit-ember/5 p-2.5 text-xs leading-5 text-muted-foreground">
+        <p className="font-semibold text-givit-ink">Human-first AutoGift</p>
+        <p>We price only after the survey, bundle choices, sourcing, and your approval — no rough estimate here.</p>
       </div>
 
-      <Link href="/gift" className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-givit-ember/30 py-1.5 text-xs font-semibold text-givit-ember transition hover:bg-givit-ember/5">
+      <Link href={`/autogift/recommend?recipient=${encodeURIComponent(recipient.name)}&relationship=${encodeURIComponent(recipient.relationship)}&occasion=${encodeURIComponent(upcoming?.label ?? recipient.occasions[0]?.label ?? "")}&date=${encodeURIComponent(upcoming?.date ?? recipient.occasions[0]?.date ?? "")}`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-givit-ember/30 py-1.5 text-xs font-semibold text-givit-ember transition hover:bg-givit-ember/5">
         <Sparkles className="h-3 w-3" /> Find a gift
       </Link>
     </div>
@@ -362,7 +349,7 @@ export default function ConciergePage() {
           repeats_yearly: true,
           approval_lead_days: 35,
         });
-        const scheduledFor = new Date(new Date(occasion.date).getTime() - NOTIFICATION_LEAD_DAYS * 86400000).toISOString();
+        const scheduledFor = scheduledSurveySendAt(occasion.date).toISOString();
         await createNotification({
           user_id: user.id,
           recipient_id: recipientId,
@@ -512,6 +499,9 @@ export default function ConciergePage() {
               )}
             </div>
           )}
+          <Button onClick={() => setSurveyNotification({ id: "test", recipientName: recipients[0]?.name || "Test Recipient", occasion: recipients[0]?.occasions[0]?.label || "Birthday", date: recipients[0]?.occasions[0]?.date || new Date(Date.now()+35*86400000).toISOString().slice(0,10), daysUntil: 35, dismissed: false, createdAt: new Date().toISOString() })} variant="outline" className="rounded-md">
+            <FlaskConical className="h-4 w-4" /> Test AutoGift
+          </Button>
           <Button onClick={() => setShowModal(true)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
             <Plus className="h-4 w-4" /> Add people
           </Button>
@@ -585,13 +575,13 @@ export default function ConciergePage() {
                 <h2 className="font-semibold text-givit-ink">How AutoGift works</h2>
                 <ol className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
                   <li>1. Add people and their key dates</li>
-                  <li>2. 35 days before, we send the recipient survey</li>
+                  <li>2. 35 days before, we email the survey at 10:00 AM EST</li>
                   <li>3. AI suggests gifts, cards (+$5), flowers (+$25), and activities</li>
                   <li>4. You approve, we charge the saved card, then admin fulfills and ships</li>
                 </ol>
                 <div className="mt-3 rounded-lg bg-white/60 p-2.5 text-xs">
                   <p className="font-semibold text-givit-ink">Pricing</p>
-                  <p className="mt-1 text-muted-foreground">Items price + 10% service fee. You approve before any charge.</p>
+                  <p className="mt-1 text-muted-foreground">Calculated only after AI builds a tailored bundle. You approve before any charge.</p>
                 </div>
               </div>
             </div>
