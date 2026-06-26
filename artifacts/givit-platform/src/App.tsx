@@ -11,6 +11,7 @@ import HomePage from "@/pages/home";
 import ProductsPage from "@/pages/products";
 import ProductDetailPage from "@/pages/product-detail";
 import GiftFinderPage from "@/pages/gift";
+import AutoGiftRecommendPage from "@/pages/autogift-recommend";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import AuthCallbackPage from "@/pages/auth-callback";
@@ -36,6 +37,7 @@ function Router() {
           <Route path="/products" component={ProductsPage} />
           <Route path="/products/:slug" component={ProductDetailPage} />
           <Route path="/gift" component={GiftFinderPage} />
+          <Route path="/autogift/recommend" component={AutoGiftRecommendPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/signup" component={SignupPage} />
           <Route path="/auth-callback" component={AuthCallbackPage} />

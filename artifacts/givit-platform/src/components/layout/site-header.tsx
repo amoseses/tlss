@@ -69,8 +69,14 @@ export function SiteHeader() {
               </Link>
             ))}
             <Link
-              href="/boards"
+              href="/submit-product"
               className="shrink-0 ml-1 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
+            >
+              Submit product
+            </Link>
+            <Link
+              href="/boards"
+              className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
             >
               Boards
             </Link>

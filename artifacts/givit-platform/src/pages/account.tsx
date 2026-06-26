@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
-import { User, Package, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2 } from "lucide-react";
+import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, Sparkles, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
@@ -117,7 +117,7 @@ export default function AccountPage() {
 
   return (
     <PageShell narrow>
-      <div className="mb-6 flex items-center gap-4">
+      <div className="mb-6 overflow-hidden rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/10 via-white to-amber-100/40 p-5 shadow-sm"><div className="flex items-center gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-givit-ember/10">
           <User className="h-7 w-7 text-givit-ember" />
         </div>
@@ -166,7 +166,11 @@ export default function AccountPage() {
             </>
           )}
         </div>
-      </div>
+        <div className="hidden rounded-2xl bg-white/70 p-3 text-center text-xs text-muted-foreground sm:block">
+          <Sparkles className="mx-auto mb-1 h-4 w-4 text-givit-ember" />
+          Your gifting cockpit
+        </div>
+      </div></div>
 
       {accountNotice && <div className="mb-4 rounded-xl bg-givit-ember/10 px-4 py-3 text-sm text-givit-ink">{accountNotice}</div>}
 
@@ -270,7 +274,7 @@ export default function AccountPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:grid-cols-4">
         <Link href="/concierge" className="givit-panel flex items-center gap-3 p-4 transition hover:border-givit-ember/30">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Settings className="h-5 w-5 text-givit-ember" />
@@ -287,6 +291,15 @@ export default function AccountPage() {
           <div>
             <p className="font-semibold text-givit-ink">Givit AI</p>
             <p className="text-xs text-muted-foreground">Find gifts with AI</p>
+          </div>
+        </Link>
+        <Link href="/submit-product" className="givit-panel flex items-center gap-3 p-4 transition hover:border-givit-ember/30">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-givit-ember/10">
+            <PlusCircle className="h-5 w-5 text-givit-ember" />
+          </div>
+          <div>
+            <p className="font-semibold text-givit-ink">Submit product</p>
+            <p className="text-xs text-muted-foreground">Add a gift for admin approval</p>
           </div>
         </Link>
         <Link href="/boards" className="givit-panel flex items-center gap-3 p-4 transition hover:border-givit-ember/30">

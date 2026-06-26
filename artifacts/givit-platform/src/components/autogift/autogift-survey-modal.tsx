@@ -30,6 +30,10 @@ export function GiftSurveyModal({
   const [interests, setInterests] = useState<string[]>([]);
   const [budget, setBudget] = useState(50);
   const [giftStyle, setGiftStyle] = useState<string>("practical");
+  const [packageType, setPackageType] = useState<"full" | "single">("full");
+  const [includeFlowers, setIncludeFlowers] = useState(true);
+  const [includeCard, setIncludeCard] = useState(true);
+  const [includeExcursion, setIncludeExcursion] = useState(false);
   const [notes, setNotes] = useState("");
   const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
   const [selectedSuggestionIds, setSelectedSuggestionIds] = useState<Set<string>>(new Set());
@@ -42,11 +46,13 @@ export function GiftSurveyModal({
       budget,
       avoidItems: [],
       giftStyle: giftStyle as SurveyResponse["giftStyle"],
-      notes,
+      notes: `${notes}${packageType === "full" ? " Full package requested." : " One present only requested."}${includeFlowers ? " Include flowers if appropriate." : " No flowers."}${includeCard ? " Include a card." : " No card."}${includeExcursion ? " Include an excursion/experience option." : ""}`,
     };
     const surveyId = `survey-${Date.now()}`;
     respondToSurvey(surveyId, response);
-    const results = generateGiftSuggestions(response);
+    let results = generateGiftSuggestions(response);
+    if (packageType === "single") results = results.filter((item) => item.category === "gift").slice(0, 3);
+    else results = results.filter((item) => (includeCard || item.category !== "card") && (includeFlowers || item.category !== "flowers") && (includeExcursion || item.category !== "activity" || giftStyle === "experience"));
     setSuggestions(results);
     setSelectedSuggestionIds(new Set(results.map(r => r.id)));
     setStep("suggestions");
@@ -103,9 +109,18 @@ export function GiftSurveyModal({
           {step === "survey" && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground">
-                Tell us about {recipientName} for their {occasion}. 
-                We use this to find the perfect gift and build their package.
+                Tell us about {recipientName} for their {occasion}. We prefilled the AutoGift context and will recommend a bundle with human touches like cards, flowers, and experiences when they fit.
               </p>
+
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Package size</label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button type="button" onClick={() => setPackageType("full")} className={`rounded-lg border p-3 text-left text-sm ${packageType === "full" ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}><b>Full package</b><br /><span className="text-xs text-muted-foreground">Gift plus optional card, flowers, and excursion.</span></button>
+                  <button type="button" onClick={() => setPackageType("single")} className={`rounded-lg border p-3 text-left text-sm ${packageType === "single" ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}><b>One present</b><br /><span className="text-xs text-muted-foreground">Keep it focused on one strong gift.</span></button>
+                </div>
+                {packageType === "full" && <div className="flex flex-wrap gap-2 text-xs"><label><input type="checkbox" checked={includeCard} onChange={(e) => setIncludeCard(e.target.checked)} /> Card</label><label><input type="checkbox" checked={includeFlowers} onChange={(e) => setIncludeFlowers(e.target.checked)} /> Flowers</label><label><input type="checkbox" checked={includeExcursion} onChange={(e) => setIncludeExcursion(e.target.checked)} /> Excursion/experience</label></div>}
+              </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold">What are they into? (pick 2-4)</label>
