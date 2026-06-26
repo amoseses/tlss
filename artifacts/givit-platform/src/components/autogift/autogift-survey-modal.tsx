@@ -61,9 +61,9 @@ export function GiftSurveyModal({
     const surveyId = `survey-${Date.now()}`;
     respondToSurvey(surveyId, response);
     let results = generateGiftSuggestions(response);
-    if (packageType === "recommendations") results = results.filter((item) => item.category === "gift" || item.category === "activity").slice(0, 5);
+    if (packageType === "recommendations") results = results.filter((item) => item.category === "gift" || item.category === "activity").slice(0, 1);
     setSuggestions(results);
-    setSelectedSuggestionIds(new Set(results.map(r => r.id)));
+    setSelectedSuggestionIds(new Set(packageType === "recommendations" ? results.slice(0, 1).map(r => r.id) : results.map(r => r.id)));
     setStep("suggestions");
   }
 
@@ -127,8 +127,8 @@ export function GiftSurveyModal({
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Package size</label>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <button type="button" onClick={() => setPackageType("full")} className={`rounded-lg border p-3 text-left text-sm ${packageType === "full" ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}><b>Full package</b><br /><span className="text-xs text-muted-foreground">Gift, card, flowers, and/or experience. Edit or remove each item before approval.</span></button>
-                  <button type="button" onClick={() => setPackageType("recommendations")} className={`rounded-lg border p-3 text-left text-sm ${packageType === "recommendations" ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}><b>Recommendations only</b><br /><span className="text-xs text-muted-foreground">Show gift ideas without the complete bundle add-ons.</span></button>
+                  <button type="button" onClick={() => setPackageType("full")} className={`rounded-lg border p-3 text-left text-sm ${packageType === "full" ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}><b>Bundle</b><br /><span className="text-xs text-muted-foreground">More than one gift. Cards, flowers, or experiences appear only when they truly fit. Edit, remove, or replace one item at a time.</span></button>
+                  <button type="button" onClick={() => setPackageType("recommendations")} className={`rounded-lg border p-3 text-left text-sm ${packageType === "recommendations" ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}><b>One nice gift</b><br /><span className="text-xs text-muted-foreground">Focus the budget on one strong standalone gift instead of a bundle.</span></button>
                 </div>
               </div>
 

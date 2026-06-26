@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
-import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, Sparkles, PlusCircle } from "lucide-react";
+import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, Sparkles, PlusCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
-import { getUserOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile, saveUserAddress, saveUserPaymentMethod } from "@/lib/supabase/db";
+import { getUserOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile, saveUserAddress, saveUserPaymentMethod, deleteUserAddress, deleteUserPaymentMethod } from "@/lib/supabase/db";
 
 export default function AccountPage() {
   const { user, profile, loading } = useAuth();
@@ -89,6 +89,23 @@ export default function AccountPage() {
     setAddresses(await getUserAddresses(user.id));
     setAddressForm({ label: "Home", line1: "", city: "", state: "", zip: "", country: "US" });
     setAccountNotice("Address saved.");
+  }
+
+
+  async function handleAddressDelete(addressId: string) {
+    if (!user) return;
+    const { error } = await deleteUserAddress(user.id, addressId);
+    if (error) { setAccountNotice(error.message); return; }
+    setAddresses(addresses.filter((addr) => addr.id !== addressId));
+    setAccountNotice("Address deleted.");
+  }
+
+  async function handlePaymentDelete(paymentMethodId: string) {
+    if (!user) return;
+    const { error } = await deleteUserPaymentMethod(user.id, paymentMethodId);
+    if (error) { setAccountNotice(error.message); return; }
+    setPaymentMethods(paymentMethods.filter((pm) => pm.id !== paymentMethodId));
+    setAccountNotice("Payment method deleted.");
   }
 
   async function handlePaymentSave(e: React.FormEvent) {
@@ -251,7 +268,7 @@ export default function AccountPage() {
             <Button type="submit" size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Add address</Button>
           </form>
           {addresses.length === 0 ? <p className="text-sm text-muted-foreground">No saved addresses.</p> : (
-            <div className="space-y-2">{addresses.map((addr: any) => (<div key={addr.id} className="rounded-lg bg-muted/50 p-2.5 text-xs"><div className="flex items-center gap-1"><span className="font-medium text-foreground">{addr.label}</span>{addr.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}</div><p className="mt-0.5 text-muted-foreground">{addr.line1}, {addr.city}, {addr.state} {addr.zip}</p></div>))}</div>
+            <div className="space-y-2">{addresses.map((addr: any) => (<div key={addr.id} className="rounded-lg bg-muted/50 p-2.5 text-xs"><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-1"><span className="font-medium text-foreground">{addr.label}</span>{addr.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}</div><button type="button" onClick={() => void handleAddressDelete(addr.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Delete address"><Trash2 className="h-3.5 w-3.5" /></button></div><p className="mt-0.5 text-muted-foreground">{addr.line1}, {addr.city}, {addr.state} {addr.zip}</p></div>))}</div>
           )}
         </div>
 
@@ -268,7 +285,7 @@ export default function AccountPage() {
             <Button type="submit" size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Save payment method</Button>
           </form>
           {paymentMethods.length === 0 ? <p className="text-sm text-muted-foreground">No saved payment methods.</p> : (
-            <div className="space-y-2">{paymentMethods.map((pm: any) => (<div key={pm.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2.5 text-xs"><CreditCard className="h-4 w-4 text-muted-foreground" /><span className="font-medium text-foreground">{pm.card_brand} •••• {pm.card_last4}</span>{pm.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}</div>))}</div>
+            <div className="space-y-2">{paymentMethods.map((pm: any) => (<div key={pm.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2.5 text-xs"><CreditCard className="h-4 w-4 text-muted-foreground" /><span className="font-medium text-foreground">{pm.card_brand} •••• {pm.card_last4}</span>{pm.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}<button type="button" onClick={() => void handlePaymentDelete(pm.id)} className="ml-auto rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Delete payment method"><Trash2 className="h-3.5 w-3.5" /></button></div>))}</div>
           )}
         </div>
       </div>
