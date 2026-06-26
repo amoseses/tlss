@@ -116,3 +116,26 @@ If users can't log in or sessions don't persist:
 - **Payments:** Stripe (API keys configured, UI ready)
 - **Shipping:** Shippo (API key configured)
 - **Deployment:** Vercel (SPA with client-side routing)
+## Backend requirements for Stripe, email, URL imports, and AutoGift automation
+
+### Stripe saved cards
+- Use Stripe **SetupIntents + Elements** for AutoGift onboarding and account payment editing. The UI asks for the full card fields, but production must exchange them for a Stripe PaymentMethod and store only `stripe_payment_method_id`, `card_brand`, and `card_last4` in `user_payment_methods`.
+- Required backend variables: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and a publishable key exposed to the Vite app as `VITE_STRIPE_PUBLISHABLE_KEY` (or keep the existing publishable variable if your deployment maps it).
+- Required webhook events: `setup_intent.succeeded`, `payment_intent.succeeded`, `payment_intent.payment_failed`, and dispute/refund events if admins will fulfill externally.
+
+### Supabase email and reminder automation
+- Supabase Auth can send auth emails, but AutoGift reminder/survey emails should be sent from a Supabase Edge Function or server job using a transactional provider such as Resend, SendGrid, Postmark, or Supabase SMTP configuration.
+- Create a scheduled job (Supabase Cron/pg_cron, Vercel Cron, or a worker) that runs daily, finds `gift_occasions` entering the 35-day lead window, inserts `gift_notifications`, and sends email survey links.
+- Recommended environment variables: `EMAIL_PROVIDER_API_KEY`, `EMAIL_FROM`, `SUPABASE_SERVICE_ROLE_KEY`, and `NEXT_PUBLIC_APP_URL`/app URL for approval and survey links.
+- Do not send production AutoGift emails from the browser; use the service role key only in server/Edge Function code.
+
+### AI product URL import
+- Customers and admins can submit/paste product URLs. The frontend drafts basic details from the URL immediately; production should call a server-side scraper/AI function to fetch metadata, images, price, brand, and gift tags.
+- Keep submitted products in `product_submissions` with `status='pending'` until an admin approves. Approval creates a published `products` row with `metadata.ai_url_import=true`.
+
+### Current AutoGift flow
+1. A first-time user must complete the AutoGift onboarding tour before managing recipients.
+2. Onboarding collects shipping address, card fields for Stripe tokenization, and the first recipient/occasion.
+3. Occasions generate in-app notifications locally today and should be mirrored by the scheduled backend email job for production.
+4. The recipient survey feeds gift suggestions; the customer approves before any saved card is charged.
+5. Admin fulfillment receives approved AutoGift orders, charges through Stripe, buys/ships items, and updates status.

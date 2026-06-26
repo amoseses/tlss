@@ -56,6 +56,7 @@ export function LoginPrompt() {
             onClick={() => {
               window.localStorage.setItem(KEY, "1");
               window.localStorage.setItem("givit-just-signed-up", "1");
+              setOpen(false);
             }}
           >
             <Link href="/login?next=/concierge">Log in</Link>

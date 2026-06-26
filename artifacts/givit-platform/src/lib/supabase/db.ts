@@ -19,7 +19,12 @@ export async function getProfile(userId: string) {
 
 export async function updateProfile(userId: string, updates: Record<string, unknown>) {
   const supabase = getDb();
-  const { data, error } = await supabase.from("profiles").update(updates).eq("id", userId).select().single();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", userId)
+    .select()
+    .single();
   return { data, error };
 }
 
@@ -103,7 +108,20 @@ export async function getGiftRecipients(userId: string) {
 
 export async function saveGiftRecipient(recipient: Record<string, unknown>) {
   const supabase = getDb();
-  const { data, error } = await supabase.from("gift_recipients").upsert(recipient).select().single();
+  const occasions = Array.isArray(recipient.occasions) ? recipient.occasions : [];
+  const { occasions: _occasions, ...recipientRow } = recipient as Record<string, unknown> & { occasions?: unknown[] };
+  const { data, error } = await supabase.from("gift_recipients").upsert(recipientRow).select().single();
+  if (error || !data) return { data, error };
+
+  for (const occasion of occasions as Array<Record<string, unknown>>) {
+    await saveGiftOccasion({
+      user_id: recipient.user_id,
+      recipient_id: data.id,
+      occasion: occasion.label ?? occasion.occasion,
+      occasion_date: occasion.date ?? occasion.occasion_date,
+    });
+  }
+
   return { data, error };
 }
 
@@ -242,6 +260,12 @@ export async function getUserPaymentMethods(userId: string) {
   const supabase = getDb();
   const { data } = await supabase.from("user_payment_methods").select("*").eq("user_id", userId);
   return data ?? [];
+}
+
+export async function saveUserPaymentMethod(paymentMethod: Record<string, unknown>) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("user_payment_methods").upsert(paymentMethod).select().single();
+  return { data, error };
 }
 
 // ============================================================

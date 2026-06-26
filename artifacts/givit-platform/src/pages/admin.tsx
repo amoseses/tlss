@@ -11,6 +11,8 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { extractProductFromUrl, getImportedCount, saveImportedProduct } from "@/lib/admin/imported-products";
 import { getAnalytics, getProductSubmissions, updateProductSubmission, getProducts, upsertProduct, deleteProduct, getAllProfiles, getOrders, trackEvent } from "@/lib/supabase/db";
 import { getAutoGiftOrders } from "@/lib/autogift/survey";
+import { inferProductFromUrl } from "@/lib/product-url-ai";
+import { slugify } from "@/lib/slug";
 
 type ParsedRow = { url: string; name: string; brand: string; price: string; category: string; status: "pending" | "processing" | "done" | "error" };
 
@@ -139,6 +141,27 @@ export default function AdminPage() {
   }
 
   async function handleApproveSubmission(id: string) {
+    const submission = submissions.find((item) => item.id === id);
+    if (submission) {
+      const aiDraft = inferProductFromUrl(submission.url);
+      const productName = submission.name || aiDraft.name || "Submitted gift";
+      const product = {
+        name: productName,
+        slug: `${slugify(productName)}-${id.slice(0, 6)}`,
+        description: submission.description || aiDraft.description,
+        price_cents: submission.price_cents || 0,
+        brand: submission.brand || aiDraft.brand,
+        affiliate_url: submission.url,
+        submitted_by: submission.user_id ?? null,
+        is_approved: true,
+        is_published: true,
+        stock: 999,
+        gift_match_score: 80,
+        ai_summary: `AI-created marketplace listing from submitted URL: ${submission.url}`,
+        metadata: { source: "product_submission", submission_id: id, ai_url_import: true },
+      };
+      await upsertProduct(product);
+    }
     await updateProductSubmission(id, { status: "approved", reviewed_by: user?.id });
     loadData();
   }

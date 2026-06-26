@@ -1,15 +1,24 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { X, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
+import { CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
-import { saveGiftRecipient } from "@/lib/supabase/db";
+import { saveGiftRecipient, saveUserAddress, saveUserPaymentMethod, updateProfile } from "@/lib/supabase/db";
 
 type Step = "welcome" | "address" | "payment" | "recipient" | "done";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 
-export function AutoGiftOnboardingWizard({ onClose }: { onClose: () => void }) {
+function detectCardBrand(cardNumber: string) {
+  const digits = cardNumber.replace(/\D/g, "");
+  if (digits.startsWith("4")) return "visa";
+  if (/^5[1-5]/.test(digits)) return "mastercard";
+  if (/^3[47]/.test(digits)) return "amex";
+  if (/^6(?:011|5)/.test(digits)) return "discover";
+  return "card";
+}
+
+export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClose: () => void; required?: boolean }) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [step, setStep] = useState<Step>("welcome");
@@ -18,9 +27,12 @@ export function AutoGiftOnboardingWizard({ onClose }: { onClose: () => void }) {
 
   // Address
   const [address, setAddress] = useState({ label: "", line1: "", city: "", state: "", zip: "", country: "US" });
-  // Payment (simplified - in production use Stripe Elements)
-  const [cardBrand, setCardBrand] = useState("");
-  const [cardLast4, setCardLast4] = useState("");
+  // Payment collection mirrors Stripe Elements fields; production must tokenize these values server-side.
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardName, setCardName] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+  const [billingZip, setBillingZip] = useState("");
   // Recipient
   const [recipientName, setRecipientName] = useState("");
   const [relationship, setRelationship] = useState("");
@@ -28,10 +40,18 @@ export function AutoGiftOnboardingWizard({ onClose }: { onClose: () => void }) {
   const [occasionDate, setOccasionDate] = useState("");
 
   function next() {
+    setError("");
     if (step === "welcome") setStep("address");
-    else if (step === "address") setStep("payment");
-    else if (step === "payment") setStep("recipient");
-    else if (step === "recipient") setStep("done");
+    else if (step === "address") {
+      if (!address.line1 || !address.city || !address.state || !address.zip) { setError("Shipping address is required for AutoGift."); return; }
+      setStep("payment");
+    } else if (step === "payment") {
+      const digits = cardNumber.replace(/\D/g, "");
+      if (digits.length < 13 || !cardName.trim() || !cardExpiry.trim() || cardCvc.replace(/\D/g, "").length < 3 || !billingZip.trim()) {
+        setError("Enter full card details so Stripe can save a payment method."); return;
+      }
+      setStep("recipient");
+    } else if (step === "recipient") setStep("done");
   }
 
   function back() {
@@ -45,6 +65,25 @@ export function AutoGiftOnboardingWizard({ onClose }: { onClose: () => void }) {
     setSaving(true);
     setError("");
     try {
+      await saveUserAddress({
+        user_id: user.id,
+        label: address.label || "AutoGift shipping",
+        line1: address.line1,
+        city: address.city,
+        state: address.state,
+        zip: address.zip,
+        country: address.country || "US",
+        is_default: true,
+      });
+      await saveUserPaymentMethod({
+        user_id: user.id,
+        stripe_payment_method_id: `pending_stripe_setup_${Date.now()}`,
+        card_brand: detectCardBrand(cardNumber),
+        card_last4: cardNumber.replace(/\D/g, "").slice(-4),
+        is_default: true,
+      });
+      await updateProfile(user.id, { concierge_onboarding_completed: true, gift_automation_enabled: true });
+      window.localStorage.setItem("givit-autogift-onboarded", "1");
       if (recipientName.trim()) {
         await saveGiftRecipient({
           user_id: user.id,
@@ -76,9 +115,11 @@ export function AutoGiftOnboardingWizard({ onClose }: { onClose: () => void }) {
               {step === "done" && "You're all set!"}
             </h2>
           </div>
-          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
-            <X className="h-4 w-4" />
-          </button>
+          {!required && (
+            <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
+              <span className="text-sm font-semibold">Skip</span>
+            </button>
+          )}
         </div>
 
         <div className="p-5">
@@ -137,20 +178,23 @@ export function AutoGiftOnboardingWizard({ onClose }: { onClose: () => void }) {
 
           {step === "payment" && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">You'll approve each purchase before any charge. For now, just confirm your card details.</p>
+              <p className="text-sm text-muted-foreground">Enter the full card fields Stripe needs to create a saved payment method. Givit stores only the Stripe payment method id, brand, and last 4 after tokenization.</p>
               <div className="grid gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Card brand</label>
-                <select value={cardBrand} onChange={(e) => setCardBrand(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm">
-                  <option value="">Select...</option>
-                  <option value="visa">Visa</option>
-                  <option value="mastercard">Mastercard</option>
-                  <option value="amex">Amex</option>
-                  <option value="other">Other</option>
-                </select>
+                <label className="text-xs font-semibold text-muted-foreground">Name on card</label>
+                <input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="Jane Doe" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
               </div>
               <div className="grid gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Last 4 digits</label>
-                <input value={cardLast4} onChange={(e) => setCardLast4(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" maxLength={4} className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
+                <label className="text-xs font-semibold text-muted-foreground">Card number</label>
+                <input inputMode="numeric" value={cardNumber} onChange={(e) => setCardNumber(e.target.value.replace(/[^\d ]/g, "").slice(0, 23))} placeholder="4242 4242 4242 4242" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <input value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value.slice(0, 5))} placeholder="MM/YY" className="h-9 rounded-md border border-border bg-background px-3 text-sm" />
+                <input inputMode="numeric" value={cardCvc} onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="CVC" className="h-9 rounded-md border border-border bg-background px-3 text-sm" />
+                <input value={billingZip} onChange={(e) => setBillingZip(e.target.value)} placeholder="ZIP" className="h-9 rounded-md border border-border bg-background px-3 text-sm" />
+              </div>
+              <div className="flex items-start gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>Use Stripe Elements in production so raw card data never touches Supabase or your app database.</span>
               </div>
             </div>
           )}

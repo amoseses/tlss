@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { submitProduct } from "@/lib/supabase/db";
+import { inferProductFromUrl } from "@/lib/product-url-ai";
 
 export default function SubmitProductPage() {
   const { user } = useAuth();
@@ -16,6 +17,14 @@ export default function SubmitProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  function handleUrlChange(value: string) {
+    setUrl(value);
+    const draft = inferProductFromUrl(value);
+    if (draft.name && !name) setName(draft.name);
+    if (draft.brand && !brand) setBrand(draft.brand);
+    if (draft.description && !description) setDescription(draft.description);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,7 +80,7 @@ export default function SubmitProductPage() {
       <div className="mb-6">
         <h1 className="font-serif text-3xl font-bold text-givit-ink">Submit a product</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Found a great gift idea? Submit a product link and our team will review it for the Givit marketplace.
+          Found a great gift idea? Submit a link and the AI will draft product details before an admin approves it for the marketplace.
         </p>
       </div>
 
@@ -87,7 +96,7 @@ export default function SubmitProductPage() {
             </label>
             <input
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => handleUrlChange(e.target.value)}
               placeholder="https://www.amazon.com/product/..."
               required
               className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
@@ -164,6 +173,7 @@ export default function SubmitProductPage() {
             <ul className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
               <li>✓ Help other shoppers discover great gifts</li>
               <li>✓ Your submissions make the marketplace better</li>
+              <li>✓ Paste a URL and AI drafts the name, brand, description, and gift metadata</li>
               <li>✓ Approved products get the Givit AI treatment</li>
               <li>✓ You'll earn recognition as a contributor</li>
             </ul>

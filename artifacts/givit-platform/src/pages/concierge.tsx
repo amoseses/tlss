@@ -4,6 +4,7 @@ import { Bell, Calendar, Gift, Plus, Sparkles, Trash2, Users, X, DollarSign, Sho
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
+import { updateProfile } from "@/lib/supabase/db";
 import { getTodaySpecialDate } from "@/lib/data/special-dates";
 import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
 import { GiftSurveyModal } from "@/components/autogift/autogift-survey-modal";
@@ -302,13 +303,15 @@ export default function ConciergePage() {
     setLocalReady(true);
   }, []);
 
-  // Show onboarding for non-logged-in users (only after local data loaded)
+  // Require onboarding before users can access AutoGift for the first time.
   useEffect(() => {
-    if (!localReady) return;
-    if (!loading && !user) {
-      const onboarded = window.localStorage.getItem("givit-autogift-onboarded");
-      if (!onboarded) setShowOnboarding(true);
+    if (!localReady || loading) return;
+    const localOnboarded = window.localStorage.getItem("givit-autogift-onboarded");
+    if (!user) {
+      if (!localOnboarded) setShowOnboarding(true);
+      return;
     }
+    if (!localOnboarded) setShowOnboarding(true);
   }, [loading, user, localReady]);
 
   function saveRecipients(list: Recipient[]) {
@@ -364,9 +367,11 @@ export default function ConciergePage() {
     <PageShell>
       {showOnboarding && (
         <AutoGiftOnboardingWizard
-          onClose={() => {
+          required={!!user}
+          onClose={async () => {
             setShowOnboarding(false);
             window.localStorage.setItem("givit-autogift-onboarded", "1");
+            if (user) await updateProfile(user.id, { concierge_onboarding_completed: true });
           }}
         />
       )}
@@ -442,7 +447,7 @@ export default function ConciergePage() {
               )}
             </div>
           )}
-          <Button onClick={() => setShowModal(true)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+          <Button onClick={() => showOnboarding ? undefined : setShowModal(true)} disabled={showOnboarding} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
             <Plus className="h-4 w-4" /> Add people
           </Button>
         </div>

@@ -4,7 +4,7 @@ import { User, Package, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, 
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
-import { getUserOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile } from "@/lib/supabase/db";
+import { getUserOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile, saveUserAddress, saveUserPaymentMethod } from "@/lib/supabase/db";
 
 export default function AccountPage() {
   const { user, profile, loading } = useAuth();
@@ -21,6 +21,8 @@ export default function AccountPage() {
   const [phone, setPhone] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
+  const [addressForm, setAddressForm] = useState({ label: "Home", line1: "", city: "", state: "", zip: "" });
+  const [cardForm, setCardForm] = useState({ brand: "", last4: "" });
 
   useEffect(() => {
     if (!loading && !user) navigate("/login?next=/account");
@@ -28,14 +30,15 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (!user) return;
+    const userId = user.id;
     async function load() {
       setDataLoading(true);
       try {
         const [ordersData, addressesData, paymentData, wishlistData] = await Promise.all([
-          getUserOrders(user.id),
-          getUserAddresses(user.id),
-          getUserPaymentMethods(user.id),
-          getWishlist(user.id),
+          getUserOrders(userId),
+          getUserAddresses(userId),
+          getUserPaymentMethods(userId),
+          getWishlist(userId),
         ]);
         setOrders(ordersData);
         setAddresses(addressesData);
@@ -54,7 +57,7 @@ export default function AccountPage() {
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || "");
-      setPhone(profile.phone || "");
+      setPhone((profile as any).phone || "");
     }
   }, [profile]);
 
@@ -64,7 +67,7 @@ export default function AccountPage() {
     setSavingProfile(true);
     setProfileError("");
     try {
-      const { data, error } = await updateProfile(user.id, {
+      const { error } = await updateProfile(user.id, {
         full_name: fullName.trim() || null,
         phone: phone.trim() || null,
       });
@@ -75,6 +78,22 @@ export default function AccountPage() {
     } finally {
       setSavingProfile(false);
     }
+  }
+
+  async function handleAddressSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    const { data } = await saveUserAddress({ user_id: user.id, ...addressForm, country: "US", is_default: addresses.length === 0 });
+    if (data) setAddresses((prev) => [data, ...prev]);
+    setAddressForm({ label: "Home", line1: "", city: "", state: "", zip: "" });
+  }
+
+  async function handlePaymentSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    const { data } = await saveUserPaymentMethod({ user_id: user.id, card_brand: cardForm.brand, card_last4: cardForm.last4, stripe_payment_method_id: `pending_stripe_setup_${Date.now()}`, is_default: paymentMethods.length === 0 });
+    if (data) setPaymentMethods((prev) => [data, ...prev]);
+    setCardForm({ brand: "", last4: "" });
   }
 
   if (loading || dataLoading) return <PageShell><div className="flex min-h-[400px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-givit-ember border-t-transparent" /></div></PageShell>;
@@ -221,6 +240,18 @@ export default function AccountPage() {
           )}
         </div>
 
+        <form onSubmit={handleAddressSave} className="givit-panel p-4 sm:col-span-2">
+          <h2 className="mb-3 font-semibold text-givit-ink">Add or update shipping address</h2>
+          <div className="grid gap-2 sm:grid-cols-5">
+            <input value={addressForm.label} onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })} placeholder="Label" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />
+            <input required value={addressForm.line1} onChange={(e) => setAddressForm({ ...addressForm, line1: e.target.value })} placeholder="Street address" className="h-10 rounded-md border border-border bg-background px-3 text-sm sm:col-span-2" />
+            <input required value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} placeholder="City" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />
+            <input required value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} placeholder="State" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />
+            <input required value={addressForm.zip} onChange={(e) => setAddressForm({ ...addressForm, zip: e.target.value })} placeholder="ZIP" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />
+          </div>
+          <Button type="submit" size="sm" className="mt-3 rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Save address</Button>
+        </form>
+
         {/* Payment Methods */}
         <div className="givit-panel p-4">
           <div className="mb-3 flex items-center gap-2">
@@ -241,6 +272,16 @@ export default function AccountPage() {
             </div>
           )}
         </div>
+
+        <form onSubmit={handlePaymentSave} className="givit-panel p-4 sm:col-span-2">
+          <h2 className="mb-2 font-semibold text-givit-ink">Add Stripe payment method</h2>
+          <p className="mb-3 text-xs text-muted-foreground">Production should use Stripe Elements/SetupIntents; this profile view only stores the tokenized brand and last 4 returned by Stripe.</p>
+          <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <input required value={cardForm.brand} onChange={(e) => setCardForm({ ...cardForm, brand: e.target.value })} placeholder="Brand (Visa)" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />
+            <input required value={cardForm.last4} onChange={(e) => setCardForm({ ...cardForm, last4: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="Last 4" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />
+            <Button type="submit" size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Save payment</Button>
+          </div>
+        </form>
       </div>
 
       {/* Quick Links */}
