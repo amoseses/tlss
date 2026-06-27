@@ -39,6 +39,8 @@ export function GiftSurveyModal({
   const [addressOptions, setAddressOptions] = useState<Array<{ label?: string; line1: string; city: string; state: string; zip: string }>>([]);
   const [address, setAddress] = useState({ label: "", line1: "", city: "", state: "", zip: "" });
   const [page, setPage] = useState(0);
+  const [regenerationCount, setRegenerationCount] = useState(0);
+  const [itemNotes, setItemNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     try {
@@ -50,7 +52,7 @@ export function GiftSurveyModal({
     } catch { /* ignore malformed local demo data */ }
   }, []);
 
-  function handleSurveySubmit() {
+  function buildSuggestions(nextRegenerationCount = regenerationCount) {
     const response: SurveyResponse = {
       interests,
       budget,
@@ -60,11 +62,23 @@ export function GiftSurveyModal({
     };
     const surveyId = `survey-${Date.now()}`;
     respondToSurvey(surveyId, response);
-    let results = generateGiftSuggestions(response);
+    let results = generateGiftSuggestions({ ...response, notes: `${response.notes} Variation ${nextRegenerationCount}.` });
     if (packageType === "recommendations") results = results.filter((item) => item.category === "gift" || item.category === "activity").slice(0, 1);
     setSuggestions(results);
     setSelectedSuggestionIds(new Set(packageType === "recommendations" ? results.slice(0, 1).map(r => r.id) : results.map(r => r.id)));
+    setItemNotes(Object.fromEntries(results.map((r) => [r.id, r.fulfillmentNotes || ""])));
+    setPage(0);
     setStep("suggestions");
+  }
+
+  function handleSurveySubmit() {
+    buildSuggestions();
+  }
+
+  function regenerateSuggestions() {
+    const next = regenerationCount + 1;
+    setRegenerationCount(next);
+    buildSuggestions(next);
   }
 
   function toggleSuggestion(id: string) {
@@ -84,6 +98,7 @@ export function GiftSurveyModal({
         productUrl: s.productUrl,
         imageUrl: s.imageUrl,
         quantity: 1,
+        notes: itemNotes[s.id],
       }));
 
     createAutoGiftOrder({
@@ -212,7 +227,7 @@ export function GiftSurveyModal({
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground">
                 Here are our AI-generated suggestions for {recipientName}'s {occasion}. 
-                Select the items to include in their gift package.
+                Review each gift option on its own page, then use the bundle sheet below to see everything selected together. Regenerate if these options do not feel right.
               </p>
 
               <div className="space-y-3">
@@ -223,7 +238,8 @@ export function GiftSurveyModal({
                       {suggestion.imageUrl && <img src={suggestion.imageUrl} alt="" className="h-44 w-full object-cover" />}
                       <div className="space-y-3 p-4">
                         <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-foreground">{suggestion.name}</p><p className="text-xs text-muted-foreground">{suggestion.reason}</p></div><span className="font-bold text-givit-ember">${(suggestion.price / 100).toFixed(2)}</span></div>
-                        {suggestion.productUrl && <a href={suggestion.productUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-givit-ember underline">View source / product site</a>}
+                        {suggestion.productUrl && <a href={suggestion.productUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-givit-ember underline">View exact product</a>}
+                        <textarea value={itemNotes[suggestion.id] || ""} onChange={(e) => setItemNotes((prev) => ({ ...prev, [suggestion.id]: e.target.value }))} rows={2} placeholder="Notes for this item: flower type, gluten-free, color, size, delivery timing..." className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
                         <div className="grid gap-2 sm:grid-cols-2"><input value={suggestion.name} onChange={(e) => setSuggestions((prev) => prev.map((item) => item.id === suggestion.id ? { ...item, name: e.target.value } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /><input type="number" value={(suggestion.price / 100).toFixed(2)} onChange={(e) => setSuggestions((prev) => prev.map((item) => item.id === suggestion.id ? { ...item, price: Math.round(Number(e.target.value || 0) * 100) } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /></div>
                         <div className="flex gap-2"><Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={() => setPage((prev) => Math.max(0, prev - 1))} disabled={page === 0}>Previous</Button><Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={() => setPage((prev) => Math.min(suggestions.length - 1, prev + 1))} disabled={page >= suggestions.length - 1}>Next</Button><Button type="button" className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={() => toggleSuggestion(suggestion.id)}>{selectedSuggestionIds.has(suggestion.id) ? "Remove" : "Add"}</Button></div>
                         <p className="text-center text-xs text-muted-foreground">Option {page + 1} of {suggestions.length}</p>
@@ -231,6 +247,20 @@ export function GiftSurveyModal({
                     </div>
                   );
                 })()}
+              </div>
+              <div className="rounded-xl border border-givit-ember/20 bg-white p-3 text-sm">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="font-semibold text-givit-ink">Selected bundle sheet</p>
+                  <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={regenerateSuggestions}>Regenerate options</Button>
+                </div>
+                <div className="space-y-2">
+                  {suggestions.filter(s => selectedSuggestionIds.has(s.id)).map((s) => (
+                    <div key={s.id} className="rounded-lg bg-muted/40 p-2">
+                      <div className="flex justify-between gap-3"><span className="font-medium text-givit-ink">{s.name}</span><span>${(s.price / 100).toFixed(2)}</span></div>
+                      {itemNotes[s.id] && <p className="mt-1 text-xs text-muted-foreground">Notes: {itemNotes[s.id]}</p>}
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="rounded-lg bg-muted/50 p-3 text-sm">
                 <div className="flex justify-between text-muted-foreground">

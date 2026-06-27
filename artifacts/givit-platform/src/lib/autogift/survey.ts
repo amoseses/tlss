@@ -34,6 +34,7 @@ export type GiftSuggestion = {
   rating: number;
   imageUrl?: string;
   productUrl?: string;
+  fulfillmentNotes?: string;
 };
 
 export type AutoGiftOrder = {
@@ -63,6 +64,7 @@ export type AutoGiftOrderItem = {
   category: "card" | "flowers" | "gift" | "activity" | "addon";
   price: number;
   quantity: number;
+  notes?: string;
 };
 
 export type ShippingAddress = {
@@ -149,6 +151,7 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
       imageUrl: "https://images.unsplash.com/photo-1512909006721-3d6018887383?auto=format&fit=crop&w=600&q=80",
       productUrl: "https://www.papyrusonline.com/",
       category: "card",
+      fulfillmentNotes: "User can specify card tone, message, and stationery style before approval.",
       rating: response.giftStyle === "sentimental" ? 95 : 86,
     });
   }
@@ -164,6 +167,7 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
         ? "A plant fits their interests better than default flowers and lasts longer."
         : "Flowers are included only because the occasion and tone make them feel appropriate.",
       category: "flowers",
+      fulfillmentNotes: response.interests.includes("plants") ? "Ask for plant type, pet safety, pot color, and care level." : "Ask for flower type, colors, allergies, scent sensitivity, and no-go blooms.",
       rating: response.interests.includes("plants") ? 92 : 84,
     });
   }
@@ -178,6 +182,7 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
       productUrl: "https://www.uncommongoods.com/",
       reason: "A cozy movie night kit with gourmet popcorn, candy, and a streaming gift card.",
       category: "activity",
+      fulfillmentNotes: "Confirm snack allergies, gluten-free needs, movie genre, and delivery timing.",
       rating: 84,
     });
     suggestions.push({
@@ -188,6 +193,7 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
       productUrl: "https://www.airbnb.com/experiences",
       reason: "Credit toward a local cooking class, pottery session, or wine tasting — arranged by our concierge.",
       category: "activity",
+      fulfillmentNotes: "Confirm preferred date windows, neighborhood, accessibility, and activity type.",
       rating: 88,
     });
   }
@@ -195,20 +201,20 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
   // Product suggestions based on interests
   const INTEREST_MAP: Record<string, { name: string; price: number; url?: string; image?: string; reason?: string }[]> = {
     tech: [
-      { name: "Anker 737 Power Bank", price: 14999, url: "https://www.anker.com/", image: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?auto=format&fit=crop&w=600&q=80" },
-      { name: "Tile Mate Tracker", price: 2499, url: "https://www.tile.com/", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
+      { name: "Anker 737 Power Bank", price: 14999, url: "https://www.anker.com/products/a1289", image: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?auto=format&fit=crop&w=600&q=80" },
+      { name: "Tile Mate Tracker", price: 2499, url: "https://www.tile.com/products/tile-mate", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
     ],
     reading: [
-      { name: "Kindle Paperwhite", price: 15999, url: "https://www.amazon.com/kindle", image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80" },
+      { name: "Kindle Paperwhite", price: 15999, url: "https://www.amazon.com/dp/B09SWW583J", image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80" },
       { name: "Bookshop.org Gift Card", price: 5000, url: "https://bookshop.org/gift_cards", image: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=600&q=80" },
     ],
     cooking: [
-      { name: "AeroPress Coffee Maker", price: 4995, url: "https://aeropress.com/", image: "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&w=600&q=80" },
-      { name: "OXO Cold Brew Maker", price: 5199, url: "https://www.oxo.com/", image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=600&q=80" },
+      { name: "AeroPress Coffee Maker", price: 4995, url: "https://aeropress.com/products/aeropress-coffee-maker", image: "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&w=600&q=80" },
+      { name: "OXO Cold Brew Maker", price: 5199, url: "https://www.oxo.com/cold-brew-coffee-maker.html", image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=600&q=80" },
     ],
     fitness: [
-      { name: "Stanley Quencher Tumbler", price: 4500, url: "https://www.stanley1913.com/", image: "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=600&q=80" },
-      { name: "Theragun Mini", price: 19900, url: "https://www.therabody.com/", image: "https://images.unsplash.com/photo-1571019613914-85f342c6a11e?auto=format&fit=crop&w=600&q=80" },
+      { name: "Stanley Quencher Tumbler", price: 4500, url: "https://www.stanley1913.com/products/adventure-quencher-travel-tumbler-40-oz", image: "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=600&q=80" },
+      { name: "Theragun Mini", price: 19900, url: "https://www.therabody.com/us/en-us/mini-us.html", image: "https://images.unsplash.com/photo-1571019613914-85f342c6a11e?auto=format&fit=crop&w=600&q=80" },
     ],
     music: [
       { name: "Sony WH-1000XM5 Headphones", price: 39800 },

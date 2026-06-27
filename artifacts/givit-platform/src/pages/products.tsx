@@ -157,7 +157,7 @@ export default function ProductsPage() {
               <div className="grid gap-1.5 md:w-48">
                 <label className="text-xs font-bold text-givit-ink" htmlFor="sort">Sort by</label>
                 <select id="sort" name="sort" defaultValue={sortVal} className="border-input bg-background h-10 w-full rounded-sm border px-3 text-sm outline-none">
-                  <option value="ranked">Admin ranking</option>
+                  <option value="ranked">Givit ranked</option>
                   <option value="popular">Gift match score</option>
                   <option value="price_asc">Price: Low to High</option>
                   <option value="price_desc">Price: High to Low</option>
