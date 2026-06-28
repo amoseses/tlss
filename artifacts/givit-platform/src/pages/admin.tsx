@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { extractProductFromUrl, getImportedCount, saveImportedProduct } from "@/lib/admin/imported-products";
 import { getAnalytics, getProductSubmissions, updateProductSubmission, getProducts, upsertProduct, deleteProduct, getAllProfiles, getOrders, trackEvent } from "@/lib/supabase/db";
 import { getAutoGiftOrders } from "@/lib/autogift/survey";
+import { getLocalErrors, getLocalEvents } from "@/lib/monitoring";
 
 type ParsedRow = { url: string; name: string; brand: string; price: string; category: string; status: "pending" | "processing" | "done" | "error" };
 
@@ -54,6 +55,8 @@ export default function AdminPage() {
   const [allOrders, setAllOrders] = useState<any[]>([]);
   const [autoGiftOrders, setAutoGiftOrders] = useState<ReturnType<typeof getAutoGiftOrders>>([]);
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [monitoringErrors, setMonitoringErrors] = useState<any[]>([]);
+  const [localEvents, setLocalEvents] = useState<any[]>([]);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,6 +77,8 @@ export default function AdminPage() {
       if (activeTab === "analytics") {
         const data = await getAnalytics();
         setAnalyticsData(data);
+        setMonitoringErrors(getLocalErrors());
+        setLocalEvents(getLocalEvents());
       } else if (activeTab === "submissions") {
         const data = await getProductSubmissions();
         setSubmissions(data);
@@ -494,6 +499,23 @@ export default function AdminPage() {
                   <p className="mt-2 text-3xl font-bold text-givit-ink">
                     {analyticsData.revenue?.[0]?.orders ?? 0}
                   </p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="givit-section p-4">
+                  <h2 className="font-semibold text-givit-ink">User tracking events</h2>
+                  <p className="mt-1 text-3xl font-bold text-givit-ink">{localEvents.length}</p>
+                  <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs text-muted-foreground">
+                    {localEvents.slice(0, 8).map((event: any) => <div key={event.id} className="rounded bg-muted/50 p-2"><b>{event.eventType}</b> · {new Date(event.createdAt).toLocaleString()}</div>)}
+                  </div>
+                </div>
+                <div className="givit-section p-4">
+                  <h2 className="font-semibold text-givit-ink">Error logging & monitoring</h2>
+                  <p className="mt-1 text-3xl font-bold text-givit-ink">{monitoringErrors.length}</p>
+                  <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs text-muted-foreground">
+                    {monitoringErrors.slice(0, 8).map((error: any) => <div key={error.id} className="rounded bg-rose-50 p-2 text-rose-800"><b>{error.source || "client"}</b>: {error.message}</div>)}
+                  </div>
                 </div>
               </div>
 

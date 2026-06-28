@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Sparkles, CheckCircle } from "lucide-react";
+import { X, Sparkles, CheckCircle, ThumbsDown, ThumbsUp } from "lucide-react";
 import { respondToSurvey, generateGiftBundles, regenerateBundleItem, createAutoGiftOrder, type SurveyResponse, type GiftSuggestion, type AutoGiftBundle, type AutoGiftOrderItem } from "@/lib/autogift/survey";
+import { trackUserEvent } from "@/lib/monitoring";
 
 const INTEREST_OPTIONS = [
   "tech", "reading", "cooking", "fitness", "music", "coffee",
@@ -41,6 +42,7 @@ export function GiftSurveyModal({
   const [page, setPage] = useState(0);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [itemNotes, setItemNotes] = useState<Record<string, string>>({});
+  const [itemFeedback, setItemFeedback] = useState<Record<string, "liked" | "disliked">>({});
 
   const currentResponse: SurveyResponse = {
     interests,
@@ -72,6 +74,7 @@ export function GiftSurveyModal({
     setSelectedBundleId(normalizedBundles[0]?.id || "");
     setItemNotes(Object.fromEntries(normalizedBundles.flatMap((bundle) => bundle.items.map((r) => [r.id, r.fulfillmentNotes || ""]))));
     setPage(0);
+    trackUserEvent("autogift_suggestions_generated", { packageType, bundleCount: normalizedBundles.length, interests });
     setStep("suggestions");
   }
 
@@ -100,6 +103,11 @@ export function GiftSurveyModal({
     setItemNotes((prev) => ({ ...prev, [replacement.id]: replacement.fulfillmentNotes || "" }));
   }
 
+  function rateBundleItem(item: GiftSuggestion, liked: boolean) {
+    setItemFeedback((prev) => ({ ...prev, [item.id]: liked ? "liked" : "disliked" }));
+    trackUserEvent("autogift_item_feedback", { itemName: item.name, category: item.category, liked });
+  }
+
   function handlePlaceOrder() {
     const selectedItems = selectedBundle.items
       .map(s => ({
@@ -109,9 +117,10 @@ export function GiftSurveyModal({
         productUrl: s.productUrl,
         imageUrl: s.imageUrl,
         quantity: 1,
-        notes: itemNotes[s.id],
+        notes: [itemNotes[s.id], itemFeedback[s.id] ? `User marked this item as ${itemFeedback[s.id]}.` : ""].filter(Boolean).join(" "),
       }));
 
+    trackUserEvent("autogift_order_approved", { recipientName, occasion, itemCount: selectedItems.length, total: grandTotal });
     createAutoGiftOrder({
       userId: "local-user",
       recipientName,
@@ -260,7 +269,7 @@ export function GiftSurveyModal({
                         {item.productUrl && <a href={item.productUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-givit-ember underline">View exact product</a>}
                         <textarea value={itemNotes[item.id] || ""} onChange={(e) => setItemNotes((prev) => ({ ...prev, [item.id]: e.target.value }))} rows={2} placeholder="Notes for this item: color, size, allergies, delivery timing..." className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
                         <div className="mt-2 grid gap-2 sm:grid-cols-2"><input value={item.name} onChange={(e) => updateBundleItem(selectedBundle.id, item.id, { name: e.target.value })} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /><input type="number" value={(item.price / 100).toFixed(2)} onChange={(e) => updateBundleItem(selectedBundle.id, item.id, { price: Math.round(Number(e.target.value || 0) * 100) })} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /></div>
-                        <div className="mt-2 flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => replaceBundleItem(selectedBundle.id, item)}>Regenerate item</Button><Button type="button" variant="outline" size="sm" className="rounded-lg text-destructive" onClick={() => removeBundleItem(selectedBundle.id, item.id)}>Remove</Button></div>
+                        <div className="mt-2 flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" className="rounded-lg text-emerald-700" onClick={() => rateBundleItem(item, true)}><ThumbsUp className="h-3.5 w-3.5" /> Like this</Button><Button type="button" variant="outline" size="sm" className="rounded-lg text-rose-700" onClick={() => rateBundleItem(item, false)}><ThumbsDown className="h-3.5 w-3.5" /> Not this</Button><Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => replaceBundleItem(selectedBundle.id, item)}>Regenerate item</Button><Button type="button" variant="outline" size="sm" className="rounded-lg text-destructive" onClick={() => removeBundleItem(selectedBundle.id, item.id)}>Remove</Button></div>
                       </div>
                     ))}
                   </div>
