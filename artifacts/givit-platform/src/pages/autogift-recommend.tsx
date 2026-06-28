@@ -14,11 +14,11 @@ export default function AutoGiftRecommendPage() {
 
   return (
     <PageShell>
-      <div className="mx-auto max-w-3xl rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/10 to-amber-100/40 p-6 text-center">
+      <div className="mx-auto max-w-3xl rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-coral/20 via-givit-ember/10 to-pink-100/60 p-6 text-center">
         <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">AutoGift AI bundle builder</p>
         <h1 className="mt-2 font-serif text-3xl font-bold text-givit-ink">Build a human-feeling package for {recipient}</h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-          This is separate from the regular Givit AI because it starts with saved AutoGift details, tailors questions to {occasion}, and calculates bundle pricing only after you choose gifts, cards, flowers, and experiences.
+          Answer a few quick prompts and Givit AI will create three clear options — bundles or one standout gift — with exact items, links, photos, pricing, and approval before anything is ordered.
         </p>
         <div className="mt-5 grid gap-3 text-left sm:grid-cols-3">
           <div className="rounded-xl bg-white/70 p-3 text-sm"><b>Saved context</b><p className="text-xs text-muted-foreground">Recipient, relationship, date, age/year context.</p></div>

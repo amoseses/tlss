@@ -37,6 +37,13 @@ export type GiftSuggestion = {
   fulfillmentNotes?: string;
 };
 
+export type AutoGiftBundle = {
+  id: string;
+  title: string;
+  description: string;
+  items: GiftSuggestion[];
+};
+
 export type AutoGiftOrder = {
   id: string;
   userId: string;
@@ -293,6 +300,59 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
   }
 
   return suggestions.slice(0, 10); // enough options for a paged bundle review
+}
+
+export function generateGiftBundles(response: SurveyResponse, count = 3): AutoGiftBundle[] {
+  const pool = generateGiftSuggestions(response);
+  const gifts = pool.filter((item) => item.category === "gift");
+  const activities = pool.filter((item) => item.category === "activity");
+  const touches = pool.filter((item) => item.category === "card" || item.category === "flowers" || item.category === "addon");
+  const firstGift = gifts[0] ?? pool.find((item) => item.category !== "card");
+  const secondGift = gifts[1] ?? gifts[0] ?? firstGift;
+  const activity = activities[0] ?? pool.find((item) => item.category === "activity");
+  const premiumActivity = activities[1] ?? activity;
+  const card = touches.find((item) => item.category === "card") ?? {
+    id: `card-${crypto.randomUUID()}`,
+    name: "Personalized Card",
+    price: ADDON_PRICING.card,
+    reason: "Adds a personal message so the package feels chosen, not auto-shipped.",
+    category: "card" as const,
+    rating: 86,
+    imageUrl: "https://images.unsplash.com/photo-1512909006721-3d6018887383?auto=format&fit=crop&w=600&q=80",
+  };
+  const flower = touches.find((item) => item.category === "flowers");
+
+  const bundles: AutoGiftBundle[] = [
+    {
+      id: `bundle-movie-${crypto.randomUUID()}`,
+      title: "Movie night + keepsake",
+      description: "A cozy at-home experience with a personal note and one useful gift.",
+      items: [activity, card, firstGift].filter(Boolean) as GiftSuggestion[],
+    },
+    {
+      id: `bundle-experience-${crypto.randomUUID()}`,
+      title: "Experience + standout gift",
+      description: "A bigger outing or credit paired with a memorable physical gift.",
+      items: [premiumActivity, secondGift, flower].filter(Boolean) as GiftSuggestion[],
+    },
+    {
+      id: `bundle-single-${crypto.randomUUID()}`,
+      title: "One strong gift",
+      description: "Spend the budget on the highest-confidence single item, with optional card notes.",
+      items: [firstGift ?? pool[0], card].filter(Boolean) as GiftSuggestion[],
+    },
+  ];
+
+  return bundles.slice(0, count).map((bundle, index) => ({ ...bundle, title: `Option ${index + 1}: ${bundle.title}` }));
+}
+
+export function regenerateBundleItem(response: SurveyResponse, current: GiftSuggestion, offset = 0): GiftSuggestion {
+  const pool = generateGiftSuggestions({ ...response, notes: `${response.notes} replace ${current.category} ${offset}` });
+  const replacement = pool.find((item) => item.category === current.category && item.name !== current.name)
+    ?? pool.find((item) => item.category === "gift" && item.name !== current.name)
+    ?? pool[offset % pool.length]
+    ?? current;
+  return { ...replacement, id: `${replacement.id}-regen-${crypto.randomUUID()}` };
 }
 
 /**

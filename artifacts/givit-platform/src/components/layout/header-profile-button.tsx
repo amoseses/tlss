@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { Link } from "wouter";
 import { CircleUser } from "lucide-react";
+import { generatedProfilePhotoUrl } from "@/lib/avatar";
 
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -36,6 +37,7 @@ export function HeaderProfileButton({ loggedIn, email, displayName, role }: Prop
   }
 
   const isAdmin = role === "admin";
+  const avatarUrl = generatedProfilePhotoUrl(email || displayName);
 
   async function signOut() {
     const supabase = createClient();
@@ -47,7 +49,7 @@ export function HeaderProfileButton({ loggedIn, email, displayName, role }: Prop
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex h-10 w-10 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10">
-        <CircleUser className="h-6 w-6" />
+        <img src={avatarUrl} alt={displayName || email || "Account"} className="h-8 w-8 rounded-full bg-white object-cover ring-2 ring-white/30" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 rounded-2xl">
         <DropdownMenuLabel className="font-normal">

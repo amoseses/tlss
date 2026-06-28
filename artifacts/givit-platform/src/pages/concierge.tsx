@@ -246,8 +246,8 @@ function RecipientCard({ recipient, onDelete }: { recipient: Recipient; onDelete
       )}
 
       <div className="rounded-lg border border-givit-ember/20 bg-givit-ember/5 p-2.5 text-xs leading-5 text-muted-foreground">
-        <p className="font-semibold text-givit-ink">Human-first AutoGift</p>
-        <p>We price only after the survey, bundle choices, sourcing, and your approval — no rough estimate here.</p>
+        <p className="font-semibold text-givit-ink">Gift options you approve first</p>
+        <p>Givit AI builds thoughtful bundles, shows exact pricing, and waits for your approval before anything is charged or ordered.</p>
       </div>
 
       <Link href={`/autogift/recommend?recipient=${encodeURIComponent(recipient.name)}&relationship=${encodeURIComponent(recipient.relationship)}&occasion=${encodeURIComponent(upcoming?.label ?? recipient.occasions[0]?.label ?? "")}&date=${encodeURIComponent(upcoming?.date ?? recipient.occasions[0]?.date ?? "")}`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-givit-ember/30 py-1.5 text-xs font-semibold text-givit-ember transition hover:bg-givit-ember/5">
