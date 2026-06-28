@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { submitProduct } from "@/lib/supabase/db";
-import { extractProductFromUrl, normalizeProductUrl, productPageImageUrl } from "@/lib/admin/imported-products";
+import { extractProductFromUrl, normalizeProductUrl, bestProductImageUrl } from "@/lib/admin/imported-products";
 
 export default function SubmitProductPage() {
   const { user } = useAuth();
@@ -41,10 +41,10 @@ export default function SubmitProductPage() {
         price_cents: price ? Math.round(parseFloat(price) * 100) : Math.round(parseFloat(aiExtracted.price) * 100),
         description: description.trim() || `AI scraped summary for ${aiExtracted.name} from ${aiExtracted.brand}. Admins can edit before approval.`,
         category: aiExtracted.category,
-        image_url: productPageImageUrl(normalizedUrl),
+        image_url: bestProductImageUrl(normalizedUrl),
         scraped_metadata: {
           source: "client_ai_product_page_scraper",
-          productPageImageUrl: productPageImageUrl(normalizedUrl),
+          productPageImageUrl: bestProductImageUrl(normalizedUrl),
           extractedAt: new Date().toISOString(),
           aiSummary: `AI scraped ${aiExtracted.name}, categorized it as ${aiExtracted.category}, and prepared it for admin approval.`,
         },

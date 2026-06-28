@@ -12,6 +12,7 @@ export type ImportedProductRow = {
   category: string;
   description?: string;
   status: "pending" | "processing" | "done" | "error";
+  imageUrl?: string;
 };
 
 type StoredProduct = {
@@ -25,6 +26,10 @@ type StoredProduct = {
   why: string;
   interests: string[];
   importedAt: string;
+  imageUrl?: string;
+  rank?: number;
+  categoryRank?: number;
+  giftMatchScore?: number;
 };
 
 function slugSafe(value: string) {
@@ -95,13 +100,25 @@ export function productPageImageUrl(url: string) {
   return `https://api.microlink.io/?url=${encodeURIComponent(normalizeProductUrl(url))}&embed=image.url`;
 }
 
+export function productImageCandidates(url: string) {
+  const normalized = normalizeProductUrl(url);
+  return [
+    productPageImageUrl(normalized),
+    `https://api.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=true&meta=false&embed=screenshot.url`,
+  ];
+}
+
+export function bestProductImageUrl(url: string, explicit?: string) {
+  return explicit?.trim() || productImageCandidates(url)[0]!;
+}
+
 export function extractProductFromUrl(url: string, hints?: Partial<ImportedProductRow>): Omit<ImportedProductRow, "status"> {
   const name = hints?.name?.trim() || extractNameFromUrl(url);
   const brand = hints?.brand?.trim() || guessBrand(url, name);
   const category = hints?.category?.trim() || guessCategory(url, name, hints?.category);
   const price = hints?.price?.trim() || String(Math.max(25, 20 + (name.length % 80)));
 
-  return { url: normalizeProductUrl(url), name, brand, price, category };
+  return { url: normalizeProductUrl(url), name, brand, price, category, imageUrl: hints?.imageUrl || bestProductImageUrl(url) };
 }
 
 function readStored(): StoredProduct[] {
@@ -133,6 +150,10 @@ export function saveImportedProduct(row: ImportedProductRow) {
     why: "Added via admin spreadsheet import — curated for the Givit marketplace.",
     interests: extracted.category.split(/\s+/).concat(["giftable", "curated"]),
     importedAt: new Date().toISOString(),
+    imageUrl: bestProductImageUrl(extracted.url, row.imageUrl),
+    rank: readStored().length + 1,
+    categoryRank: readStored().filter((p) => guessCategory(p.affiliateUrl, p.name, p.category) === extracted.category).length + 1,
+    giftMatchScore: 82,
   };
 
   writeStored([stored, ...readStored()]);
@@ -168,9 +189,9 @@ export function getImportedMarketplaceProducts(): MarketplaceProduct[] {
       retailer: item.brand,
       brand: item.brand,
       price_range: item.priceCents < 3000 ? "Under $30" : item.priceCents < 10000 ? "$30-$100" : "$100+",
-      rank: baseRank + index,
-      category_rank: index + 1,
-      gift_match_score: 82,
+      rank: item.rank ?? baseRank + index,
+      category_rank: item.categoryRank ?? index + 1,
+      gift_match_score: item.giftMatchScore ?? 82,
       tested_badge: "Admin import",
       interests: item.interests,
       occasions: ["birthday", "holiday"],
@@ -181,7 +202,7 @@ export function getImportedMarketplaceProducts(): MarketplaceProduct[] {
       images: [{
         id: `${id}-image-1`,
         product_id: id,
-        storage_path: productPageImageUrl(item.affiliateUrl),
+        storage_path: bestProductImageUrl(item.affiliateUrl, item.imageUrl),
         sort_order: 0,
       }],
     } satisfies MarketplaceProduct;

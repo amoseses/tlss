@@ -37,7 +37,7 @@ function parseCSVRows(text: string): ParsedRow[] {
   }).filter((r) => r.url || r.name);
 }
 
-type Tab = "products" | "import" | "analytics" | "submissions" | "orders" | "users";
+type Tab = "products" | "rankings" | "import" | "analytics" | "submissions" | "orders" | "users";
 
 export default function AdminPage() {
   const { profile, loading, user } = useAuth();
@@ -77,7 +77,7 @@ export default function AdminPage() {
       } else if (activeTab === "submissions") {
         const data = await getProductSubmissions();
         setSubmissions(data);
-      } else if (activeTab === "products") {
+      } else if (activeTab === "products" || activeTab === "rankings") {
         const data = await getProducts();
         setAllProducts(data);
       } else if (activeTab === "orders") {
@@ -193,6 +193,7 @@ export default function AdminPage() {
 
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "products", label: "Products", icon: Package },
+    { id: "rankings", label: "Rankings", icon: TrendingUp },
     { id: "import", label: "Import", icon: Upload },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "submissions", label: "Submissions", icon: AlertTriangle },
@@ -250,6 +251,7 @@ export default function AdminPage() {
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Price</th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Status</th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Score</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Rank</th>
                   <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Actions</th>
                 </tr>
               </thead>
@@ -269,6 +271,7 @@ export default function AdminPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{product.gift_match_score ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">#{product.rank ?? product.category_rank ?? "—"}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
                         <button
@@ -285,6 +288,41 @@ export default function AdminPage() {
                         </button>
                       </div>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+
+
+      {/* RANKINGS TAB */}
+      {activeTab === "rankings" && (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-givit-ember/20 bg-givit-ember/5 p-4 text-sm text-muted-foreground">
+            Admins can tune every product ranking signal shown across Givit. Changes save to the product row so marketplace sorting, category placement, and AI gift matching can use the updated values.
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Product</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Global rank</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Category rank</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Gift score</th>
+                  <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Save</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {filteredProducts.map((product: any, index: number) => (
+                  <tr key={product.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-3"><p className="font-medium text-foreground">{product.name}</p><p className="text-xs text-muted-foreground">{product.slug}</p></td>
+                    <td className="px-4 py-3"><input type="number" value={product.rank ?? index + 1} onChange={(e) => setAllProducts((prev) => prev.map((p) => p.id === product.id ? { ...p, rank: Number(e.target.value) } : p))} className="h-9 w-24 rounded-md border border-border bg-background px-2" /></td>
+                    <td className="px-4 py-3"><input type="number" value={product.category_rank ?? index + 1} onChange={(e) => setAllProducts((prev) => prev.map((p) => p.id === product.id ? { ...p, category_rank: Number(e.target.value) } : p))} className="h-9 w-24 rounded-md border border-border bg-background px-2" /></td>
+                    <td className="px-4 py-3"><input type="number" min={0} max={100} value={product.gift_match_score ?? 80} onChange={(e) => setAllProducts((prev) => prev.map((p) => p.id === product.id ? { ...p, gift_match_score: Number(e.target.value) } : p))} className="h-9 w-24 rounded-md border border-border bg-background px-2" /></td>
+                    <td className="px-4 py-3 text-right"><Button size="sm" variant="outline" className="rounded-lg" onClick={async () => { await upsertProduct(product); loadData(); }}><Save className="h-3.5 w-3.5" /> Save</Button></td>
                   </tr>
                 ))}
               </tbody>

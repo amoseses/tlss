@@ -346,6 +346,11 @@ const categoryBySlug = new Map(MARKETPLACE_CATEGORIES.map((category) => [categor
 
 const usedMarketplaceImages = new Set<string>();
 
+function productPageImageFor(seed: SeedProduct) {
+  if (/givit\.local/.test(seed.affiliateUrl)) return seed.image;
+  return `https://api.microlink.io/?url=${encodeURIComponent(seed.affiliateUrl)}&embed=image.url`;
+}
+
 function marketplaceImageFor(seed: SeedProduct) {
   if (!usedMarketplaceImages.has(seed.image)) {
     usedMarketplaceImages.add(seed.image);
@@ -395,8 +400,14 @@ export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = ALL_SEED_PRODUCTS.map(
       {
         id: `${id}-image-1`,
         product_id: id,
-        storage_path: marketplaceImageFor(seed),
+        storage_path: productPageImageFor(seed),
         sort_order: 0,
+      },
+      {
+        id: `${id}-image-2`,
+        product_id: id,
+        storage_path: marketplaceImageFor(seed),
+        sort_order: 1,
       },
     ],
   };

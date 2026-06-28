@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles, CheckCircle } from "lucide-react";
-import { respondToSurvey, generateGiftSuggestions, createAutoGiftOrder, getAutoGiftOrders, type SurveyResponse, type GiftSuggestion, type AutoGiftOrderItem } from "@/lib/autogift/survey";
+import { respondToSurvey, generateGiftBundles, regenerateBundleItem, createAutoGiftOrder, type SurveyResponse, type GiftSuggestion, type AutoGiftBundle, type AutoGiftOrderItem } from "@/lib/autogift/survey";
 
 const INTEREST_OPTIONS = [
   "tech", "reading", "cooking", "fitness", "music", "coffee",
@@ -33,14 +33,22 @@ export function GiftSurveyModal({
   const [giftStyle, setGiftStyle] = useState<string>("practical");
   const [packageType, setPackageType] = useState<"full" | "recommendations">("full");
   const [notes, setNotes] = useState("");
-  const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
-  const [selectedSuggestionIds, setSelectedSuggestionIds] = useState<Set<string>>(new Set());
+  const [bundles, setBundles] = useState<AutoGiftBundle[]>([]);
+  const [selectedBundleId, setSelectedBundleId] = useState("");
   const [cardMessage, setCardMessage] = useState("");
   const [addressOptions, setAddressOptions] = useState<Array<{ label?: string; line1: string; city: string; state: string; zip: string }>>([]);
   const [address, setAddress] = useState({ label: "", line1: "", city: "", state: "", zip: "" });
   const [page, setPage] = useState(0);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [itemNotes, setItemNotes] = useState<Record<string, string>>({});
+
+  const currentResponse: SurveyResponse = {
+    interests,
+    budget,
+    avoidItems: [],
+    giftStyle: giftStyle as SurveyResponse["giftStyle"],
+    notes: `${notes}${packageType === "full" ? " Full bundle requested." : " One strong gift requested."}`,
+  };
 
   useEffect(() => {
     try {
@@ -53,20 +61,16 @@ export function GiftSurveyModal({
   }, []);
 
   function buildSuggestions(nextRegenerationCount = regenerationCount) {
-    const response: SurveyResponse = {
-      interests,
-      budget,
-      avoidItems: [],
-      giftStyle: giftStyle as SurveyResponse["giftStyle"],
-      notes: `${notes}${packageType === "full" ? " Full bundle requested." : " Recommendations only requested."}`,
-    };
+    const response = currentResponse;
     const surveyId = `survey-${Date.now()}`;
     respondToSurvey(surveyId, response);
-    let results = generateGiftSuggestions({ ...response, notes: `${response.notes} Variation ${nextRegenerationCount}.` });
-    if (packageType === "recommendations") results = results.filter((item) => item.category === "gift" || item.category === "activity").slice(0, 1);
-    setSuggestions(results);
-    setSelectedSuggestionIds(new Set(packageType === "recommendations" ? results.slice(0, 1).map(r => r.id) : results.map(r => r.id)));
-    setItemNotes(Object.fromEntries(results.map((r) => [r.id, r.fulfillmentNotes || ""])));
+    const nextBundles = generateGiftBundles({ ...response, notes: `${response.notes} Variation ${nextRegenerationCount}.` });
+    const normalizedBundles = packageType === "recommendations"
+      ? nextBundles.map((bundle, index) => ({ ...bundle, title: `Option ${index + 1}: One gift idea`, items: bundle.items.filter((item) => item.category === "gift" || item.category === "activity").slice(0, 1) }))
+      : nextBundles;
+    setBundles(normalizedBundles);
+    setSelectedBundleId(normalizedBundles[0]?.id || "");
+    setItemNotes(Object.fromEntries(normalizedBundles.flatMap((bundle) => bundle.items.map((r) => [r.id, r.fulfillmentNotes || ""]))));
     setPage(0);
     setStep("suggestions");
   }
@@ -81,16 +85,23 @@ export function GiftSurveyModal({
     buildSuggestions(next);
   }
 
-  function toggleSuggestion(id: string) {
-    const next = new Set(selectedSuggestionIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedSuggestionIds(next);
+  function updateBundleItem(bundleId: string, itemId: string, updates: Partial<GiftSuggestion>) {
+    setBundles((prev) => prev.map((bundle) => bundle.id === bundleId ? { ...bundle, items: bundle.items.map((item) => item.id === itemId ? { ...item, ...updates } : item) } : bundle));
+  }
+
+  function removeBundleItem(bundleId: string, itemId: string) {
+    setBundles((prev) => prev.map((bundle) => bundle.id === bundleId ? { ...bundle, items: bundle.items.filter((item) => item.id !== itemId) } : bundle));
+  }
+
+  function replaceBundleItem(bundleId: string, item: GiftSuggestion) {
+    const replacement = regenerateBundleItem(currentResponse, item, regenerationCount + 1);
+    setRegenerationCount((n) => n + 1);
+    setBundles((prev) => prev.map((bundle) => bundle.id === bundleId ? { ...bundle, items: bundle.items.map((existing) => existing.id === item.id ? replacement : existing) } : bundle));
+    setItemNotes((prev) => ({ ...prev, [replacement.id]: replacement.fulfillmentNotes || "" }));
   }
 
   function handlePlaceOrder() {
-    const selectedItems = suggestions
-      .filter(s => selectedSuggestionIds.has(s.id))
+    const selectedItems = selectedBundle.items
       .map(s => ({
         productName: s.name,
         category: s.category as AutoGiftOrderItem["category"],
@@ -112,9 +123,8 @@ export function GiftSurveyModal({
     setStep("done");
   }
 
-  const selectedTotal = suggestions
-    .filter(s => selectedSuggestionIds.has(s.id))
-    .reduce((sum, s) => sum + s.price, 0);
+  const selectedBundle = bundles.find((bundle) => bundle.id === selectedBundleId) ?? bundles[0] ?? { id: "", title: "", description: "", items: [] };
+  const selectedTotal = selectedBundle.items.reduce((sum, s) => sum + s.price, 0);
   const serviceFee = Math.round(selectedTotal * 0.1);
   const grandTotal = selectedTotal + serviceFee;
 
@@ -226,64 +236,43 @@ export function GiftSurveyModal({
           {step === "suggestions" && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground">
-                Here are our AI-generated suggestions for {recipientName}'s {occasion}. 
-                Review each gift option on its own page, then use the bundle sheet below to see everything selected together. Regenerate if these options do not feel right.
+                Givit AI built three orderable options. Click through bundle pages, choose one, then regenerate or edit individual items inside that bundle.
               </p>
-
-              <div className="space-y-3">
-                {suggestions.length > 0 && (() => {
-                  const suggestion = suggestions[Math.min(page, suggestions.length - 1)];
-                  return (
-                    <div className={`overflow-hidden rounded-xl border ${selectedSuggestionIds.has(suggestion.id) ? "border-givit-ember bg-givit-ember/5" : "border-border"}`}>
-                      {suggestion.imageUrl && <img src={suggestion.imageUrl} alt="" className="h-44 w-full object-cover" />}
-                      <div className="space-y-3 p-4">
-                        <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-foreground">{suggestion.name}</p><p className="text-xs text-muted-foreground">{suggestion.reason}</p></div><span className="font-bold text-givit-ember">${(suggestion.price / 100).toFixed(2)}</span></div>
-                        {suggestion.productUrl && <a href={suggestion.productUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-givit-ember underline">View exact product</a>}
-                        <textarea value={itemNotes[suggestion.id] || ""} onChange={(e) => setItemNotes((prev) => ({ ...prev, [suggestion.id]: e.target.value }))} rows={2} placeholder="Notes for this item: flower type, gluten-free, color, size, delivery timing..." className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-                        <div className="grid gap-2 sm:grid-cols-2"><input value={suggestion.name} onChange={(e) => setSuggestions((prev) => prev.map((item) => item.id === suggestion.id ? { ...item, name: e.target.value } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /><input type="number" value={(suggestion.price / 100).toFixed(2)} onChange={(e) => setSuggestions((prev) => prev.map((item) => item.id === suggestion.id ? { ...item, price: Math.round(Number(e.target.value || 0) * 100) } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /></div>
-                        <div className="flex gap-2"><Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={() => setPage((prev) => Math.max(0, prev - 1))} disabled={page === 0}>Previous</Button><Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={() => setPage((prev) => Math.min(suggestions.length - 1, prev + 1))} disabled={page >= suggestions.length - 1}>Next</Button><Button type="button" className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={() => toggleSuggestion(suggestion.id)}>{selectedSuggestionIds.has(suggestion.id) ? "Remove" : "Add"}</Button></div>
-                        <p className="text-center text-xs text-muted-foreground">Option {page + 1} of {suggestions.length}</p>
+              <div className="flex flex-wrap gap-2">
+                {bundles.map((bundle, index) => (
+                  <Button key={bundle.id} type="button" variant={selectedBundleId === bundle.id ? "default" : "outline"} className={`rounded-lg ${selectedBundleId === bundle.id ? "bg-givit-ember text-white hover:bg-givit-ember-hover" : ""}`} onClick={() => { setSelectedBundleId(bundle.id); setPage(index); }}>
+                    Option {index + 1}
+                  </Button>
+                ))}
+              </div>
+              {selectedBundle.id && (
+                <div className="overflow-hidden rounded-xl border border-givit-ember/25 bg-givit-ember/5">
+                  <div className="border-b border-givit-ember/20 bg-gradient-to-r from-givit-ember/15 via-pink-100 to-white p-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Bundle page {Math.max(0, page) + 1} of {bundles.length}</p>
+                    <h3 className="mt-1 font-serif text-xl font-bold text-givit-ink">{selectedBundle.title}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedBundle.description}</p>
+                  </div>
+                  <div className="space-y-3 p-4">
+                    {selectedBundle.items.map((item) => (
+                      <div key={item.id} className="rounded-xl border border-border bg-white p-3">
+                        {item.imageUrl && <img src={item.imageUrl} alt="" className="mb-3 h-36 w-full rounded-lg object-cover" />}
+                        <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-foreground">{item.name}</p><p className="text-xs text-muted-foreground">{item.reason}</p></div><span className="font-bold text-givit-ember">${(item.price / 100).toFixed(2)}</span></div>
+                        {item.productUrl && <a href={item.productUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-givit-ember underline">View exact product</a>}
+                        <textarea value={itemNotes[item.id] || ""} onChange={(e) => setItemNotes((prev) => ({ ...prev, [item.id]: e.target.value }))} rows={2} placeholder="Notes for this item: color, size, allergies, delivery timing..." className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2"><input value={item.name} onChange={(e) => updateBundleItem(selectedBundle.id, item.id, { name: e.target.value })} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /><input type="number" value={(item.price / 100).toFixed(2)} onChange={(e) => updateBundleItem(selectedBundle.id, item.id, { price: Math.round(Number(e.target.value || 0) * 100) })} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /></div>
+                        <div className="mt-2 flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => replaceBundleItem(selectedBundle.id, item)}>Regenerate item</Button><Button type="button" variant="outline" size="sm" className="rounded-lg text-destructive" onClick={() => removeBundleItem(selectedBundle.id, item.id)}>Remove</Button></div>
                       </div>
-                    </div>
-                  );
-                })()}
-              </div>
-              <div className="rounded-xl border border-givit-ember/20 bg-white p-3 text-sm">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="font-semibold text-givit-ink">Selected bundle sheet</p>
-                  <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={regenerateSuggestions}>Regenerate options</Button>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {suggestions.filter(s => selectedSuggestionIds.has(s.id)).map((s) => (
-                    <div key={s.id} className="rounded-lg bg-muted/40 p-2">
-                      <div className="flex justify-between gap-3"><span className="font-medium text-givit-ink">{s.name}</span><span>${(s.price / 100).toFixed(2)}</span></div>
-                      {itemNotes[s.id] && <p className="mt-1 text-xs text-muted-foreground">Notes: {itemNotes[s.id]}</p>}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
+              <div className="flex gap-2"><Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={() => { const next = Math.max(0, page - 1); setPage(next); setSelectedBundleId(bundles[next]?.id || selectedBundleId); }} disabled={page === 0}>Previous bundle</Button><Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={() => { const next = Math.min(bundles.length - 1, page + 1); setPage(next); setSelectedBundleId(bundles[next]?.id || selectedBundleId); }} disabled={page >= bundles.length - 1}>Next bundle</Button><Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={regenerateSuggestions}>Regenerate all</Button></div>
               <div className="rounded-lg bg-muted/50 p-3 text-sm">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span>${(selectedTotal / 100).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Service fee (10%)</span>
-                  <span>${(serviceFee / 100).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between border-t border-border pt-1 mt-1 font-bold text-foreground">
-                  <span>Total</span>
-                  <span>${(grandTotal / 100).toFixed(2)}</span>
-                </div>
+                <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>${(selectedTotal / 100).toFixed(2)}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Service fee (10%)</span><span>${(serviceFee / 100).toFixed(2)}</span></div>
+                <div className="mt-1 flex justify-between border-t border-border pt-1 font-bold text-foreground"><span>Total</span><span>${(grandTotal / 100).toFixed(2)}</span></div>
               </div>
-
-              <Button 
-                onClick={() => setStep("review")} 
-                disabled={selectedSuggestionIds.size === 0}
-                className="w-full rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"
-              >
-                Continue to shipping & card
-              </Button>
+              <Button onClick={() => setStep("review")} disabled={selectedBundle.items.length === 0} className="w-full rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">Order this option</Button>
             </div>
           )}
 
@@ -319,7 +308,7 @@ export function GiftSurveyModal({
 
               <div className="rounded-lg bg-givit-ember/5 border border-givit-ember/20 p-4 space-y-2">
                 <p className="text-sm font-semibold text-givit-ink">Order summary</p>
-                {suggestions.filter(s => selectedSuggestionIds.has(s.id)).map(s => (
+                {selectedBundle.items.map(s => (
                   <div key={s.id} className="flex justify-between text-xs">
                     <span className="text-muted-foreground">{s.name}</span>
                     <span className="font-medium">${(s.price / 100).toFixed(2)}</span>
