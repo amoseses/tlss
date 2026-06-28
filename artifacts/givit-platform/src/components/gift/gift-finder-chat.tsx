@@ -4,6 +4,8 @@ import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { recommendGifts, type GiftRecommendResult } from "@/lib/gift-recommend";
 import { readLearningProfile, applyFeedback as applyLearningFeedback } from "@/lib/gift-learning";
+import { productPhotoFallback } from "@/lib/product-photo";
+import { logError, trackUserEvent } from "@/lib/monitoring";
 
 type GiftResult = GiftRecommendResult;
 
@@ -41,38 +43,6 @@ const QUICK_PROMPTS = [
 const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Graduation", "Wedding", "Holiday", "Housewarming", "Thank you", "Father's Day", "Mother's Day", "Valentine's Day", "Easter", "Halloween", "New Baby", "Retirement", "Get Well", "Just Because", "Engagement", "Baby Shower"];
 const STYLES = ["Practical", "Sentimental", "Unique", "Luxury", "Cozy", "Funny", "Minimal", "Experience-like"];
 
-type LearningProfile = {
-  productWeights: Record<string, number>;
-  tagWeights: Record<string, number>;
-};
-
-const LEARNING_KEY = "givit-ai-learning-profile";
-
-function readLearningProfile(): LearningProfile {
-  try {
-    const raw = window.localStorage.getItem(LEARNING_KEY);
-    return raw ? (JSON.parse(raw) as LearningProfile) : { productWeights: {}, tagWeights: {} };
-  } catch {
-    return { productWeights: {}, tagWeights: {} };
-  }
-}
-
-function writeLearningProfile(profile: LearningProfile) {
-  window.localStorage.setItem(LEARNING_KEY, JSON.stringify(profile));
-}
-
-function applyFeedback(results: GiftResult[], satisfied: boolean) {
-  const profile = readLearningProfile();
-  const direction = satisfied ? 1 : -1;
-  for (const result of results) {
-    profile.productWeights[result.slug] = Math.max(-3, Math.min(3, (profile.productWeights[result.slug] ?? 0) + direction * 0.5));
-    for (const tag of result.learning_tags ?? result.gift_tags) {
-      profile.tagWeights[tag] = Math.max(-3, Math.min(3, (profile.tagWeights[tag] ?? 0) + direction * 0.25));
-    }
-  }
-  writeLearningProfile(profile);
-}
-
 function formatMoneyLocal(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
@@ -107,7 +77,8 @@ function TypingIndicator() {
   );
 }
 
-function GiftCard({ result, index }: { result: GiftResult; index: number }) {
+function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index: number; onItemFeedback: (result: GiftResult, liked: boolean) => void }) {
+  const [imageSrc, setImageSrc] = useState(result.image_url || productPhotoFallback(result.slug));
   const score = result.gift_score?.total ?? 90;
   const displayPrice = result.sale_price_cents ?? result.price_cents;
 
@@ -115,7 +86,7 @@ function GiftCard({ result, index }: { result: GiftResult; index: number }) {
     <div className="slide-up givit-panel overflow-hidden transition-transform duration-200 hover:-translate-y-0.5" style={{ animationDelay: `${index * 60}ms`, opacity: 0 }}>
       <div className="relative aspect-[4/3] overflow-hidden bg-givit-sand">
         {result.image_url ? (
-          <img src={result.image_url} alt={result.name} className="h-full w-full object-cover" />
+          <img src={imageSrc} alt={result.name} className="h-full w-full object-cover" onError={() => setImageSrc(productPhotoFallback(result.slug))} />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center"><span className="text-4xl">🎁</span></div>
         )}
@@ -158,7 +129,11 @@ function GiftCard({ result, index }: { result: GiftResult; index: number }) {
           <Link href={`/products/${result.slug}`} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-givit-ember px-3 text-xs font-semibold text-white transition hover:bg-givit-ember-hover">
             <ExternalLink className="h-3.5 w-3.5" /> View product
           </Link>
-          <WishlistButton compact item={{ slug: result.slug, name: result.name, href: `/products/${result.slug}`, image: result.image_url ?? undefined, price: formatMoneyLocal(displayPrice) }} />
+          <WishlistButton compact item={{ slug: result.slug, name: result.name, href: `/products/${result.slug}`, image: imageSrc, price: formatMoneyLocal(displayPrice) }} />
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => onItemFeedback(result, true)} className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-emerald-200 px-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"><ThumbsUp className="h-3.5 w-3.5" /> Like item</button>
+            <button type="button" onClick={() => onItemFeedback(result, false)} className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-rose-200 px-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"><ThumbsDown className="h-3.5 w-3.5" /> Not this</button>
+          </div>
           <Link href="/concierge" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-givit-ember/30 px-3 text-xs font-semibold text-givit-ember transition hover:bg-givit-ember/10">
             Build full bundle
           </Link>
@@ -205,9 +180,12 @@ export function GiftFinderChat() {
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 700 + Math.random() * 500));
-      const data = recommendGifts(trimmed, readLearningProfile());
+      const profile = await readLearningProfile();
+      const data = recommendGifts(trimmed, profile);
+      trackUserEvent("ai_recommendation_generated", { queryLength: trimmed.length, resultCount: data.results?.length ?? 0, tags: data.tags });
       setMessages((prev) => [...prev.slice(0, -1), { role: "assistant", content: data.message ?? "", results: data.results ?? [] }]);
-    } catch {
+    } catch (error) {
+      logError(error, "GiftFinderChat.sendMessage", { query: trimmed });
       setMessages((prev) => [...prev.slice(0, -1), { role: "assistant", content: "I hit a snag while ranking gifts. Try again with recipient, occasion, budget, interests, and avoid-list details." }]);
     } finally {
       setLoading(false);
@@ -216,10 +194,20 @@ export function GiftFinderChat() {
   }
 
   function handleFeedback(results: GiftResult[], satisfied: boolean) {
-    applyFeedback(results, satisfied);
+    void applyLearningFeedback(results, satisfied);
+    trackUserEvent("ai_recommendation_feedback", { scope: "response", satisfied, slugs: results.map((item) => item.slug) });
     setMessages((prev) => [
       ...prev,
       { role: "assistant", content: satisfied ? "Great — I saved those positive signals. ✅" : "Got it — I saved that these were not quite right." },
+    ]);
+  }
+
+  function handleItemFeedback(result: GiftResult, liked: boolean) {
+    void applyLearningFeedback([result], liked);
+    trackUserEvent("ai_recommendation_feedback", { scope: "item", liked, slug: result.slug, tags: result.learning_tags ?? result.gift_tags });
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: liked ? `Saved: you like ${result.name}. I’ll boost similar gifts next time.` : `Saved: ${result.name} is not a fit. I’ll down-rank similar gifts next time.` },
     ]);
   }
 
@@ -300,7 +288,7 @@ export function GiftFinderChat() {
                     </div>
                     {msg.results && msg.results.length > 0 && (
                       <div className="ml-0 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                        {msg.results.map((result, idx) => <GiftCard key={result.id} result={result} index={idx} />)}
+                        {msg.results.map((result, idx) => <GiftCard key={result.id} result={result} index={idx} onItemFeedback={handleItemFeedback} />)}
                         <div className="rounded-2xl border border-border/60 bg-white p-3 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">
                           <div className="mb-2 font-semibold text-givit-ink">Did these feel right?</div>
                           <div className="flex flex-wrap gap-2">

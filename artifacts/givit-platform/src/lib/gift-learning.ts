@@ -46,10 +46,13 @@ export async function readLearningProfile(): Promise<LearningProfile> {
     if (records && records.length > 0) {
       for (const record of records) {
         local.productWeights[record.product_slug] = (local.productWeights[record.product_slug] ?? 0) + record.weight;
-        if (record.feedback === "positive") {
-          local.tagWeights[record.product_slug] = (local.tagWeights[record.product_slug] ?? 0) + 0.25;
-        } else if (record.feedback === "negative") {
-          local.tagWeights[record.product_slug] = (local.tagWeights[record.product_slug] ?? 0) - 0.25;
+        const tags = Array.isArray(record.metadata?.tags) ? record.metadata.tags : [];
+        for (const tag of tags) {
+          if (record.feedback === "positive") {
+            local.tagWeights[tag] = (local.tagWeights[tag] ?? 0) + 0.25;
+          } else if (record.feedback === "negative") {
+            local.tagWeights[tag] = (local.tagWeights[tag] ?? 0) - 0.25;
+          }
         }
       }
       writeLocal(local);
@@ -61,7 +64,7 @@ export async function readLearningProfile(): Promise<LearningProfile> {
   return local;
 }
 
-export async function applyFeedback(results: { slug: string; learning_tags: string[]; gift_tags: string[] }[], satisfied: boolean) {
+export async function applyFeedback(results: { slug: string; learning_tags?: string[]; gift_tags: string[] }[], satisfied: boolean) {
   const profile = readLocal();
   const direction = satisfied ? 1 : -1;
   const feedbackType = satisfied ? "positive" : "negative";
@@ -83,11 +86,13 @@ export async function applyFeedback(results: { slug: string; learning_tags: stri
     if (!user) return;
 
     for (const result of results) {
+      const tags = result.learning_tags ?? result.gift_tags ?? [];
       await supabase.from("ai_learning").upsert({
         user_id: user.id,
         product_slug: result.slug,
-        weight: direction * 0.5,
+        weight: profile.productWeights[result.slug],
         feedback: feedbackType,
+        metadata: { tags, updated_at: new Date().toISOString() },
       }, { onConflict: "user_id, product_slug" });
     }
   } catch {

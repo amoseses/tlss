@@ -25,11 +25,26 @@ export function isRemoteImageUrl(url: string) {
   return /^https?:\/\//.test(url);
 }
 
-/** Same image source as product cards: uploaded photo or deterministic Unsplash fallback. */
+function looksAiGenerated(url: string) {
+  return /(?:oaidalleapiprodscus|dall-e|midjourney|stable-diffusion|replicate|fal\.ai|ai-generated|generated)/i.test(url);
+}
+
+function normalizePhotoUrl(url: string) {
+  if (/images\.unsplash\.com/.test(url) && !/[?&](w|q)=/.test(url)) {
+    return `${url}${url.includes("?") ? "&" : "?"}auto=format&fit=crop&w=640&q=80`;
+  }
+  return url;
+}
+
+/** Same image source as product cards: uploaded/merchant photo, skipping known AI-generated URLs, with deterministic real-photo fallback. */
 export function resolveProductImageSrc(productId: string, images: ProductImage[]) {
   const sorted = [...images].sort((a, b) => a.sort_order - b.sort_order);
-  const first = sorted[0];
-  if (!first) return productPhotoFallback(productId);
-  if (/^https?:\/\//.test(first.storage_path)) return first.storage_path;
-  return publicStorageUrl(first.storage_path);
+  const firstUsable = sorted.find((image) => image.storage_path && !looksAiGenerated(image.storage_path));
+  if (!firstUsable) return productPhotoFallback(productId);
+  if (/^https?:\/\//.test(firstUsable.storage_path)) return normalizePhotoUrl(firstUsable.storage_path);
+  return publicStorageUrl(firstUsable.storage_path);
+}
+
+export function isLikelyAiGeneratedImage(url: string) {
+  return looksAiGenerated(url);
 }
