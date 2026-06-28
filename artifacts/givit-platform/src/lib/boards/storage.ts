@@ -1,4 +1,4 @@
-export type BoardImage = { id: string; src: string; caption: string };
+export type BoardImage = { id: string; src: string; caption: string; description?: string; productUrl?: string; kind?: "product" | "image" };
 export type UserBoard = { id: string; title: string; description: string; images: BoardImage[]; likes: number; liked: boolean; isPublic?: boolean; coverImage?: string };
 
 const BOARDS_KEY = "givit-user-boards";

@@ -24,6 +24,9 @@ function dbBoardToUserBoard(board: any): UserBoard {
     id: item.id ?? crypto.randomUUID(),
     src: item.image_url || item.product_image || item.metadata?.image_url || "",
     caption: item.caption || item.product_name || item.title || "Gift idea",
+    description: item.description || item.metadata?.description || "",
+    productUrl: item.product_url || item.metadata?.product_url || "",
+    kind: item.item_type === "image" ? "image" : "product",
   })).filter((img: BoardImage) => img.src);
   return {
     id: board.id,
@@ -100,6 +103,7 @@ function CreateBoardModal({ onAdd, onClose }: { onAdd: (b: UserBoard) => void; o
 function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; onClose: () => void }) {
   const [url, setUrl] = useState("");
   const [caption, setCaption] = useState("");
+  const [description, setDescription] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -113,7 +117,7 @@ function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; o
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!url.trim()) return;
-    onAdd({ id: crypto.randomUUID(), src: url.trim(), caption: caption.trim() });
+    onAdd({ id: crypto.randomUUID(), src: url.trim(), caption: caption.trim(), description: description.trim(), kind: "image" });
     onClose();
   }
 
@@ -121,7 +125,7 @@ function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; o
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-border p-5">
-          <h2 className="font-serif text-xl font-bold text-givit-ink">Add an image</h2>
+          <h2 className="font-serif text-xl font-bold text-givit-ink">Add a product</h2>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"><X className="h-4 w-4" /></button>
         </div>
         <form onSubmit={submit} className="space-y-4 p-5">
@@ -134,16 +138,20 @@ function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; o
             {url && url.startsWith("data:") && <img src={url} alt="preview" className="mt-1 h-24 w-full rounded-lg object-cover" />}
           </div>
           <div className="grid gap-1.5">
-            <label className="text-sm font-semibold">Or paste image URL</label>
+            <label className="text-sm font-semibold">Or paste product image URL</label>
             <input value={url.startsWith("data:") ? "" : url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Caption</label>
-            <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="What is this gift idea?" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+            <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Product name or gift idea" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-sm font-semibold">Description</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Add notes, sizing, color, flavor, or why it belongs on this board." className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
           </div>
           <div className="flex gap-2 pt-1">
             <Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={!url.trim()} className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">Add image</Button>
+            <Button type="submit" disabled={!url.trim()} className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">Add product</Button>
           </div>
         </form>
       </div>
@@ -170,7 +178,7 @@ function BoardCard({ board, onOpen, onDelete }: { board: UserBoard; onOpen: () =
           <h3 className="font-semibold text-givit-ink line-clamp-1">{board.title}</h3>
           {board.description && <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{board.description}</p>}
           <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{board.images.length} image{board.images.length !== 1 ? "s" : ""}</span>
+            <span>{board.images.length} product{board.images.length !== 1 ? "s" : ""}</span>
             <span>·</span>
             <span>{board.likes} ♥</span>
           </div>
@@ -192,23 +200,23 @@ function BoardCard({ board, onOpen, onDelete }: { board: UserBoard; onOpen: () =
 function PinterestGrid({ images, onRemove }: { images: BoardImage[]; onRemove?: (id: string) => void }) {
   if (images.length === 0) return null;
   return (
-    <div className="columns-2 gap-2 sm:columns-3 md:columns-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {images.map((img) => (
-        <div key={img.id} className="mb-2 break-inside-avoid">
-          <div className="group relative overflow-hidden rounded-lg">
-            <img src={img.src} alt={img.caption || "Gift idea"} className="w-full object-cover transition group-hover:scale-105" />
+        <article key={img.id} className="group overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+          <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+            <img src={img.src} alt={img.caption || "Gift board product"} className="h-full w-full object-cover transition group-hover:scale-105" />
             {onRemove && (
-              <button type="button" onClick={() => onRemove(img.id)} className="absolute right-1.5 top-1.5 hidden rounded-full bg-black/60 p-1 text-white group-hover:flex">
+              <button type="button" onClick={() => onRemove(img.id)} className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white transition hover:bg-black/75">
                 <X className="h-3 w-3" />
               </button>
             )}
-            {img.caption && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 px-2 py-2 opacity-0 transition group-hover:opacity-100">
-                <p className="text-xs font-medium text-white line-clamp-2">{img.caption}</p>
-              </div>
-            )}
           </div>
-        </div>
+          <div className="space-y-1.5 p-3">
+            <p className="line-clamp-2 text-sm font-semibold text-givit-ink">{img.caption || "Gift board product"}</p>
+            {img.description && <p className="line-clamp-3 text-xs leading-5 text-muted-foreground">{img.description}</p>}
+            {img.productUrl && <a href={img.productUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-givit-ember hover:underline">View product <ExternalLink className="h-3 w-3" /></a>}
+          </div>
+        </article>
       ))}
     </div>
   );
@@ -249,7 +257,7 @@ export default function BoardsPage() {
     if (!userId || authLoading) return;
     async function loadUserBoards() {
       try {
-        const userBoardsData = (await getUserBoardsFromDb(userId)).map(dbBoardToUserBoard);
+        const userBoardsData = (await getUserBoardsFromDb(userId as string)).map(dbBoardToUserBoard);
         const publicBoards = (await getPublicBoards()).map(dbBoardToUserBoard);
         const localStorageBoards = readUserBoards();
         const merged = mergeBoardLikes([...publicBoards, ...userBoardsData, ...localStorageBoards]);
@@ -320,12 +328,13 @@ export default function BoardsPage() {
       try {
         await addBoardItem({
           board_id: selectedBoardId,
-          item_type: "image",
+          item_type: "product",
           image_url: img.src,
           caption: img.caption,
+          metadata: { description: img.description },
         });
       } catch (err) {
-        console.error("Failed to save image to DB:", err);
+        console.error("Failed to save product to DB:", err);
       }
     }
     
@@ -342,6 +351,9 @@ export default function BoardsPage() {
       id: crypto.randomUUID(),
       src: imgSrc,
       caption: product.name,
+      description: product.description ?? undefined,
+      productUrl: product.affiliate_url ?? undefined,
+      kind: "product",
     };
     
     if (user) {
@@ -354,6 +366,7 @@ export default function BoardsPage() {
           product_price_cents: priceCents,
           product_image: imgSrc,
           caption: product.name,
+          metadata: { description: product.description, product_url: product.affiliate_url },
         });
       } catch (err) {
         console.error("Failed to save product to DB:", err);
@@ -367,6 +380,10 @@ export default function BoardsPage() {
 
   function removeImageFromBoard(boardId: string, imgId: string) {
     persistBoards(userBoards.map((b) => b.id === boardId ? { ...b, images: b.images.filter((i) => i.id !== imgId) } : b));
+  }
+
+  async function saveAllBoards() {
+    await persistBoards(userBoards);
   }
 
   const selectedBoard = userBoards.find((b) => b.id === selectedBoardId);
@@ -482,7 +499,7 @@ export default function BoardsPage() {
             <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-20 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10 text-3xl">📌</div>
               <p className="mt-4 font-serif text-xl font-bold text-givit-ink">No boards yet</p>
-              <p className="mt-2 max-w-xs text-sm text-muted-foreground">Create your first board to collect gift ideas, add images, and share with friends.</p>
+              <p className="mt-2 max-w-xs text-sm text-muted-foreground">Create your first board to collect gift ideas, add products, and share with friends.</p>
               {user ? (
                 <Button onClick={() => setShowCreateBoard(true)} className="mt-5 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
                   <Plus className="h-4 w-4" /> Create your first board
@@ -514,11 +531,14 @@ export default function BoardsPage() {
                     <Heart className={`h-4 w-4 ${selectedBoard.liked ? "fill-current" : ""}`} />
                     {selectedBoard.likes > 0 ? selectedBoard.likes : "Like"}
                   </button>
+                  <Button onClick={saveAllBoards} size="sm" variant="outline" className="rounded-lg gap-1.5">
+                    <Bookmark className="h-3.5 w-3.5" /> Save all
+                  </Button>
                   <Button onClick={() => setShowAddProduct(true)} size="sm" className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover gap-1.5">
                     <Sparkles className="h-3.5 w-3.5" /> Add products
                   </Button>
                   <Button onClick={() => setShowAddImage(true)} size="sm" variant="outline" className="rounded-lg gap-1.5">
-                    <ImagePlus className="h-3.5 w-3.5" /> Add image
+                    <ImagePlus className="h-3.5 w-3.5" /> Add custom product
                   </Button>
                   <button
                     type="button"
@@ -534,13 +554,13 @@ export default function BoardsPage() {
                 <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-16 text-center">
                   <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10 text-2xl">🎁</div>
                   <p className="mt-4 font-serif text-xl font-bold text-givit-ink">No items yet</p>
-                  <p className="mt-2 max-w-xs text-sm text-muted-foreground">Add products or images to build your gift board.</p>
+                  <p className="mt-2 max-w-xs text-sm text-muted-foreground">Add marketplace products or custom products to build your gift board.</p>
                   <div className="mt-5 flex gap-3">
                     <Button onClick={() => setShowAddProduct(true)} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
                       <Sparkles className="h-4 w-4" /> Browse products
                     </Button>
                     <Button onClick={() => setShowAddImage(true)} variant="outline" className="rounded-lg">
-                      <ImagePlus className="h-4 w-4" /> Add image
+                      <ImagePlus className="h-4 w-4" /> Add custom product
                     </Button>
                   </div>
                 </div>
@@ -559,7 +579,7 @@ export default function BoardsPage() {
                     <button type="button" onClick={() => setShowAddImage(true)}
                       className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/60 px-4 py-3 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
                     >
-                      <ImagePlus className="h-4 w-4" /> Add image
+                      <ImagePlus className="h-4 w-4" /> Add custom product
                     </button>
                   </div>
                 </>

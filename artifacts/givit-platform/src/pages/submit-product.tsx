@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { submitProduct } from "@/lib/supabase/db";
-import { extractProductFromUrl, productPageImageUrl } from "@/lib/admin/imported-products";
+import { extractProductFromUrl, normalizeProductUrl, productPageImageUrl } from "@/lib/admin/imported-products";
 
 export default function SubmitProductPage() {
   const { user } = useAuth();
@@ -25,7 +25,8 @@ export default function SubmitProductPage() {
     setError("");
 
     try {
-      const aiExtracted = extractProductFromUrl(url.trim(), {
+      const normalizedUrl = normalizeProductUrl(url.trim());
+      const aiExtracted = extractProductFromUrl(normalizedUrl, {
         name,
         brand,
         price,
@@ -34,16 +35,16 @@ export default function SubmitProductPage() {
         url,
       });
       const { error: submitError } = await submitProduct({
-        url: url.trim(),
+        url: normalizedUrl,
         name: name.trim() || aiExtracted.name,
         brand: brand.trim() || aiExtracted.brand,
         price_cents: price ? Math.round(parseFloat(price) * 100) : Math.round(parseFloat(aiExtracted.price) * 100),
         description: description.trim() || `AI scraped summary for ${aiExtracted.name} from ${aiExtracted.brand}. Admins can edit before approval.`,
         category: aiExtracted.category,
-        image_url: productPageImageUrl(url.trim()),
+        image_url: productPageImageUrl(normalizedUrl),
         scraped_metadata: {
           source: "client_ai_product_page_scraper",
-          productPageImageUrl: productPageImageUrl(url.trim()),
+          productPageImageUrl: productPageImageUrl(normalizedUrl),
           extractedAt: new Date().toISOString(),
           aiSummary: `AI scraped ${aiExtracted.name}, categorized it as ${aiExtracted.category}, and prepared it for admin approval.`,
         },

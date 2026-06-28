@@ -79,8 +79,20 @@ function extractNameFromUrl(url: string): string {
   }
 }
 
+export function normalizeProductUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "gclid"].forEach((key) => parsed.searchParams.delete(key));
+    return parsed.toString();
+  } catch {
+    return url.trim();
+  }
+}
+
 export function productPageImageUrl(url: string) {
-  return `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&embed=screenshot.url`;
+  // Microlink resolves OpenGraph/Twitter/product JSON-LD images when available,
+  // which is closer to the item photo than a full-page screenshot.
+  return `https://api.microlink.io/?url=${encodeURIComponent(normalizeProductUrl(url))}&embed=image.url`;
 }
 
 export function extractProductFromUrl(url: string, hints?: Partial<ImportedProductRow>): Omit<ImportedProductRow, "status"> {
@@ -89,7 +101,7 @@ export function extractProductFromUrl(url: string, hints?: Partial<ImportedProdu
   const category = hints?.category?.trim() || guessCategory(url, name, hints?.category);
   const price = hints?.price?.trim() || String(Math.max(25, 20 + (name.length % 80)));
 
-  return { url, name, brand, price, category };
+  return { url: normalizeProductUrl(url), name, brand, price, category };
 }
 
 function readStored(): StoredProduct[] {
@@ -116,7 +128,7 @@ export function saveImportedProduct(row: ImportedProductRow) {
     brand: extracted.brand,
     category: extracted.category,
     priceCents,
-    affiliateUrl: extracted.url,
+    affiliateUrl: normalizeProductUrl(extracted.url),
     summary: row.description || `Admin-imported ${extracted.category} gift sourced from ${extracted.brand}.`,
     why: "Added via admin spreadsheet import — curated for the Givit marketplace.",
     interests: extracted.category.split(/\s+/).concat(["giftable", "curated"]),
@@ -169,7 +181,7 @@ export function getImportedMarketplaceProducts(): MarketplaceProduct[] {
       images: [{
         id: `${id}-image-1`,
         product_id: id,
-        storage_path: `https://picsum.photos/seed/${item.slug}/1100/900`,
+        storage_path: productPageImageUrl(item.affiliateUrl),
         sort_order: 0,
       }],
     } satisfies MarketplaceProduct;
