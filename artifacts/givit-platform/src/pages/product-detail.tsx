@@ -16,7 +16,7 @@ import {
   getRelatedMarketplaceProducts,
 } from "@/lib/data/marketplace";
 import { formatMoney } from "@/lib/format";
-import { resolveProductImageSrc } from "@/lib/product-photo";
+import { productPhotoFallback, resolveProductImageSrc } from "@/lib/product-photo";
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -68,7 +68,7 @@ export default function ProductDetailPage() {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-givit-sand">
-            <img src={mainSrc} alt={product.name} className="h-full w-full object-cover" />
+            <img src={mainSrc} alt={product.name} onError={(event) => { event.currentTarget.src = productPhotoFallback(product.id); }} className="h-full w-full object-cover" />
             {product.tested_badge ? (
               <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold uppercase tracking-wide text-givit-ember shadow-sm">
                 {product.tested_badge}
@@ -108,7 +108,7 @@ export default function ProductDetailPage() {
 
           <div className="rounded-2xl bg-givit-sand/60 p-4">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-givit-ember">
-              <Sparkles className="h-3.5 w-3.5" /> Gift Match Score: {product.gift_match_score}/100
+              <Sparkles className="h-3.5 w-3.5" /> Product Quality Score: {product.gift_match_score}/100
             </div>
             <p className="mt-2 text-sm leading-6 text-foreground">{product.ai_summary}</p>
             {product.why_we_picked_it ? (

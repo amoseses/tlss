@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowRight, Bell, Brain, CreditCard, PackageCheck, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
 
@@ -11,12 +12,57 @@ import {
   MARKETPLACE_PRODUCTS,
   MARKETPLACE_RATINGS,
 } from "@/lib/data/marketplace";
+import { getPublicBoards } from "@/lib/supabase/db";
+import type { UserBoard } from "@/lib/boards/storage";
+
+function dbBoardToHomeBoard(board: any): UserBoard {
+  const items = Array.isArray(board.gift_board_items) ? board.gift_board_items : [];
+  const images = items.map((item: any) => ({
+    id: item.id ?? crypto.randomUUID(),
+    src: item.image_url || item.product_image || item.metadata?.image_url || "",
+    caption: item.caption || item.product_name || item.title || "Gift idea",
+    description: item.description || item.metadata?.description || "",
+    productUrl: item.product_url || item.metadata?.product_url || "",
+    kind: item.item_type === "image" ? "image" : "product",
+  })).filter((img: { src: string }) => img.src);
+
+  return {
+    id: board.id,
+    title: board.title ?? "Gift board",
+    description: board.description ?? "",
+    coverImage: board.cover_image || images[0]?.src || undefined,
+    images,
+    likes: board.likes ?? 0,
+    liked: false,
+    isPublic: board.is_public ?? true,
+  };
+}
 
 export default function HomePage() {
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
   const featured = MARKETPLACE_PRODUCTS.slice(0, 4);
   const deals = MARKETPLACE_PRODUCTS.filter((p) => p.sale_price_cents && p.gift_match_score >= 75).slice(0, 8);
   const trending = MARKETPLACE_PRODUCTS.filter((p) => ["tech", "gaming", "writing", "home"].includes(p.category?.slug ?? "")).slice(0, 6);
+  const [publicBoards, setPublicBoards] = useState<UserBoard[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    getPublicBoards()
+      .then((boards) => { if (mounted) setPublicBoards(boards.map(dbBoardToHomeBoard).filter((board) => board.images.length > 0 || board.coverImage)); })
+      .catch(() => { if (mounted) setPublicBoards([]); });
+    return () => { mounted = false; };
+  }, []);
+
+  const homeBoards = publicBoards.length > 0 ? publicBoards.slice(0, 4) : GIFT_COLLECTIONS.slice(0, 4).map((collection) => ({
+    id: collection.slug,
+    title: collection.title,
+    description: collection.description,
+    coverImage: undefined,
+    images: [],
+    likes: 0,
+    liked: false,
+    isPublic: true,
+  }));
 
   return (
     <div className="pb-12">
@@ -124,11 +170,20 @@ export default function HomePage() {
           <Link href="/boards" className="givit-link text-sm font-medium">See all boards →</Link>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {GIFT_COLLECTIONS.slice(0, 4).map((collection) => (
-            <Link key={collection.slug} href="/boards" className="rounded-lg border border-border/70 bg-white p-4 transition hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-md">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-givit-sand text-xl">📌</div>
-              <h3 className="font-serif text-lg font-bold text-givit-ink">{collection.title}</h3>
-              <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{collection.description}</p>
+          {homeBoards.map((board) => (
+            <Link key={board.id} href="/boards" className="overflow-hidden rounded-lg border border-border/70 bg-white transition hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-md">
+              <div className="aspect-[4/3] bg-givit-sand">
+                {board.coverImage || board.images[0]?.src ? (
+                  <img src={board.coverImage || board.images[0]?.src} alt={board.title} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-3xl">📌</div>
+                )}
+              </div>
+              <div className="p-4">
+                <h3 className="font-serif text-lg font-bold text-givit-ink">{board.title}</h3>
+                <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-muted-foreground">{board.description}</p>
+                {board.images.length > 0 && <p className="mt-2 text-xs font-semibold text-givit-ember">{board.images.length} public pick{board.images.length === 1 ? "" : "s"}</p>}
+              </div>
             </Link>
           ))}
         </div>

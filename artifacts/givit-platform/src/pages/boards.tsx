@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { GIFT_COLLECTIONS, MARKETPLACE_PRODUCTS, MARKETPLACE_RATINGS } from "@/lib/data/marketplace";
 import { ProductCard } from "@/components/product/product-card";
+import { resolveProductImageSrc } from "@/lib/product-photo";
 import { useAuth } from "@/lib/auth/use-auth";
 import {
   mergeBoardLikes,
@@ -344,7 +345,7 @@ export default function BoardsPage() {
   async function addProductToBoard(product: typeof MARKETPLACE_PRODUCTS[0]) {
     if (!selectedBoardId) return;
     
-    const imgSrc = (product as any).image || (product.images?.[0] as any)?.src || (product.images?.[0] as any)?.image_url || "";
+    const imgSrc = resolveProductImageSrc(product.id, product.images ?? []);
     const priceCents = (product as any).priceCents ?? (product as any).price_cents ?? 0;
 
     const productImage: BoardImage = {
@@ -431,7 +432,7 @@ export default function BoardsPage() {
                     className="group rounded-lg border border-border bg-white p-2 text-left transition hover:border-givit-ember/40 hover:shadow-sm"
                   >
                     <div className="aspect-square overflow-hidden rounded-md bg-muted">
-                      {((product as any).image || (product.images?.[0] as any)?.src || (product.images?.[0] as any)?.image_url) && <img src={(product as any).image || (product.images?.[0] as any)?.src || (product.images?.[0] as any)?.image_url} alt={product.name} className="h-full w-full object-cover transition group-hover:scale-105" />}
+                      <img src={resolveProductImageSrc(product.id, product.images ?? [])} alt={product.name} className="h-full w-full object-cover transition group-hover:scale-105" />
                     </div>
                     <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-givit-ink">{product.name}</p>
                     <p className="text-[10px] text-muted-foreground">{product.brand}</p>

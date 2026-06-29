@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { ExternalLink } from "lucide-react";
 
 import { WishlistButton } from "@/components/product/wishlist-button";
 import type { MarketplaceProduct } from "@/lib/data/marketplace";
 import { formatMoney } from "@/lib/format";
-import { isRemoteImageUrl, resolveProductImageSrc } from "@/lib/product-photo";
+import { productPhotoFallback, resolveProductImageSrc } from "@/lib/product-photo";
 import type { Product, ProductImage } from "@/types/database";
 
 import { StarRating } from "./star-rating";
@@ -29,6 +30,7 @@ export function ProductCard({
   rankLabel,
 }: Props) {
   const src = resolveProductImageSrc(product.id, images);
+  const [imageSrc, setImageSrc] = useState(src);
   const marketplaceProduct = product as Product & Partial<MarketplaceProduct>;
   const salePrice = marketplaceProduct.sale_price_cents;
   const priceLabel = salePrice ? formatMoney(salePrice) : marketplaceProduct.price_range ?? formatMoney(product.price_cents);
@@ -41,9 +43,10 @@ export function ProductCard({
       <Link href={`/products/${product.slug}`} className="flex flex-1 flex-col">
         <div className={featured ? "relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-givit-sand" : "relative aspect-square w-full overflow-hidden rounded-xl bg-givit-sand"}>
           <img
-            src={src}
+            src={imageSrc}
             alt={product.name}
             loading="lazy"
+            onError={() => setImageSrc(productPhotoFallback(product.id || product.slug))}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
@@ -93,7 +96,7 @@ export function ProductCard({
             </div>
             <p className="text-left text-[10px] text-muted-foreground">
               {marketplaceProduct.brand ? `${marketplaceProduct.brand} · ` : ""}
-              Gift Match Score: {marketplaceProduct.gift_match_score ?? 90}/100
+              Product Quality Score: {marketplaceProduct.gift_match_score ?? 90}/100
             </p>
           </div>
         </div>
@@ -106,7 +109,7 @@ export function ProductCard({
             slug: product.slug,
             name: product.name,
             href: `/products/${product.slug}`,
-            image: src,
+            image: imageSrc,
             price: priceLabel,
           }}
         />
