@@ -91,7 +91,7 @@ function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index
           <div className="absolute inset-0 flex items-center justify-center"><span className="text-4xl">🎁</span></div>
         )}
         <div className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
-          Gift Match Score: {score}/100
+          Product Quality Score: {score}/100
         </div>
         {result.sale_price_cents ? (
           <div className="absolute right-2 top-2 rounded-full bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white shadow-sm">Sale</div>
@@ -205,10 +205,8 @@ export function GiftFinderChat() {
   function handleItemFeedback(result: GiftResult, liked: boolean) {
     void applyLearningFeedback([result], liked);
     trackUserEvent("ai_recommendation_feedback", { scope: "item", liked, slug: result.slug, tags: result.learning_tags ?? result.gift_tags });
-    setMessages((prev) => [
-      ...prev,
-      { role: "assistant", content: liked ? `Saved: you like ${result.name}. I’ll boost similar gifts next time.` : `Saved: ${result.name} is not a fit. I’ll down-rank similar gifts next time.` },
-    ]);
+    // Item-level thumbs feedback should quietly update ranking signals without adding a new AI chat message.
+
   }
 
   return (
