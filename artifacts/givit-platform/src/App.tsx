@@ -18,6 +18,7 @@ import AuthCallbackPage from "@/pages/auth-callback";
 import ConciergePage from "@/pages/concierge";
 import BoardsPage from "@/pages/boards";
 import FeedbackPage from "@/pages/feedback";
+import BetaTesterSurveyPage from "@/pages/beta-tester-survey";
 import SubmitProductPage from "@/pages/submit-product";
 import AccountPage from "@/pages/account";
 import AdminPage from "@/pages/admin";
@@ -44,6 +45,7 @@ function Router() {
           <Route path="/concierge" component={ConciergePage} />
           <Route path="/boards" component={BoardsPage} />
           <Route path="/feedback" component={FeedbackPage} />
+          <Route path="/beta-tester-survey" component={BetaTesterSurveyPage} />
           <Route path="/submit-product" component={SubmitProductPage} />
           <Route path="/account" component={AccountPage} />
           <Route path="/admin" component={AdminPage} />

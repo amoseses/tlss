@@ -180,6 +180,14 @@
     @apply inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground;
   }
 
+  .survey-input {
+    @apply h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring;
+  }
+
+  .survey-textarea {
+    @apply w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring;
+  }
+
   .price-tag {
     @apply font-semibold tabular-nums text-givit-ink;
   }

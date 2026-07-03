@@ -45,6 +45,7 @@ export function SiteFooter() {
               <li><Link href="/products?category=home" className="hover:text-white transition-colors">Home Gifts</Link></li>
               <li><Link href="/products?category=experiences" className="hover:text-white transition-colors">Experiences</Link></li>
               <li><Link href="/feedback" className="hover:text-white transition-colors">Contact Us</Link></li>
+              <li><Link href="/beta-tester-survey" className="hover:text-white transition-colors">Beta Survey</Link></li>
             </ul>
           </div>
 
@@ -55,6 +56,7 @@ export function SiteFooter() {
               <li><Link href="/signup" className="hover:text-white transition-colors">Sign Up</Link></li>
               <li><Link href="/account" className="hover:text-white transition-colors">Settings</Link></li>
               <li><Link href="/feedback" className="hover:text-white transition-colors">Feedback</Link></li>
+              <li><Link href="/beta-tester-survey" className="hover:text-white transition-colors">Beta testing</Link></li>
             </ul>
           </div>
         </div>
