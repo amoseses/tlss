@@ -45,6 +45,7 @@ export function SiteNavMenu({ categories, isSeller }: Props) {
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate("/feedback")}>Feedback</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/beta-tester-survey")}>Beta tester survey</DropdownMenuItem>
         {isSeller ? (
           <DropdownMenuItem onClick={() => navigate("/admin")}>Admin Products</DropdownMenuItem>
         ) : (
