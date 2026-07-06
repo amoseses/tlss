@@ -67,9 +67,9 @@ export default function HomePage() {
   return (
     <div className="pb-12">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-givit-ember via-rose-500 to-amber-400">
-        <div className="pointer-events-none absolute -top-32 right-0 h-[600px] w-[600px] rounded-full bg-white/20 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-amber-200/30 blur-3xl" />
+      <section className="relative overflow-hidden bg-black">
+        <div className="pointer-events-none absolute -top-32 right-0 h-[600px] w-[600px] rounded-full bg-givit-ember/25 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-givit-coral/20 blur-3xl" />
 
         <div className="container relative grid gap-10 py-14 md:py-20 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-center lg:py-24">
           <div className="max-w-2xl">
@@ -83,7 +83,7 @@ export default function HomePage() {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild className="h-12 rounded-md bg-givit-ink px-6 text-sm font-bold text-white shadow-lg ring-2 ring-white/30 hover:bg-givit-ink/90">
+              <Button asChild className="h-12 rounded-md givit-gradient px-6 text-sm font-bold text-white shadow-lg givit-glow hover:brightness-110">
                 <Link href="/gift">
                   <Sparkles className="h-4 w-4" /> Try Givit AI <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -103,7 +103,7 @@ export default function HomePage() {
           </div>
 
           <div className="rounded-xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur">
-            <div className="rounded-lg bg-white p-4 text-givit-ink">
+            <div className="rounded-lg bg-card p-4 text-givit-ink">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">AutoGift preview</p>
@@ -136,7 +136,7 @@ export default function HomePage() {
             { icon: PackageCheck, title: "Approve once, done", desc: "Pick a gift, approve it — we order, card-write, and ship." },
           ].map((item) => (
             <div key={item.title} className="flex gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-white shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card shadow-sm">
                 <item.icon className="h-5 w-5 text-givit-ember" />
               </div>
               <div>
@@ -171,7 +171,7 @@ export default function HomePage() {
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {homeBoards.map((board) => (
-            <Link key={board.id} href="/boards" className="overflow-hidden rounded-lg border border-border/70 bg-white transition hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-md">
+            <Link key={board.id} href="/boards" className="overflow-hidden rounded-lg border border-border/70 bg-card transition hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-md">
               <div className="aspect-[4/3] bg-givit-sand">
                 {board.coverImage || board.images[0]?.src ? (
                   <img src={board.coverImage || board.images[0]?.src} alt={board.title} className="h-full w-full object-cover" />
@@ -231,7 +231,7 @@ export default function HomePage() {
 
       {/* Footer CTA */}
       <section className="container mt-4">
-        <div className="relative overflow-hidden rounded-xl bg-givit-ink px-8 py-10 text-white md:px-12">
+        <div className="relative overflow-hidden rounded-xl bg-black px-8 py-10 text-white md:px-12">
           <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
           <div className="relative max-w-2xl">
           <h2 className="font-serif text-2xl font-bold md:text-3xl">Automating your gift giving so you never forget.</h2>

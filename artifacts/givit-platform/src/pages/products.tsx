@@ -79,8 +79,10 @@ export default function ProductsPage() {
         ) : null}
       </Breadcrumbs>
 
-      <section className="mb-6 overflow-hidden rounded-lg bg-gradient-to-br from-givit-ember via-rose-500 to-amber-400 p-6 text-white shadow-xl md:p-8">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
+      <section className="relative mb-6 overflow-hidden rounded-lg bg-black p-6 text-white shadow-xl md:p-8">
+        <div className="pointer-events-none absolute -right-10 -top-20 h-72 w-72 rounded-full bg-givit-coral/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-10 bottom-0 h-64 w-64 rounded-full bg-givit-ember/20 blur-3xl" />
+        <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
           <div>
             <h1 className="font-serif text-3xl font-bold md:text-5xl">
               Marketplace
@@ -88,7 +90,7 @@ export default function ProductsPage() {
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70 md:text-base">
               Search by recipient, occasion, budget, or category.
             </p>
-            <form action="/products" className="mt-6 flex max-w-2xl overflow-hidden rounded-md bg-white text-givit-ink shadow-xl">
+            <form action="/products" className="mt-6 flex max-w-2xl overflow-hidden rounded-md bg-card text-givit-ink shadow-xl">
               <input
                 type="search"
                 name="q"
@@ -173,7 +175,7 @@ export default function ProductsPage() {
                 <a
                   key={tag.label}
                   href={`/products?q=${encodeURIComponent(tag.q)}`}
-                  className="inline-flex items-center rounded-full border border-border/60 bg-white px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-givit-ember/40 hover:bg-givit-sand hover:text-givit-ember"
+                  className="inline-flex items-center rounded-full border border-border/60 bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-givit-ember/40 hover:bg-givit-sand hover:text-givit-ember"
                 >
                   # {tag.label}
                 </a>
@@ -210,7 +212,7 @@ export default function ProductsPage() {
 
           <section className="mt-6 grid gap-4 md:grid-cols-2">
             {GIFT_COLLECTIONS.map((collection) => (
-              <Link key={collection.slug} href={`/products?q=${encodeURIComponent(collection.query)}`} className="rounded-3xl border border-border/70 bg-white p-5 transition hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-md">
+              <Link key={collection.slug} href={`/products?q=${encodeURIComponent(collection.query)}`} className="rounded-3xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-md">
                 <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Gift board</p>
                 <h3 className="mt-2 font-serif text-xl font-bold text-givit-ink">{collection.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{collection.description}</p>

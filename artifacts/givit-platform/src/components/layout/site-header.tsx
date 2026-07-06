@@ -13,7 +13,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 shadow-md">
-      <div className="bg-givit-ink text-white">
+      <div className="bg-black text-white">
         <div className="container flex items-center justify-between gap-3 py-2.5 md:py-3">
           <Link href="/" className="shrink-0 flex items-center gap-2">
             <img src="/Screenshot 2026-06-23 095149.png" alt="Givit" className="h-8 w-8 rounded-md object-cover" />

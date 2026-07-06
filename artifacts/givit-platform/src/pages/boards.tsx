@@ -162,7 +162,7 @@ function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; o
 
 function BoardCard({ board, onOpen, onDelete }: { board: UserBoard; onOpen: () => void; onDelete?: () => void }) {
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-white shadow-sm border border-border/60 transition-all hover:-translate-y-1 hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-xl bg-card shadow-sm border border-border/60 transition-all hover:-translate-y-1 hover:shadow-md">
       <button type="button" onClick={onOpen} className="block w-full text-left">
         <div className="aspect-[4/3] overflow-hidden bg-givit-sand">
           {board.coverImage ? (
@@ -203,7 +203,7 @@ function PinterestGrid({ images, onRemove }: { images: BoardImage[]; onRemove?: 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {images.map((img) => (
-        <article key={img.id} className="group overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+        <article key={img.id} className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <div className="relative aspect-[4/3] overflow-hidden bg-muted">
             <img src={img.src} alt={img.caption || "Gift board product"} className="h-full w-full object-cover transition group-hover:scale-105" />
             {onRemove && (
@@ -429,7 +429,7 @@ export default function BoardsPage() {
                     key={product.slug}
                     type="button"
                     onClick={() => addProductToBoard(product)}
-                    className="group rounded-lg border border-border bg-white p-2 text-left transition hover:border-givit-ember/40 hover:shadow-sm"
+                    className="group rounded-lg border border-border bg-card p-2 text-left transition hover:border-givit-ember/40 hover:shadow-sm"
                   >
                     <div className="aspect-square overflow-hidden rounded-md bg-muted">
                       <img src={resolveProductImageSrc(product.id, product.images ?? [])} alt={product.name} className="h-full w-full object-cover transition group-hover:scale-105" />
@@ -467,17 +467,17 @@ export default function BoardsPage() {
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <div className="relative min-w-[260px] flex-1 sm:max-w-md"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={boardSearchQuery} onChange={(e) => setBoardSearchQuery(e.target.value)} placeholder="Search boards by vibe, name, or description..." className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" /></div>
         <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit">
-        <button type="button" onClick={() => setActiveTab("public")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "public" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+        <button type="button" onClick={() => setActiveTab("public")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "public" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
           Public boards
         </button>
-        <button type="button" onClick={() => setActiveTab("mine")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "mine" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+        <button type="button" onClick={() => setActiveTab("mine")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "mine" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
           My boards {userBoards.length > 0 && <span className="ml-1 rounded-full bg-givit-ember/10 px-1.5 py-0.5 text-xs text-givit-ember">{userBoards.length}</span>}
         </button>
         </div>
       </div>
 
       {selectedBoard && selectedBoardId && activeTab === "public" ? (
-        <div className="mb-6 rounded-xl border border-border bg-white p-5">
+        <div className="mb-6 rounded-xl border border-border bg-card p-5">
           <button type="button" onClick={() => setSelectedBoardId(null)} className="mb-4 text-sm font-semibold text-givit-ember hover:underline">← Back to public boards</button>
           <div className="mb-4 flex items-center gap-3">{selectedBoard.coverImage && <img src={selectedBoard.coverImage} alt="" className="h-14 w-14 rounded-lg object-cover" />}<div><h2 className="font-serif text-2xl font-bold text-givit-ink">{selectedBoard.title}</h2>{selectedBoard.description && <p className="text-sm text-muted-foreground">{selectedBoard.description}</p>}</div></div>
           {selectedBoard.images.length > 0 ? <PinterestGrid images={selectedBoard.images} /> : <p className="text-sm text-muted-foreground">No items yet.</p>}

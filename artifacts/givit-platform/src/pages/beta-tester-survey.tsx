@@ -108,7 +108,7 @@ export default function BetaTesterSurveyPage() {
     <PageShell>
       <section className="grid gap-8 py-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <div className="space-y-6">
-          <div className="rounded-3xl bg-givit-ink p-8 text-white shadow-xl">
+          <div className="rounded-3xl bg-black p-8 text-white shadow-xl">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-givit-coral">
               <ClipboardCheck className="h-3.5 w-3.5" /> Beta tester survey
             </div>

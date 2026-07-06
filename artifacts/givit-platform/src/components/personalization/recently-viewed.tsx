@@ -59,13 +59,13 @@ export function RecentlyViewedRail({ compact = false }: { compact?: boolean }) {
   if (items.length === 0) return null;
 
   return (
-    <section className={compact ? "rounded-3xl border border-border/70 bg-white p-4" : "givit-section"}>
+    <section className={compact ? "rounded-3xl border border-border/70 bg-card p-4" : "givit-section"}>
       <div className="mb-3 flex items-center gap-2 text-sm font-bold text-givit-ink">
         <Clock className="h-4 w-4 text-givit-ember" /> Recently viewed
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {items.slice(0, 6).map((item) => (
-          <Link key={item.slug} href={item.href} className="group rounded-2xl border border-border/60 bg-white p-2 transition hover:border-givit-ember/40 hover:shadow-sm">
+          <Link key={item.slug} href={item.href} className="group rounded-2xl border border-border/60 bg-card p-2 transition hover:border-givit-ember/40 hover:shadow-sm">
             <div className="relative aspect-square overflow-hidden rounded-xl bg-givit-sand">
               {item.image ? (
                 <img src={item.image} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />

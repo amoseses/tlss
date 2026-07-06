@@ -3,7 +3,7 @@ import { Gift, ShieldCheck, Sparkles } from "lucide-react";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border/60 bg-givit-ink text-white/70">
+    <footer className="border-t border-border/60 bg-black text-white/70">
       <div className="container py-10">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div className="col-span-2 md:col-span-1">

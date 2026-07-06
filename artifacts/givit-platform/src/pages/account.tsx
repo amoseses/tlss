@@ -134,7 +134,7 @@ export default function AccountPage() {
 
   return (
     <PageShell narrow>
-      <div className="mb-6 overflow-hidden rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/10 via-white to-amber-100/40 p-5 shadow-sm"><div className="flex items-center gap-4">
+      <div className="mb-6 overflow-hidden rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-5 shadow-sm"><div className="flex items-center gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-givit-ember/10">
           <User className="h-7 w-7 text-givit-ember" />
         </div>
@@ -183,7 +183,7 @@ export default function AccountPage() {
             </>
           )}
         </div>
-        <div className="hidden rounded-2xl bg-white/70 p-3 text-center text-xs text-muted-foreground sm:block">
+        <div className="hidden rounded-2xl bg-black/20 p-3 text-center text-xs text-muted-foreground sm:block">
           <Sparkles className="mx-auto mb-1 h-4 w-4 text-givit-ember" />
           Your gifting cockpit
         </div>

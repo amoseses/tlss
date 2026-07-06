@@ -172,7 +172,7 @@ export default function SubmitProductPage() {
         </form>
       </div>
 
-      <div className="mt-6 rounded-xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/10 to-amber-100/40 p-5">
+      <div className="mt-6 rounded-xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-5">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-givit-ember text-white">
             <Sparkles className="h-4 w-4" />

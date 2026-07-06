@@ -558,7 +558,7 @@ export default function ConciergePage() {
             </div>
           )}
 
-          <div className="rounded-xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/10 to-amber-100/40 p-5">
+          <div className="rounded-xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-5">
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-givit-ember text-white">
                 <Sparkles className="h-4 w-4" />
@@ -571,7 +571,7 @@ export default function ConciergePage() {
                   <li>3. AI suggests gifts, cards (+$5), flowers (+$25), and activities</li>
                   <li>4. You approve, we charge the saved card, then admin fulfills and ships</li>
                 </ol>
-                <div className="mt-3 rounded-lg bg-white/60 p-2.5 text-xs">
+                <div className="mt-3 rounded-lg bg-black/20 p-2.5 text-xs">
                   <p className="font-semibold text-givit-ink">Pricing</p>
                   <p className="mt-1 text-muted-foreground">Calculated only after AI builds a tailored bundle. You approve before any charge.</p>
                 </div>

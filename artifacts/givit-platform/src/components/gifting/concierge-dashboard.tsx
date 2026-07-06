@@ -36,8 +36,8 @@ export function ConciergeDashboard({ data }: { data: ConciergeDashboardData }) {
         />
       ) : null}
 
-      <div className="rounded-2xl border bg-givit-ink p-6 text-white shadow-sm">
-        <Badge className="bg-white text-givit-ink">AutoGift</Badge>
+      <div className="rounded-2xl border bg-black p-6 text-white shadow-sm">
+        <Badge className="bg-white text-black">AutoGift</Badge>
         <h1 className="mt-3 font-serif text-4xl font-bold">Gifting on autopilot, approval-only.</h1>
         <p className="mt-2 max-w-2xl text-sm text-white/65">Add people and dates. Givit pings you 5–6 weeks out, builds the gift, and charges only when you approve.</p>
         <Button type="button" className="mt-5 rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={() => setShowOnboarding(true)}>Open setup wizard</Button>
@@ -165,17 +165,17 @@ function ConciergeSetupWizard({ onClose, enabled, paymentReady, stripePublishabl
   const steps = ["Permissions", "People + dates", "Shipping + card"];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-givit-ink/80 p-4 backdrop-blur-sm">
-      <div className="mx-auto min-h-[92vh] max-w-4xl rounded-2xl bg-white p-5 shadow-2xl md:p-8">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
+      <div className="mx-auto min-h-[92vh] max-w-4xl rounded-2xl bg-card p-5 shadow-2xl md:p-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <Badge className="bg-givit-ink text-white">Setup wizard</Badge>
+            <Badge className="bg-black text-white">Setup wizard</Badge>
             <h2 className="mt-3 font-serif text-3xl font-bold text-givit-ink">AutoGift in three steps.</h2>
           </div>
           <Button type="button" variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
         </div>
         <div className="mt-6 grid gap-2 sm:grid-cols-3">
-          {steps.map((label, index) => <button key={label} type="button" onClick={() => setStep(index)} className={`rounded-full px-4 py-2 text-sm font-medium ${index === step ? "bg-givit-ink text-white" : "bg-muted text-muted-foreground"}`}>{index + 1}. {label}</button>)}
+          {steps.map((label, index) => <button key={label} type="button" onClick={() => setStep(index)} className={`rounded-full px-4 py-2 text-sm font-medium ${index === step ? "bg-black text-white" : "bg-muted text-muted-foreground"}`}>{index + 1}. {label}</button>)}
         </div>
 
         <div className="mt-8">
@@ -216,7 +216,7 @@ function ConciergeSetupWizard({ onClose, enabled, paymentReady, stripePublishabl
 
         <div className="mt-8 flex justify-between border-t pt-4">
           <Button type="button" variant="outline" disabled={step === 0} onClick={() => setStep((value) => Math.max(0, value - 1))}>Back</Button>
-          <Button type="button" className="bg-givit-ink text-white hover:bg-givit-ink/90" onClick={() => step === steps.length - 1 ? onClose() : setStep((value) => Math.min(steps.length - 1, value + 1))}>{step === steps.length - 1 ? "Done" : "Next"}</Button>
+          <Button type="button" className="bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={() => step === steps.length - 1 ? onClose() : setStep((value) => Math.min(steps.length - 1, value + 1))}>{step === steps.length - 1 ? "Done" : "Next"}</Button>
         </div>
       </div>
     </div>
@@ -266,7 +266,7 @@ function StripeSetupForm({ paymentReady }: { paymentReady: boolean }) {
     }
   }
 
-  return <form onSubmit={saveCard} className="space-y-4"><div className="rounded-2xl border bg-white p-4"><CardElement /></div><Button disabled={!stripe || loading} className="bg-givit-ember text-white hover:bg-givit-ember-hover">{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{paymentReady ? "Replace saved payment method" : "Save payment method"}</Button></form>;
+  return <form onSubmit={saveCard} className="space-y-4"><div className="rounded-2xl border bg-white p-4 text-black"><CardElement /></div><Button disabled={!stripe || loading} className="bg-givit-ember text-white hover:bg-givit-ember-hover">{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{paymentReady ? "Replace saved payment method" : "Save payment method"}</Button></form>;
 }
 
 function RecipientsCard({ recipients, approvals }: { recipients: ConciergeRecipient[]; approvals: ConciergeApproval[] }) {

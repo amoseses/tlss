@@ -278,14 +278,14 @@ export function GiftSurveyModal({
               </div>
               {selectedBundle.id && (
                 <div className="overflow-hidden rounded-xl border border-givit-ember/25 bg-givit-ember/5">
-                  <div className="border-b border-givit-ember/20 bg-gradient-to-r from-givit-ember/15 via-pink-100 to-white p-4">
+                  <div className="border-b border-givit-ember/20 bg-gradient-to-r from-givit-ember/20 to-givit-coral/10 p-4">
                     <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Bundle page {Math.max(0, page) + 1} of {bundles.length}</p>
                     <h3 className="mt-1 font-serif text-xl font-bold text-givit-ink">{selectedBundle.title}</h3>
                     <p className="text-sm text-muted-foreground">{selectedBundle.description}</p>
                   </div>
                   <div className="space-y-3 p-4">
                     {selectedBundle.items.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-border bg-white p-3">
+                      <div key={item.id} className="rounded-xl border border-border bg-card p-3">
                         {item.imageUrl && <img src={item.imageUrl} alt="" className="mb-3 h-36 w-full rounded-lg object-cover" />}
                         <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-foreground">{item.name}</p><p className="text-xs text-muted-foreground">{item.reason}</p></div><span className="font-bold text-givit-ember">${(item.price / 100).toFixed(2)}</span></div>
                         {item.productUrl && <a href={item.productUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-givit-ember underline">View exact product</a>}

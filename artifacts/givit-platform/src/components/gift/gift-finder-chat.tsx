@@ -236,7 +236,7 @@ export function GiftFinderChat() {
           <Field label="Relationship" value={form.relationship} placeholder="Close, formal..." onChange={(relationship) => setForm((prev) => ({ ...prev, relationship }))} />
           <div className="grid gap-1.5">
             <label className="text-xs font-bold text-givit-ink">Occasion</label>
-            <select value={form.occasion} onChange={(e) => setForm((prev) => ({ ...prev, occasion: e.target.value }))} className="h-10 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+            <select value={form.occasion} onChange={(e) => setForm((prev) => ({ ...prev, occasion: e.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
               {OCCASIONS.map((item) => <option key={item}>{item}</option>)}
             </select>
           </div>
@@ -244,7 +244,7 @@ export function GiftFinderChat() {
           <Field label="Interests" value={form.interests} placeholder="Coffee, running, books..." onChange={(interests) => setForm((prev) => ({ ...prev, interests }))} />
           <div className="grid gap-1.5">
             <label className="text-xs font-bold text-givit-ink">Gift style</label>
-            <select value={form.style} onChange={(e) => setForm((prev) => ({ ...prev, style: e.target.value }))} className="h-10 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+            <select value={form.style} onChange={(e) => setForm((prev) => ({ ...prev, style: e.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
               {STYLES.map((item) => <option key={item}>{item}</option>)}
             </select>
           </div>
@@ -300,7 +300,7 @@ export function GiftFinderChat() {
                     {msg.results && msg.results.length > 0 && (
                       <div className="ml-0 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         {msg.results.map((result, idx) => <GiftCard key={result.id} result={result} index={idx} onItemFeedback={handleItemFeedback} />)}
-                        <div className="rounded-2xl border border-border/60 bg-white p-3 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">
+                        <div className="rounded-2xl border border-border/60 bg-card p-3 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">
                           <div className="mb-2 font-semibold text-givit-ink">Did these feel right?</div>
                           <div className="flex flex-wrap gap-2">
                             <button type="button" onClick={() => handleFeedback(msg.results ?? [], true)} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700 transition hover:bg-emerald-100"><ThumbsUp className="h-3.5 w-3.5" /> Satisfied</button>
@@ -348,7 +348,7 @@ function Field({ label, value, placeholder, onChange }: { label: string; value: 
   return (
     <div className="grid gap-1.5">
       <label className="text-xs font-bold text-givit-ink">{label}</label>
-      <input value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="h-10 rounded-xl border border-border bg-white px-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-givit-ember/20" />
+      <input value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-givit-ember/20" />
     </div>
   );
 }

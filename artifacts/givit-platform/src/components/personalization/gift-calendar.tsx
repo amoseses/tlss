@@ -92,7 +92,7 @@ export function GiftCalendar() {
 
       <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {sorted.map((event) => (
-          <div key={event.id} className="rounded-2xl border border-border/70 bg-white p-4">
+          <div key={event.id} className="rounded-2xl border border-border/70 bg-card p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-givit-ink">{event.name} · {event.type}</p>

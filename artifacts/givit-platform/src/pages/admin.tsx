@@ -221,7 +221,7 @@ export default function AdminPage() {
             type="button"
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
-              activeTab === tab.id ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+              activeTab === tab.id ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <tab.icon className="h-3.5 w-3.5" />
@@ -439,7 +439,7 @@ export default function AdminPage() {
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/10 to-amber-100/40 p-5">
+            <div className="rounded-xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-5">
               <div className="flex items-start gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-givit-ember text-white">
                   <Sparkles className="h-4 w-4" />
