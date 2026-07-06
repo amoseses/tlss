@@ -3,6 +3,7 @@ import { AlertTriangle, ExternalLink, Send, Sparkles, Star, ThumbsDown, ThumbsUp
 import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { recommendGifts, type GiftRecommendResult } from "@/lib/gift-recommend";
+import { personalizeChatResponse } from "@/lib/ai/gift-chat-personalize";
 import { readLearningProfile, applyFeedback as applyLearningFeedback } from "@/lib/gift-learning";
 import { productPhotoFallback } from "@/lib/product-photo";
 import { logError, trackUserEvent } from "@/lib/monitoring";
@@ -10,6 +11,7 @@ import { logError, trackUserEvent } from "@/lib/monitoring";
 type GiftResult = GiftRecommendResult;
 
 type Message = {
+  id: string;
   role: "user" | "assistant";
   content: string;
   results?: GiftResult[];
@@ -27,6 +29,7 @@ type Questionnaire = {
 };
 
 const GREETING: Message = {
+  id: "greeting",
   role: "assistant",
   content: "Hey! I'm Givit — your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll suggest thoughtful picks with a reason for each one.",
 };
@@ -174,20 +177,30 @@ export function GiftFinderChat() {
     if (!trimmed || loading) return;
 
     if (!isRegenerate) setLastQuery(trimmed);
-    setMessages((prev) => [...prev, { role: "user", content: trimmed }, { role: "assistant", content: "", loading: true }]);
+    const replyId = crypto.randomUUID();
+    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", content: trimmed }, { id: replyId, role: "assistant", content: "", loading: true }]);
     setInput("");
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 700 + Math.random() * 500));
+      await new Promise((resolve) => setTimeout(resolve, 250));
       const profile = await readLearningProfile();
       const data = recommendGifts(trimmed, profile);
       trackUserEvent("ai_recommendation_generated", { queryLength: trimmed.length, resultCount: data.results?.length ?? 0, tags: data.tags });
-      setMessages((prev) => [...prev.slice(0, -1), { role: "assistant", content: data.message ?? "", results: data.results ?? [] }]);
+      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: data.message ?? "", results: data.results ?? [], loading: false } : m)));
+      setLoading(false);
+      inputRef.current?.focus();
+
+      if (data.results && data.results.length > 0) {
+        personalizeChatResponse(trimmed, data)
+          .then((enhanced) => {
+            setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: enhanced.message ?? m.content, results: enhanced.results ?? m.results } : m)));
+          })
+          .catch((error) => logError(error, "GiftFinderChat.personalizeChatResponse", { query: trimmed }));
+      }
     } catch (error) {
       logError(error, "GiftFinderChat.sendMessage", { query: trimmed });
-      setMessages((prev) => [...prev.slice(0, -1), { role: "assistant", content: "I hit a snag while ranking gifts. Try again with recipient, occasion, budget, interests, and avoid-list details." }]);
-    } finally {
+      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, loading: false, content: "I hit a snag while ranking gifts. Try again with recipient, occasion, budget, interests, and avoid-list details." } : m)));
       setLoading(false);
       inputRef.current?.focus();
     }
@@ -272,8 +285,8 @@ export function GiftFinderChat() {
             </div>
           </div>
           <div className="flex flex-col gap-5 overflow-y-auto p-5" style={{ maxHeight: "65vh" }}>
-            {messages.map((msg, i) => (
-              <div key={i}>
+            {messages.map((msg) => (
+              <div key={msg.id}>
                 {msg.role === "user" ? (
                   <div className="flex justify-end"><div className="chat-bubble-user max-w-[80%] text-sm leading-relaxed">{msg.content}</div></div>
                 ) : msg.loading ? (

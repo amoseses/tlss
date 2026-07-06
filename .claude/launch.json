@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "givit-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\kaaka\\Desktop\\GIVIT\\tlss\\artifacts\\givit-platform\\node_modules\\vite\\bin\\vite.js",
+        "--config",
+        "C:\\Users\\kaaka\\Desktop\\GIVIT\\tlss\\artifacts\\givit-platform\\vite.config.ts",
+        "--host",
+        "0.0.0.0"
+      ],
+      "port": 3000
+    }
+  ]
+}

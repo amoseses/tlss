@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles, CheckCircle, ThumbsDown, ThumbsUp } from "lucide-react";
 import { respondToSurvey, generateGiftBundles, regenerateBundleItem, createAutoGiftOrder, type SurveyResponse, type GiftSuggestion, type AutoGiftBundle, type AutoGiftOrderItem } from "@/lib/autogift/survey";
+import { personalizeBundlesWithAI } from "@/lib/autogift/ai-personalize";
 import { trackUserEvent } from "@/lib/monitoring";
 
 const INTEREST_OPTIONS = [
@@ -43,6 +44,9 @@ export function GiftSurveyModal({
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [itemNotes, setItemNotes] = useState<Record<string, string>>({});
   const [itemFeedback, setItemFeedback] = useState<Record<string, "liked" | "disliked">>({});
+  const [aiPersonalizing, setAiPersonalizing] = useState(false);
+  const [cardMessageTouched, setCardMessageTouched] = useState(false);
+  const aiRequestToken = useRef(0);
 
   const currentResponse: SurveyResponse = {
     interests,
@@ -76,6 +80,19 @@ export function GiftSurveyModal({
     setPage(0);
     trackUserEvent("autogift_suggestions_generated", { packageType, bundleCount: normalizedBundles.length, interests });
     setStep("suggestions");
+
+    const requestToken = ++aiRequestToken.current;
+    setAiPersonalizing(true);
+    personalizeBundlesWithAI(response, normalizedBundles, recipientName, occasion)
+      .then(({ bundles: enhanced, cardMessage }) => {
+        if (aiRequestToken.current !== requestToken) return; // a newer generation superseded this one
+        setBundles(enhanced);
+        if (cardMessage) setCardMessage((prev) => (cardMessageTouched && prev ? prev : cardMessage));
+      })
+      .catch((error) => trackUserEvent("autogift_ai_personalize_failed", { message: String(error) }))
+      .finally(() => {
+        if (aiRequestToken.current === requestToken) setAiPersonalizing(false);
+      });
   }
 
   function handleSurveySubmit() {
@@ -247,6 +264,11 @@ export function GiftSurveyModal({
               <p className="text-sm text-muted-foreground">
                 Givit AI built three orderable options. Click through bundle pages, choose one, then regenerate or edit individual items inside that bundle.
               </p>
+              {aiPersonalizing && (
+                <div className="flex items-center gap-2 rounded-lg bg-givit-ember/5 px-3 py-2 text-xs font-medium text-givit-ember">
+                  <Sparkles className="h-3.5 w-3.5 animate-pulse" /> Givit AI is personalizing these picks and drafting a card message…
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 {bundles.map((bundle, index) => (
                   <Button key={bundle.id} type="button" variant={selectedBundleId === bundle.id ? "default" : "outline"} className={`rounded-lg ${selectedBundleId === bundle.id ? "bg-givit-ember text-white hover:bg-givit-ember-hover" : ""}`} onClick={() => { setSelectedBundleId(bundle.id); setPage(index); }}>
@@ -308,9 +330,9 @@ export function GiftSurveyModal({
                 <label className="text-sm font-semibold">Card message</label>
                 <textarea
                   value={cardMessage}
-                  onChange={(e) => setCardMessage(e.target.value)}
+                  onChange={(e) => { setCardMessage(e.target.value); setCardMessageTouched(true); }}
                   rows={3}
-                  placeholder="Write a personalized message for the card..."
+                  placeholder="Write a personalized message for the card... (Givit AI will draft one for you once suggestions finish generating)"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
                 />
               </div>
