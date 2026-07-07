@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getUserOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile, saveUserAddress, saveUserPaymentMethod, deleteUserAddress, deleteUserPaymentMethod } from "@/lib/supabase/db";
+import { NotificationSettingsCard } from "@/components/personalization/notification-settings";
 
 export default function AccountPage() {
   const { user, profile, loading } = useAuth();
@@ -290,6 +291,8 @@ export default function AccountPage() {
             <div className="space-y-2">{paymentMethods.map((pm: any) => (<div key={pm.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2.5 text-xs"><CreditCard className="h-4 w-4 text-muted-foreground" /><span className="font-medium text-foreground">{pm.card_brand} •••• {pm.card_last4}</span>{pm.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}<button type="button" onClick={() => void handlePaymentDelete(pm.id)} className="ml-auto rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Delete payment method"><Trash2 className="h-3.5 w-3.5" /></button></div>))}</div>
           )}
         </div>
+
+        {user && <NotificationSettingsCard userId={user.id} />}
       </div>
 
       {/* Quick Links */}

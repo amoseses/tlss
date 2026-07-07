@@ -24,7 +24,24 @@ function aiApiDevMiddleware(): Plugin {
       const handlersUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/handlers.mjs")).href;
       const photoUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/photo.mjs")).href;
       const extractProductUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/extract-product.mjs")).href;
+      const pushUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/push.mjs")).href;
       server.middlewares.use(async (req, res, next) => {
+        if (req.url?.startsWith("/api/push/send") && req.method === "POST") {
+          try {
+            const { sendPushToSubscription } = await import(pushUrl);
+            const body = await readJsonBody(req);
+            if (!body?.subscription?.endpoint) { res.statusCode = 400; res.end(JSON.stringify({ error: "subscription is required" })); return; }
+            await sendPushToSubscription(body.subscription, { title: body.title || "Givit", body: body.body || "You have a new update.", url: body.url || "/" });
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ ok: true }));
+          } catch (error: any) {
+            res.statusCode = error?.statusCode === 410 ? 410 : 500;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ error: error?.message ?? "Push send failed" }));
+          }
+          return;
+        }
+
         if (req.url?.startsWith("/api/photo") && req.method === "GET") {
           try {
             const { resolveProductPhotoUrl } = await import(photoUrl);
@@ -75,6 +92,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.resolve(import.meta.dirname), "");
   process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || env.OPENAI_API_KEY;
   process.env.OPENAI_MODEL = process.env.OPENAI_MODEL || env.OPENAI_MODEL;
+  process.env.VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || env.VAPID_PUBLIC_KEY;
+  process.env.VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || env.VAPID_PRIVATE_KEY;
+  process.env.VAPID_SUBJECT = process.env.VAPID_SUBJECT || env.VAPID_SUBJECT;
 
   return {
     base: basePath,

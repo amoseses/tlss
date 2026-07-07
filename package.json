@@ -10,6 +10,9 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/givit-platform\" --if-present run typecheck"
   },
   "private": true,
+  "dependencies": {
+    "web-push": "^3.6.7"
+  },
   "devDependencies": {
     "prettier": "^3.8.3",
     "typescript": "~5.9.3"

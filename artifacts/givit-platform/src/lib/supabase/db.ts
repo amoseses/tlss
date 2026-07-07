@@ -492,3 +492,33 @@ export async function updateAutoGiftOrderStatusInDb(orderId: string, status: str
   const { error } = await supabase.from("autogift_orders").update(updates).eq("id", orderId);
   return { error };
 }
+
+// ============================================================
+// PUSH NOTIFICATIONS
+// ============================================================
+export async function savePushSubscription(userId: string, subscription: PushSubscriptionJSON) {
+  const supabase = getDb();
+  if (!subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
+    return { error: { message: "Invalid push subscription" } as any };
+  }
+  const { error } = await supabase.from("push_subscriptions").upsert({
+    user_id: userId,
+    endpoint: subscription.endpoint,
+    p256dh: subscription.keys.p256dh,
+    auth: subscription.keys.auth,
+  }, { onConflict: "endpoint" });
+  return { error };
+}
+
+export async function removePushSubscription(endpoint: string) {
+  const supabase = getDb();
+  const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  return { error };
+}
+
+export async function getMyPushSubscriptions(userId: string) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("push_subscriptions").select("*").eq("user_id", userId);
+  if (error) { console.warn("[Push] Could not load subscriptions (has the migration run?):", error.message); return []; }
+  return data ?? [];
+}

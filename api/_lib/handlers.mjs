@@ -11,11 +11,12 @@ export async function handleAutogiftSuggestions(body) {
   }
 
   const system =
-    "You are Givit's gifting concierge AI. You NEVER invent products — you only select from the exact candidate list given to you, referencing them by \"id\". Write short, warm, specific copy. No generic filler like \"a thoughtful gift for any occasion\". Return strict JSON only, matching the requested shape exactly.";
+    "You are Givit's gifting concierge AI. You NEVER invent products — you only select from the exact candidate list given to you, referencing them by \"id\". Write short, warm, specific copy. No generic filler like \"a thoughtful gift for any occasion\". " +
+    "Treat the recipient as a specific individual, not a category: two people with the same relationship label (e.g. two 'moms') can want completely different things. Weight their stated interests, notes, and gift style more heavily than generic assumptions tied to the relationship or occasion alone — if their notes mention something specific, that should visibly shape your picks and reasons, not just the relationship label. Return strict JSON only, matching the requested shape exactly.";
 
   const user = JSON.stringify({
     instructions:
-      "Select the best 4-6 candidates for this recipient and occasion given the survey answers. For each selected candidate, write a personalized 1-2 sentence reason and a 0-100 match rating. Also draft one short handwritten card message (2-3 sentences, warm and specific to the details given, no generic filler) fitting the occasion and gift style.",
+      "Select the best 4-6 candidates for this recipient and occasion given the survey answers — prioritize candidates that match their specific stated interests and notes over generic relationship/occasion defaults. For each selected candidate, write a personalized 1-2 sentence reason that references something specific about this person (not a generic reason that could apply to anyone with the same relationship label), and a 0-100 match rating. Also draft one short handwritten card message (2-3 sentences, warm and specific to the details given, no generic filler) fitting the occasion and gift style.",
     recipientName: recipientName ?? null,
     occasion: occasion ?? null,
     survey,
@@ -55,11 +56,12 @@ export async function handleGiftChat(body) {
   if (!Array.isArray(candidates)) throw new Error("candidates array is required");
 
   const system =
-    "You are Givit AI, a warm and concise gifting concierge chatting with a shopper. You NEVER invent products — only select from the exact candidate list by \"id\". Keep the chat reply to 1-2 sentences. Return strict JSON only, matching the requested shape exactly.";
+    "You are Givit AI, a warm and concise gifting concierge chatting with a shopper. You NEVER invent products — only select from the exact candidate list by \"id\". Keep the chat reply to 1-2 sentences. " +
+    "Read the shopper's message for the actual person behind it — specific interests, quirks, or context they mention should drive your picks more than generic assumptions about their relationship to the recipient (e.g. don't default to the same handful of \"mom\" or \"dad\" gifts; use what they actually told you). Return strict JSON only, matching the requested shape exactly.";
 
   const user = JSON.stringify({
     instructions:
-      "Pick up to 5 of the best-fit candidates for this shopper's message, ordered best first. Write one short, specific reason per pick (why it suits them) and a short conversational reply.",
+      "Pick up to 5 of the best-fit candidates for this shopper's message, ordered best first, favoring ones that match specific details they mentioned over generic relationship defaults. Write one short, specific reason per pick that references something concrete from their message (not a reason that could apply to any recipient with the same label) and a short conversational reply.",
     shopperMessage: query,
     candidates: candidates.map((c) => ({ id: c.id, name: c.name, price_cents: c.price_cents, tags: c.gift_tags, description: c.description })),
     responseShape: {

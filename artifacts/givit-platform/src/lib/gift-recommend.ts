@@ -360,7 +360,7 @@ function buildResultsMessage(ctx: ParsedContext, count: number, usedLearning: bo
   return `Here ${count === 1 ? "is" : "are"} ${count} thoughtful idea${count === 1 ? "" : "s"}${who}${occasion}${budget}. Each includes a short "why this gift" note.${learning} Want something more personal or more fun? Just say the word.`;
 }
 
-export function recommendGifts(query: string, learningProfile: LearningProfile = {}): GiftRecommendResponse {
+export function recommendGifts(query: string, learningProfile: LearningProfile = {}, resultLimit = 5): GiftRecommendResponse {
   const trimmed = query.trim();
   if (!trimmed) {
     return { message: "Tell me who you're shopping for and I'll get started.", results: [], tags: [], budget: null, needsFollowUp: true };
@@ -411,7 +411,7 @@ export function recommendGifts(query: string, learningProfile: LearningProfile =
     .map((product) => ({ product, score: scoreProduct(product, trimmed, tags, budget, learningProfile, avoidTerms) }))
     .filter(({ score }) => score > 1.25 || tags.length === 0)
     .sort((a, b) => b.score - a.score || a.product.rank - b.product.rank)
-    .slice(0, 5)
+    .slice(0, resultLimit)
     .map(({ product }, index) => {
       const rating = MARKETPLACE_RATINGS.get(product.id);
       const factors = giftScoreFactors(product, tags, budget, learningProfile, avoidTerms);

@@ -185,14 +185,21 @@ export function GiftFinderChat() {
     try {
       await new Promise((resolve) => setTimeout(resolve, 250));
       const profile = await readLearningProfile();
-      const data = recommendGifts(trimmed, profile);
+      // Score a wider pool (20) than we display (5): the deterministic
+      // scorer is a decent first pass, but capping the AI to only the same
+      // 5 it would've shown anyway means it can only reword them, never
+      // actually pick something the rule-based ranking under-scored. The
+      // display-facing message/result count still comes from a normal
+      // 5-result call so copy like "here are 5 ideas" stays accurate.
+      const widePool = recommendGifts(trimmed, profile, 20);
+      const data = recommendGifts(trimmed, profile, 5);
       trackUserEvent("ai_recommendation_generated", { queryLength: trimmed.length, resultCount: data.results?.length ?? 0, tags: data.tags });
       setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: data.message ?? "", results: data.results ?? [], loading: false } : m)));
       setLoading(false);
       inputRef.current?.focus();
 
-      if (data.results && data.results.length > 0) {
-        personalizeChatResponse(trimmed, data)
+      if (widePool.results && widePool.results.length > 0) {
+        personalizeChatResponse(trimmed, data, widePool.results)
           .then((enhanced) => {
             setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: enhanced.message ?? m.content, results: enhanced.results ?? m.results } : m)));
           })
