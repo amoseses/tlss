@@ -41,7 +41,7 @@ function parseCSVRows(text: string): ParsedRow[] {
 type Tab = "products" | "rankings" | "import" | "analytics" | "submissions" | "orders" | "users";
 
 export default function AdminPage() {
-  const { profile, loading, user } = useAuth();
+  const { profile, loading, user, refresh } = useAuth();
   const [, navigate] = useLocation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
@@ -60,6 +60,13 @@ export default function AdminPage() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    // The auth profile is cached from login; re-fetch on mount so a role
+    // change made directly in Supabase (without re-logging in) takes effect
+    // immediately instead of showing a stale "not admin" redirect.
+    refresh();
+  }, []);
 
   useEffect(() => {
     if (!loading && (!user || profile?.role !== "admin")) {

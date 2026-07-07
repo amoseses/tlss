@@ -18,7 +18,9 @@ export default function FeedbackPage() {
     setError("");
     try {
       const supabase = createClient();
-      const { error: dbError } = await supabase.from("feedback").insert({ subject, message, email: email || null, phone: phone || null });
+      const contactLines = [email && `Email: ${email}`, phone && `Phone: ${phone}`].filter(Boolean);
+      const fullMessage = contactLines.length ? `${contactLines.join("\n")}\n\n${message}` : message;
+      const { error: dbError } = await supabase.from("feedback").insert({ subject, message: fullMessage });
       if (dbError) throw dbError;
       setDone(true);
     } catch {

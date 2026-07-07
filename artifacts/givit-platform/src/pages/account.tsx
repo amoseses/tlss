@@ -134,66 +134,68 @@ export default function AccountPage() {
 
   return (
     <PageShell narrow>
-      <div className="mb-6 overflow-hidden rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-5 shadow-sm"><div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-givit-ember/10">
-          <User className="h-7 w-7 text-givit-ember" />
-        </div>
-        <div className="flex-1">
-          {editingProfile ? (
-            <form onSubmit={handleProfileSave} className="space-y-2">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground">Full name</label>
-                <input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Your name"
-                  className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
-                />
+      <div className="mb-6 overflow-hidden rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-givit-ember/10">
+            <User className="h-7 w-7 text-givit-ember" />
+          </div>
+          <div className="flex-1 py-1">
+            {editingProfile ? (
+              <form onSubmit={handleProfileSave} className="max-w-sm space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Full name</label>
+                  <input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Your name"
+                    className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Phone</label>
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Phone (optional)"
+                    className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                  />
+                </div>
+                {profileError && <p className="text-xs text-destructive">{profileError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <Button type="submit" disabled={savingProfile} size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+                    {savingProfile ? "Saving..." : "Save"}
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setEditingProfile(false)} className="rounded-md">Cancel</Button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-2">
+                <h1 className="font-serif text-2xl font-bold leading-tight text-givit-ink">{profile?.full_name || "Your account"}</h1>
+                <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                {profile?.role === "admin" && (
+                  <span className="inline-block rounded-full bg-givit-ember/10 px-2.5 py-0.5 text-xs font-semibold text-givit-ember">Admin</span>
+                )}
+                <button
+                  onClick={() => setEditingProfile(true)}
+                  className="flex items-center gap-1 text-xs font-semibold text-givit-ember hover:underline"
+                >
+                  <Edit2 className="h-3 w-3" /> Edit profile
+                </button>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground">Phone</label>
-                <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Phone (optional)"
-                  className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
-                />
-              </div>
-              {profileError && <p className="text-xs text-destructive">{profileError}</p>}
-              <div className="flex gap-2">
-                <Button type="submit" disabled={savingProfile} size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
-                  {savingProfile ? "Saving..." : "Save"}
-                </Button>
-                <Button type="button" size="sm" variant="outline" onClick={() => setEditingProfile(false)} className="rounded-md">Cancel</Button>
-              </div>
-            </form>
-          ) : (
-            <>
-              <h1 className="font-serif text-2xl font-bold text-givit-ink">{profile?.full_name || "Your account"}</h1>
-              <p className="text-sm text-muted-foreground">{profile?.email}</p>
-              {profile?.role === "admin" && (
-                <span className="mt-1 inline-block rounded-full bg-givit-ember/10 px-2.5 py-0.5 text-xs font-semibold text-givit-ember">Admin</span>
-              )}
-              <button
-                onClick={() => setEditingProfile(true)}
-                className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-givit-ember hover:underline"
-              >
-                <Edit2 className="h-3 w-3" /> Edit profile
-              </button>
-            </>
-          )}
+            )}
+          </div>
+          <div className="hidden shrink-0 rounded-2xl bg-black/20 p-3 text-center text-xs text-muted-foreground sm:block">
+            <Sparkles className="mx-auto mb-1 h-4 w-4 text-givit-ember" />
+            Your gifting cockpit
+          </div>
         </div>
-        <div className="hidden rounded-2xl bg-black/20 p-3 text-center text-xs text-muted-foreground sm:block">
-          <Sparkles className="mx-auto mb-1 h-4 w-4 text-givit-ember" />
-          Your gifting cockpit
-        </div>
-      </div></div>
+      </div>
 
       {accountNotice && <div className="mb-4 rounded-xl bg-givit-ember/10 px-4 py-3 text-sm text-givit-ink">{accountNotice}</div>}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2">
         {/* Orders */}
-        <div className="givit-panel p-4">
+        <div className="givit-panel p-5">
           <div className="mb-3 flex items-center gap-2">
             <ShoppingBag className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Orders</h2>
@@ -225,7 +227,7 @@ export default function AccountPage() {
         </div>
 
         {/* Wishlist */}
-        <div className="givit-panel p-4">
+        <div className="givit-panel p-5">
           <div className="mb-3 flex items-center gap-2">
             <Heart className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Wishlist</h2>
@@ -257,7 +259,7 @@ export default function AccountPage() {
         </div>
 
         {/* Saved Addresses */}
-        <div className="givit-panel p-4">
+        <div className="givit-panel p-5">
           <div className="mb-3 flex items-center gap-2">
             <MapPin className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Saved Addresses</h2>
@@ -273,7 +275,7 @@ export default function AccountPage() {
         </div>
 
         {/* Payment Methods */}
-        <div className="givit-panel p-4">
+        <div className="givit-panel p-5">
           <div className="mb-3 flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Payment Methods</h2>

@@ -309,12 +309,22 @@ export async function removeFromWishlist(id: string) {
 // ============================================================
 export async function getPublicBoards() {
   const supabase = getDb();
-  const { data } = await supabase
+  // gift_boards.user_id references auth.users, not profiles, so PostgREST
+  // can't auto-embed profiles(...) here — fetch owner names separately.
+  const { data: boards } = await supabase
     .from("gift_boards")
-    .select("*, gift_board_items(*), profiles(full_name)")
+    .select("*, gift_board_items(*)")
     .eq("is_public", true)
     .order("likes", { ascending: false });
-  return data ?? [];
+  if (!boards || boards.length === 0) return [];
+
+  const userIds = Array.from(new Set(boards.map((b: any) => b.user_id).filter(Boolean)));
+  const { data: profiles } = userIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
+    : { data: [] as { id: string; full_name: string | null }[] };
+  const nameById = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
+
+  return boards.map((b: any) => ({ ...b, profiles: { full_name: nameById.get(b.user_id) ?? null } }));
 }
 
 export async function getUserBoards(userId: string) {

@@ -89,7 +89,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       void load();
     });
-    return () => subscription.unsubscribe();
+
+    // Re-fetch the profile when the tab regains focus so changes made
+    // elsewhere (e.g. flipping a role in the Supabase dashboard) show up
+    // without requiring a full sign-out/sign-in.
+    function onVisible() {
+      if (document.visibilityState === "visible") void load();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   return <Ctx.Provider value={{ user, profile, loading, refresh: load }}>{children}</Ctx.Provider>;

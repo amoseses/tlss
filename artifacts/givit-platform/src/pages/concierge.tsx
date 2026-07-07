@@ -396,13 +396,22 @@ export default function ConciergePage() {
   if (!user) {
     return (
       <PageShell>
-        <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 text-center">
-          <Bell className="h-10 w-10 text-givit-ember" />
-          <h2 className="font-serif text-2xl font-bold text-givit-ink">AutoGift</h2>
-          <p className="max-w-sm text-sm text-muted-foreground">Sign in to manage recipients, reminders, and auto-gifting. You can still take the quick onboarding tour.</p>
-          <div className="flex gap-3">
-            <Button asChild className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"><Link href="/login">Log in</Link></Button>
-            <Button onClick={() => setShowOnboarding(true)} variant="outline" className="rounded-lg">Take onboarding tour</Button>
+        <div className="relative overflow-hidden rounded-2xl bg-black px-6 py-16 text-center sm:px-12">
+          <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-givit-ember/25 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-givit-coral/20 blur-3xl" />
+          <div className="relative mx-auto flex max-w-lg flex-col items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl givit-gradient givit-glow">
+              <Bell className="h-6 w-6 text-white" />
+            </div>
+            <h2 className="font-serif text-3xl font-bold text-white">Gifting on autopilot.</h2>
+            <p className="text-sm leading-6 text-white/70">Add the people you gift for once. Givit reminds you 5–6 weeks out, builds a personalized bundle, and only charges once you approve it.</p>
+            <div className="mt-2 flex flex-wrap justify-center gap-3">
+              <Button asChild className="rounded-full givit-gradient px-6 text-white hover:brightness-110"><Link href="/signup?next=/concierge">Create free account</Link></Button>
+              <Button asChild variant="outline" className="rounded-full border-white/20 px-6 text-white hover:bg-white/10"><Link href="/login?next=/concierge">Log in</Link></Button>
+            </div>
+            <button onClick={() => setShowOnboarding(true)} className="mt-1 text-xs font-semibold text-white/50 underline-offset-4 hover:text-white/80 hover:underline">
+              Just want a quick look first? Take the 60-second tour →
+            </button>
           </div>
         </div>
       </PageShell>

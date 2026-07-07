@@ -58,26 +58,26 @@
   --font-sans: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", Georgia, ui-serif, serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --background: #0c0a10;
+  --background: #121116;
   --foreground: #f3f0f5;
-  --card: #16131c;
+  --card: #18171d;
   --card-foreground: #f3f0f5;
-  --popover: #16131c;
+  --popover: #18171d;
   --popover-foreground: #f3f0f5;
 
   --primary: #ff5a3d;
   --primary-foreground: #150b08;
 
-  --secondary: #1e1a24;
+  --secondary: #1f1e24;
   --secondary-foreground: #f3f0f5;
-  --muted: #1a1720;
+  --muted: #1c1b20;
   --muted-foreground: #9b93a8;
   --accent: #2a1f30;
   --accent-foreground: #ffd9c2;
 
   --destructive: #ff5470;
-  --border: #262230;
-  --input: #262230;
+  --border: #29272d;
+  --input: #29272d;
   --ring: #ff5a3d;
 
   --givit-ink: #f3f0f5;
@@ -85,8 +85,8 @@
   --givit-ember-hover: #ff7a52;
   --givit-coral: #ff2f87;
   --givit-sand: #241a12;
-  --givit-mist: #16131c;
-  --givit-page: #0c0a10;
+  --givit-mist: #18171d;
+  --givit-page: #121116;
 
   --chart-1: #ff5a3d;
   --chart-2: #ff2f87;
@@ -95,49 +95,49 @@
   --chart-5: #9b93a8;
   --radius: 0.6rem;
 
-  --sidebar: #16131c;
+  --sidebar: #18171d;
   --sidebar-foreground: #f3f0f5;
   --sidebar-primary: #ff5a3d;
   --sidebar-primary-foreground: #150b08;
-  --sidebar-accent: #1e1a24;
+  --sidebar-accent: #1f1e24;
   --sidebar-accent-foreground: #ffd9c2;
-  --sidebar-border: #262230;
+  --sidebar-border: #29272d;
   --sidebar-ring: #ff5a3d;
 }
 
 .dark {
-  --background: #0c0a10;
+  --background: #121116;
   --foreground: #f3f0f5;
-  --card: #16131c;
+  --card: #18171d;
   --card-foreground: #f3f0f5;
-  --popover: #16131c;
+  --popover: #18171d;
   --popover-foreground: #f3f0f5;
   --primary: #ff5a3d;
   --primary-foreground: #150b08;
-  --secondary: #1e1a24;
+  --secondary: #1f1e24;
   --secondary-foreground: #f3f0f5;
-  --muted: #1a1720;
+  --muted: #1c1b20;
   --muted-foreground: #9b93a8;
   --accent: #2a1f30;
   --accent-foreground: #ffd9c2;
   --destructive: #ff5470;
-  --border: #262230;
-  --input: #262230;
+  --border: #29272d;
+  --input: #29272d;
   --ring: #ff5a3d;
   --givit-ink: #f3f0f5;
   --givit-ember: #ff5a3d;
   --givit-ember-hover: #ff7a52;
   --givit-coral: #ff2f87;
   --givit-sand: #241a12;
-  --givit-mist: #16131c;
-  --givit-page: #0c0a10;
-  --sidebar: #16131c;
+  --givit-mist: #18171d;
+  --givit-page: #121116;
+  --sidebar: #18171d;
   --sidebar-foreground: #f3f0f5;
   --sidebar-primary: #ff5a3d;
   --sidebar-primary-foreground: #150b08;
-  --sidebar-accent: #1e1a24;
+  --sidebar-accent: #1f1e24;
   --sidebar-accent-foreground: #ffd9c2;
-  --sidebar-border: #262230;
+  --sidebar-border: #29272d;
   --sidebar-ring: #ff5a3d;
 }
 
@@ -155,8 +155,8 @@
   body {
     @apply bg-givit-page text-foreground antialiased;
     background-image:
-      radial-gradient(1100px 560px at 8% -12%, rgb(255 90 61 / 0.14), transparent 60%),
-      radial-gradient(900px 520px at 105% 0%, rgb(255 47 135 / 0.12), transparent 55%);
+      radial-gradient(1100px 560px at 8% -12%, rgb(255 90 61 / 0.11), transparent 60%),
+      radial-gradient(900px 520px at 105% 0%, rgb(255 47 135 / 0.07), transparent 55%);
     background-attachment: fixed;
     background-repeat: no-repeat;
   }

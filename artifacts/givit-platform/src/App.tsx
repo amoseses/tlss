@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/auth/use-auth";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { LoginPrompt } from "@/components/personalization/login-prompt";
+import { BetaFeedbackWidget } from "@/components/feedback/beta-feedback-widget";
 
 import HomePage from "@/pages/home";
 import ProductsPage from "@/pages/products";
@@ -56,6 +57,7 @@ function Router() {
       </main>
       <SiteFooter />
       <LoginPrompt />
+      <BetaFeedbackWidget />
     </div>
   );
 }

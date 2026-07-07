@@ -76,8 +76,6 @@ export default function BetaTesterSurveyPage() {
       const { error: dbError } = await supabase.from("feedback").insert({
         subject: "Beta tester survey",
         message,
-        email: form.email,
-        phone: null,
       });
 
       if (dbError) throw dbError;
