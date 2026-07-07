@@ -95,17 +95,19 @@ export function normalizeProductUrl(url: string) {
 }
 
 export function productPageImageUrl(url: string) {
-  // Microlink resolves OpenGraph/Twitter/product JSON-LD images when available,
-  // which is closer to the item photo than a full-page screenshot.
-  return `https://api.microlink.io/?url=${encodeURIComponent(normalizeProductUrl(url))}&embed=image.url`;
+  // Resolved server-side (see api/photo.ts) so the browser never embeds a
+  // direct <img src="https://api.microlink.io/..."> — that pattern gets
+  // silently blocked by ORB whenever Microlink can't resolve a clean image
+  // for the given URL, which was the main cause of photos falling back to
+  // generic stock images across the marketplace.
+  // Absolute (not "/api/photo?...") so resolveProductImageSrc's http(s)://
+  // check treats it as a real URL instead of a Supabase storage path.
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return `${origin}/api/photo?url=${encodeURIComponent(normalizeProductUrl(url))}`;
 }
 
 export function productImageCandidates(url: string) {
-  const normalized = normalizeProductUrl(url);
-  return [
-    productPageImageUrl(normalized),
-    `https://api.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=true&meta=false&embed=screenshot.url`,
-  ];
+  return [productPageImageUrl(url)];
 }
 
 export function bestProductImageUrl(url: string, explicit?: string) {

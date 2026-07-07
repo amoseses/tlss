@@ -14,14 +14,33 @@ async function readJsonBody(req: import("http").IncomingMessage): Promise<any> {
   return raw ? JSON.parse(raw) : {};
 }
 
-// Mirrors the /api/ai/* Vercel serverless functions for local `pnpm run dev`,
-// so AI behavior matches between dev and production without needing `vercel dev`.
+// Mirrors the /api/ai/* and /api/photo Vercel serverless functions for local
+// `pnpm run dev`, so behavior matches between dev and production without
+// needing `vercel dev`.
 function aiApiDevMiddleware(): Plugin {
   return {
     name: "givit-ai-api-dev-middleware",
     configureServer(server) {
       const handlersUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/handlers.mjs")).href;
+      const photoUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/photo.mjs")).href;
       server.middlewares.use(async (req, res, next) => {
+        if (req.url?.startsWith("/api/photo") && req.method === "GET") {
+          try {
+            const { resolveProductPhotoUrl } = await import(photoUrl);
+            const pageUrl = new URL(req.url, "http://localhost").searchParams.get("url");
+            if (!pageUrl) { res.statusCode = 400; res.end("url query param is required"); return; }
+            const imageUrl = await resolveProductPhotoUrl(pageUrl);
+            if (!imageUrl) { res.statusCode = 404; res.end(); return; }
+            res.statusCode = 302;
+            res.setHeader("Location", imageUrl);
+            res.end();
+          } catch {
+            res.statusCode = 502;
+            res.end();
+          }
+          return;
+        }
+
         if (!req.url?.startsWith("/api/ai/") || req.method !== "POST") return next();
         try {
           const { handleAutogiftSuggestions, handleGiftChat } = await import(handlersUrl);

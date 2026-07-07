@@ -1,6 +1,7 @@
 import type { Category, Product, ProductImage, ProductRatingStats } from "@/types/database";
 import { EXPANDED_CURATED_PRODUCTS } from "@/lib/data/marketplace-expanded";
 import { getImportedMarketplaceProducts } from "@/lib/admin/imported-products";
+import { productPhotoFallback } from "@/lib/product-photo";
 
 export type MarketplaceProduct = Product & {
   affiliate_url: string;
@@ -347,8 +348,13 @@ const categoryBySlug = new Map(MARKETPLACE_CATEGORIES.map((category) => [categor
 const usedMarketplaceImages = new Set<string>();
 
 function productPageImageFor(seed: SeedProduct) {
-  if (/givit\.local/.test(seed.affiliateUrl)) return seed.image;
-  return `https://api.microlink.io/?url=${encodeURIComponent(seed.affiliateUrl)}&embed=image.url`;
+  // This static ~700-product seed catalog isn't live inventory, so resolving
+  // a fresh photo per product via a live API call on every page load doesn't
+  // scale (706 simultaneous lookups thundering-herd the photo API and each
+  // other). Live per-URL resolution (api/photo.ts) is reserved for one-at-a-
+  // time real submissions — see imported-products.ts — where exactly one
+  // lookup happens per user action.
+  return seed.image;
 }
 
 function marketplaceImageFor(seed: SeedProduct) {
@@ -357,7 +363,9 @@ function marketplaceImageFor(seed: SeedProduct) {
     return seed.image;
   }
 
-  return `https://picsum.photos/seed/givit-${seed.slug}/1100/900`;
+  // Deterministic curated fallback instead of picsum.photos' random,
+  // unrelated noise images.
+  return productPhotoFallback(seed.slug);
 }
 
 export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = ALL_SEED_PRODUCTS.map((seed, index) => {
