@@ -85,7 +85,7 @@ export default function ProductsPage() {
   return (
     <PageShell wide>
       <Breadcrumbs>
-        <Link href="/" className="givit-link">Home</Link>
+        <Link href="/home" className="givit-link">Home</Link>
         <span className="mx-1.5">›</span>
         <span className="text-foreground">Marketplace</span>
         {activeCategory ? (

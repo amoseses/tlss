@@ -50,7 +50,7 @@ export default function ProductDetailPage() {
     <PageShell wide>
       <RecentlyViewedTracker item={{ slug: product.slug, name: product.name, href: `/products/${product.slug}`, image: mainSrc, price: displayPrice }} />
       <Breadcrumbs>
-        <Link href="/" className="givit-link">Home</Link>
+        <Link href="/home" className="givit-link">Home</Link>
         <span className="mx-1.5">›</span>
         <Link href="/products" className="givit-link">Marketplace</Link>
         {product.category ? (

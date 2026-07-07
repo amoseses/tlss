@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { LoginPrompt } from "@/components/personalization/login-prompt";
 import { BetaFeedbackWidget } from "@/components/feedback/beta-feedback-widget";
 
+import LandingPage from "@/pages/landing";
 import HomePage from "@/pages/home";
 import ProductsPage from "@/pages/products";
 import ProductDetailPage from "@/pages/product-detail";
@@ -31,12 +32,16 @@ import NotFound from "@/pages/not-found";
 const queryClient = new QueryClient();
 
 function Router() {
+  const [location] = useLocation();
+  const isLanding = location === "/";
+
   return (
     <div className="flex min-h-screen flex-col">
-      <SiteHeader />
+      {!isLanding && <SiteHeader />}
       <main className="flex-1">
         <Switch>
-          <Route path="/" component={HomePage} />
+          <Route path="/" component={LandingPage} />
+          <Route path="/home" component={HomePage} />
           <Route path="/products" component={ProductsPage} />
           <Route path="/products/:slug" component={ProductDetailPage} />
           <Route path="/gift" component={GiftFinderPage} />
@@ -56,9 +61,9 @@ function Router() {
           <Route component={NotFound} />
         </Switch>
       </main>
-      <SiteFooter />
-      <LoginPrompt />
-      <BetaFeedbackWidget />
+      {!isLanding && <SiteFooter />}
+      {!isLanding && <LoginPrompt />}
+      {!isLanding && <BetaFeedbackWidget />}
     </div>
   );
 }

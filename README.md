@@ -145,15 +145,18 @@ Note: nothing in the app currently *triggers* AutoGift reminder pushes/emails on
 
 | Route | Page | Access |
 |-------|------|--------|
-| `/` | Home | Public |
-| `/products` | Marketplace | Public |
-| `/gift` | AI gift finder | Public |
-| `/boards` | Gift boards | Public view, login to create |
-| `/concierge` | AutoGift setup | Public (limited), full with login |
-| `/submit-product` | Submit a product | Public |
+| `/` | Landing splash — sign in, sign up, or continue as a guest | Public |
+| `/home` | Home (marketplace-rich homepage) | Public (browsing only) |
+| `/products` | Marketplace | Public (browsing only) |
+| `/gift` | Givit AI gift finder | Public (browsing only) |
+| `/boards` | Gift boards | Public view, login for create/like/comment |
+| `/concierge` | AutoGift setup | Public (60-second tour only), login required to actually set up or order |
+| `/submit-product` | Submit a product | Login required to submit (browsing/preview is public) |
 | `/admin` | Admin dashboard | Admin role only |
 | `/account` | User account | Login required |
 | `/feedback` | Contact & Feedback | Public |
+
+`/` shows once per browser — after signing in, signing up, or clicking "Continue browsing without an account," a `givit-entered-app` flag is set in `localStorage` and `/` redirects straight to `/home` on future visits. Browsing (marketplace, product pages, Givit AI, public boards) never requires an account; every write action (submit a product, save/wishlist, write a review, create/like/comment on a board, place an AutoGift order) does.
 
 ## Login Troubleshooting
 

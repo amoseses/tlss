@@ -8,7 +8,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 export default function LoginPage() {
   const [, navigate] = useLocation();
   const search = useSearch();
-  const nextPath = new URLSearchParams(search).get("next") ?? "/";
+  const nextPath = new URLSearchParams(search).get("next") ?? "/home";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

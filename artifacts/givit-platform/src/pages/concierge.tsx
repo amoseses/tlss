@@ -413,7 +413,7 @@ export default function ConciergePage() {
             <p className="text-sm leading-6 text-white/70">Add the people you gift for once. Givit reminds you 5–6 weeks out, builds a personalized bundle, and only charges once you approve it.</p>
             <div className="mt-2 flex flex-wrap justify-center gap-3">
               <Button asChild className="rounded-full givit-gradient px-6 text-white hover:brightness-110"><Link href="/signup?next=/concierge">Create free account</Link></Button>
-              <Button asChild variant="outline" className="rounded-full border-white/20 px-6 text-white hover:bg-white/10"><Link href="/login?next=/concierge">Log in</Link></Button>
+              <Button asChild variant="outline" className="rounded-full border-white/20 bg-white/10 px-6 text-white hover:bg-white/20"><Link href="/login?next=/concierge">Log in</Link></Button>
             </div>
             <button onClick={() => setShowOnboarding(true)} className="mt-1 text-xs font-semibold text-white/50 underline-offset-4 hover:text-white/80 hover:underline">
               Just want a quick look first? Take the 60-second tour →
