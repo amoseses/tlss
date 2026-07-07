@@ -452,8 +452,11 @@ CREATE POLICY "Admins can view feedback" ON feedback FOR SELECT USING (
 CREATE POLICY "Users can manage their own learning" ON ai_learning FOR ALL USING (auth.uid() = user_id);
 
 -- PRODUCT SUBMISSIONS
+DROP POLICY IF EXISTS "Anyone can submit products" ON product_submissions;
 CREATE POLICY "Anyone can submit products" ON product_submissions FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Users can view their own submissions" ON product_submissions;
 CREATE POLICY "Users can view their own submissions" ON product_submissions FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Admins can manage submissions" ON product_submissions;
 CREATE POLICY "Admins can manage submissions" ON product_submissions FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
