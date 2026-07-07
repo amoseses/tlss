@@ -198,6 +198,18 @@ export async function submitProduct(submission: Record<string, unknown>) {
   return { data: fallback.data, error: fallback.error };
 }
 
+/** Checks the live DB (approved products + pending submissions) for a URL that was already added. */
+export async function findDuplicateProductByUrl(normalizedUrl: string): Promise<{ name: string; source: "approved" | "pending" } | null> {
+  const supabase = getDb();
+  const { data: existingProduct } = await supabase.from("products").select("name").eq("affiliate_url", normalizedUrl).maybeSingle();
+  if (existingProduct) return { name: existingProduct.name, source: "approved" };
+
+  const { data: existingSubmission } = await supabase.from("product_submissions").select("name, url").eq("url", normalizedUrl).eq("status", "pending").maybeSingle();
+  if (existingSubmission) return { name: existingSubmission.name || existingSubmission.url, source: "pending" };
+
+  return null;
+}
+
 export async function getProductSubmissions(status?: string) {
   const supabase = getDb();
   let query = supabase.from("product_submissions").select("*, profiles(full_name, email)");
