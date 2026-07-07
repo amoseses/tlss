@@ -24,6 +24,29 @@ const TAG_MAP: Record<string, string[]> = {
   grandpa: ["home", "comfort", "reading", "family", "outdoor", "tools"],
   sister: ["friend", "beauty", "self care", "creative", "lifestyle"],
   brother: ["friend", "gaming", "tech", "fitness", "outdoor"],
+  girlfriend: ["partner", "romantic", "beauty", "self care", "keepsake"],
+  boyfriend: ["partner", "tech", "outdoor", "fitness", "gaming"],
+  fiancee: ["partner", "romantic", "keepsake", "beauty", "home"],
+  fiance: ["partner", "romantic", "keepsake", "tech", "outdoor"],
+  roommate: ["friend", "home", "kitchen", "neutral", "fun"],
+  "best friend": ["friend", "fun", "unique", "lifestyle", "keepsake"],
+  aunt: ["family", "home", "self care", "reading", "keepsake"],
+  uncle: ["family", "tools", "outdoor", "tech", "coffee"],
+  cousin: ["friend", "fun", "unique", "lifestyle", "creative"],
+  niece: ["kid", "toys", "creative", "gaming", "art"],
+  nephew: ["kid", "toys", "creative", "gaming", "art"],
+  daughter: ["kid", "creative", "art", "reading", "keepsake"],
+  son: ["kid", "gaming", "tech", "outdoor", "creative"],
+  "mother-in-law": ["parent", "home", "self care", "kitchen", "keepsake"],
+  "mother in law": ["parent", "home", "self care", "kitchen", "keepsake"],
+  "father-in-law": ["parent", "tools", "outdoor", "tech", "coffee"],
+  "father in law": ["parent", "tools", "outdoor", "tech", "coffee"],
+  stepmom: ["parent", "home", "self care", "kitchen", "reading"],
+  stepdad: ["parent", "tools", "outdoor", "tech", "coffee"],
+  godmother: ["family", "keepsake", "self care", "reading", "home"],
+  godfather: ["family", "keepsake", "tools", "outdoor", "coffee"],
+  mentor: ["professional", "office", "coffee", "keepsake", "reading"],
+  neighbor: ["neutral", "home", "kitchen", "fun", "lifestyle"],
   cooking: ["kitchen", "food", "dessert", "cooking"],
   gardening: ["garden", "plants", "outdoor", "nature"],
   fitness: ["fitness", "wellness", "running", "hydration"],
@@ -48,6 +71,25 @@ const TAG_MAP: Record<string, string[]> = {
   unique: ["unique", "novelty", "creative"],
   cozy: ["cozy", "home", "comfort", "reading"],
   experience: ["experience", "memories", "date night", "local"],
+  "new baby": ["baby", "family", "keepsake", "home"],
+  "baby shower": ["baby", "family", "keepsake", "home"],
+  retirement: ["milestone", "keepsake", "self care", "hobby"],
+  promotion: ["professional", "office", "milestone", "keepsake"],
+  "new job": ["professional", "office", "desk setup", "milestone"],
+  sympathy: ["keepsake", "comfort", "plants", "cozy"],
+  condolence: ["keepsake", "comfort", "plants", "cozy"],
+  "get well": ["comfort", "cozy", "self care", "reading"],
+  "thank you": ["keepsake", "unique", "cozy", "giftable"],
+  congratulations: ["milestone", "giftable", "keepsake", "fun"],
+  engagement: ["romantic", "keepsake", "home", "milestone"],
+  valentine: ["romantic", "keepsake", "self care", "date night"],
+  "mother's day": ["parent", "home", "self care", "keepsake"],
+  "mothers day": ["parent", "home", "self care", "keepsake"],
+  "father's day": ["parent", "tools", "outdoor", "keepsake"],
+  "fathers day": ["parent", "tools", "outdoor", "keepsake"],
+  easter: ["family", "fun", "cozy", "giftable"],
+  halloween: ["fun", "unique", "giftable", "creative"],
+  "new year": ["milestone", "fun", "self care", "giftable"],
 };
 
 export type LearningProfile = {
@@ -138,11 +180,18 @@ function extractAvoidTerms(query: string) {
 function parseContext(query: string): ParsedContext {
   const lower = query.toLowerCase();
   const recipientMatch = query.match(/(?:recipient|for my|for a|shopping for|gift for)\s+([^,.;]+)/i);
-  const occasionMatch = query.match(/(?:occasion|for (?:a|their|his|her))\s*(birthday|anniversary|christmas|graduation|wedding|holiday|housewarming|thank you|valentine)/i)
-    ?? lower.match(/\b(birthday|anniversary|christmas|graduation|wedding|holiday|housewarming)\b/);
+  const OCCASION_WORDS = "birthday|anniversary|christmas|graduation|wedding|holiday|housewarming|thank you|valentine|new baby|baby shower|retirement|promotion|new job|sympathy|condolence|get well|congratulations|engagement|mother's day|mothers day|father's day|fathers day|easter|halloween|new year";
+  const occasionMatch = query.match(new RegExp(`(?:occasion|for (?:a|their|his|her))\\s*(${OCCASION_WORDS})`, "i"))
+    ?? lower.match(new RegExp(`\\b(${OCCASION_WORDS})\\b`));
   const interestMatch = query.match(/(?:interests?|likes?|loves?|into)\s*[:\s]+([^.;]+)/i);
 
-  const recipientKeywords = ["mom", "mother", "dad", "father", "partner", "friend", "boss", "teacher", "student", "wife", "husband", "sister", "brother", "grandma", "grandpa", "coworker"];
+  const recipientKeywords = [
+    "mom", "mother", "dad", "father", "partner", "friend", "boss", "teacher", "student", "wife", "husband",
+    "sister", "brother", "grandma", "grandpa", "coworker", "girlfriend", "boyfriend", "fiancee", "fiance",
+    "roommate", "best friend", "aunt", "uncle", "cousin", "niece", "nephew", "daughter", "son",
+    "mother-in-law", "mother in law", "father-in-law", "father in law", "stepmom", "stepdad",
+    "godmother", "godfather", "mentor", "neighbor",
+  ];
   const recipientFromKeyword = recipientKeywords.find((k) => lower.includes(k));
 
   return {
