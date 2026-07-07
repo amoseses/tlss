@@ -1,16 +1,18 @@
 import { useMemo, useState } from "react";
-import { useSearch } from "wouter";
+import { Link, useSearch } from "wouter";
 import { GiftSurveyModal } from "@/components/autogift/autogift-survey-modal";
 import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth/use-auth";
 
 export default function AutoGiftRecommendPage() {
+  const { user } = useAuth();
   const search = useSearch();
   const params = useMemo(() => new URLSearchParams(search), [search]);
   const recipient = params.get("recipient") || "your recipient";
   const occasion = params.get("occasion") || "special day";
   const date = params.get("date") || new Date(Date.now() + 35 * 86400000).toISOString().slice(0, 10);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   return (
     <PageShell>
@@ -25,9 +27,20 @@ export default function AutoGiftRecommendPage() {
           <div className="rounded-xl bg-black/20 p-3 text-sm"><b>Package options</b><p className="text-xs text-muted-foreground">One present or full package with card, flowers, and excursions.</p></div>
           <div className="rounded-xl bg-black/20 p-3 text-sm"><b>Approval first</b><p className="text-xs text-muted-foreground">No charge until you approve the final calculated bundle.</p></div>
         </div>
-        <Button onClick={() => setOpen(true)} className="mt-6 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">Open tailored survey</Button>
+        {user ? (
+          <Button onClick={() => setOpen(true)} className="mt-6 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">Open tailored survey</Button>
+        ) : (
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Button asChild className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+              <Link href={`/signup?next=${encodeURIComponent(`/autogift/recommend?${search}`)}`}>Create free account</Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-lg">
+              <Link href={`/login?next=${encodeURIComponent(`/autogift/recommend?${search}`)}`}>Log in</Link>
+            </Button>
+          </div>
+        )}
       </div>
-      {open && <GiftSurveyModal recipientName={recipient} occasion={occasion} occasionDate={date} onClose={() => setOpen(false)} />}
+      {open && user && <GiftSurveyModal recipientName={recipient} occasion={occasion} occasionDate={date} onClose={() => setOpen(false)} />}
     </PageShell>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, useLocation } from "wouter";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
 
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/lib/auth/use-auth";
 
 type GiftReview = {
   id: string;
@@ -95,6 +97,8 @@ function Stars({ value }: { value: number }) {
 }
 
 export function GiftReviews({ productId }: { productId: string }) {
+  const { user } = useAuth();
+  const [location] = useLocation();
   const [userReviews, setUserReviews] = useState<GiftReview[]>(() => readUserReviews(productId));
   const [showForm, setShowForm] = useState(false);
   const [rating, setRating] = useState(5);
@@ -103,6 +107,7 @@ export function GiftReviews({ productId }: { productId: string }) {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!user) return;
     const form = event.currentTarget;
     const data = new FormData(form);
     const review: GiftReview = {
@@ -130,12 +135,18 @@ export function GiftReviews({ productId }: { productId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-serif text-xl font-bold text-givit-ink">Gift reviews</h3>
-        <Button type="button" variant="outline" className="rounded-full" onClick={() => setShowForm((value) => !value)}>
-          {showForm ? "Cancel" : "Write a gift review"}
-        </Button>
+        {user ? (
+          <Button type="button" variant="outline" className="rounded-full" onClick={() => setShowForm((value) => !value)}>
+            {showForm ? "Cancel" : "Write a gift review"}
+          </Button>
+        ) : (
+          <Button asChild type="button" variant="outline" className="rounded-full">
+            <Link href={`/login?next=${encodeURIComponent(location)}`}>Log in to write a review</Link>
+          </Button>
+        )}
       </div>
 
-      {showForm ? (
+      {showForm && user ? (
         <form onSubmit={handleSubmit} className="grid gap-3 rounded-2xl border border-border/70 p-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">

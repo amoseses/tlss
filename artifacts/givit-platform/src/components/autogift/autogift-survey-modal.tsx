@@ -131,6 +131,7 @@ export function GiftSurveyModal({
   }
 
   async function handlePlaceOrder() {
+    if (!user) return;
     const selectedItems = selectedBundle.items
       .map(s => ({
         productName: s.name,
@@ -145,7 +146,7 @@ export function GiftSurveyModal({
     trackUserEvent("autogift_order_approved", { recipientName, occasion, itemCount: selectedItems.length, total: grandTotal });
     setPlacingOrder(true);
     const order = createAutoGiftOrder({
-      userId: user?.id ?? "local-user",
+      userId: user.id,
       recipientName,
       occasion,
       items: selectedItems,
@@ -155,24 +156,22 @@ export function GiftSurveyModal({
 
     // Sync to Supabase so the order reaches the admin fulfillment queue
     // regardless of which browser/device the admin checks from.
-    if (user) {
-      const { error } = await saveAutoGiftOrderToDb({
-        id: order.id,
-        userId: user.id,
-        recipientName: order.recipientName,
-        occasion: order.occasion,
-        items: order.items,
-        subtotal: order.subtotal,
-        serviceFee: order.serviceFee,
-        total: order.total,
-        status: order.status,
-        chargeNote: order.chargeNote,
-        shippingAddress: order.shippingAddress,
-        cardMessage: order.cardMessage,
-        customerNotes: customerComment.trim() || undefined,
-      });
-      if (error) console.error("Failed to sync AutoGift order to admin queue:", error.message);
-    }
+    const { error } = await saveAutoGiftOrderToDb({
+      id: order.id,
+      userId: user.id,
+      recipientName: order.recipientName,
+      occasion: order.occasion,
+      items: order.items,
+      subtotal: order.subtotal,
+      serviceFee: order.serviceFee,
+      total: order.total,
+      status: order.status,
+      chargeNote: order.chargeNote,
+      shippingAddress: order.shippingAddress,
+      cardMessage: order.cardMessage,
+      customerNotes: customerComment.trim() || undefined,
+    });
+    if (error) console.error("Failed to sync AutoGift order to admin queue:", error.message);
 
     setPlacingOrder(false);
     setStep("done");

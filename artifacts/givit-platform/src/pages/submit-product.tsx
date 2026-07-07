@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { CheckCircle, ExternalLink, Gift, Loader2, Plus, Send, Sparkles, Ticket, X, AlertTriangle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -21,6 +21,7 @@ function useDebounced<T>(value: T, delayMs: number) {
 
 export default function SubmitProductPage() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [itemType, setItemType] = useState<ItemType>("product");
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
@@ -79,6 +80,7 @@ export default function SubmitProductPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) { navigate("/login?next=/submit-product"); return; }
     if (!url.trim()) { setError("Product URL is required"); return; }
     if (duplicate) { setError(`This looks like it might already be in Givit ("${duplicate.name}"). Double-check before resubmitting, or edit the details if this is actually different.`); return; }
     setLoading(true);
@@ -109,7 +111,7 @@ export default function SubmitProductPage() {
           extractedAt: new Date().toISOString(),
           aiSummary: `AI scraped ${aiExtracted.name}, categorized it as ${itemType === "experience" ? "an experience" : aiExtracted.category}, and prepared it for admin approval.`,
         },
-        user_id: user?.id ?? null,
+        user_id: user.id,
         status: "pending",
       });
       if (submitError) { setError(submitError.message); return; }
@@ -153,6 +155,15 @@ export default function SubmitProductPage() {
           Found a great gift idea? Paste the link; Givit AI fills in the details and shows you exactly what the card will look like before it's queued for admin approval.
         </p>
       </div>
+
+      {!user && (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-givit-ember/20 bg-givit-ember/5 px-4 py-3">
+          <p className="text-sm text-foreground">Sign in to submit a product — you can fill out the form and preview it first.</p>
+          <Button asChild size="sm" className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+            <Link href="/login?next=/submit-product">Log in</Link>
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="givit-panel p-6">
@@ -256,7 +267,9 @@ export default function SubmitProductPage() {
               disabled={loading}
               className="h-11 w-full rounded-xl bg-givit-ember text-white hover:bg-givit-ember-hover"
             >
-              {loading ? (
+              {!user ? (
+                <>Log in to submit</>
+              ) : loading ? (
                 <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</>
               ) : (
                 <><Send className="h-4 w-4" /> Add for review</>
