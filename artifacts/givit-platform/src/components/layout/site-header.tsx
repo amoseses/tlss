@@ -4,11 +4,9 @@ import { Bell, Sparkles } from "lucide-react";
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
 import { HeaderSearch } from "@/components/layout/header-search";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { MARKETPLACE_CATEGORIES } from "@/lib/data/marketplace";
 import { useAuth } from "@/lib/auth/use-auth";
 
 export function SiteHeader() {
-  const categories = MARKETPLACE_CATEGORIES;
   const { user, profile } = useAuth();
   const isSeller = profile?.role === "admin";
 
@@ -62,15 +60,6 @@ export function SiteHeader() {
               <Sparkles className="mr-1 inline h-3 w-3" />
               Givit AI
             </Link>
-            {categories.slice(0, 8).map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/products?category=${cat.slug}`}
-                className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
-              >
-                {cat.name}
-              </Link>
-            ))}
             <Link
               href="/submit-product"
               className="shrink-0 ml-1 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"

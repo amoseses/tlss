@@ -1,4 +1,4 @@
-import { callOpenAIJSON } from "./openai.mjs";
+import { callGeminiJSON } from "./gemini.mjs";
 
 // Never invent products: the model can only select/reorder/reword the exact
 // candidates it's given, matched back by "id". This keeps checkout links,
@@ -27,7 +27,7 @@ export async function handleAutogiftSuggestions(body) {
     },
   });
 
-  const result = await callOpenAIJSON(
+  const result = await callGeminiJSON(
     [
       { role: "system", content: system },
       { role: "user", content: user },
@@ -70,7 +70,7 @@ export async function handleGiftChat(body) {
     },
   });
 
-  const result = await callOpenAIJSON(
+  const result = await callGeminiJSON(
     [
       { role: "system", content: system },
       { role: "user", content: user },

@@ -1,43 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowRight, Bell, Brain, CreditCard, PackageCheck, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
 
 import { GiftCalendar } from "@/components/personalization/gift-calendar";
 import { RecentlyViewedRail } from "@/components/personalization/recently-viewed";
 import { ProductCard } from "@/components/product/product-card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import {
-  GIFT_COLLECTIONS,
   MARKETPLACE_PRODUCTS,
   MARKETPLACE_RATINGS,
 } from "@/lib/data/marketplace";
-import { getPublicBoards } from "@/lib/supabase/db";
-import type { UserBoard } from "@/lib/boards/storage";
-
-function dbBoardToHomeBoard(board: any): UserBoard {
-  const items = Array.isArray(board.gift_board_items) ? board.gift_board_items : [];
-  const images = items.map((item: any) => ({
-    id: item.id ?? crypto.randomUUID(),
-    src: item.image_url || item.product_image || item.metadata?.image_url || "",
-    caption: item.caption || item.product_name || item.title || "Gift idea",
-    description: item.description || item.metadata?.description || "",
-    productUrl: item.product_url || item.metadata?.product_url || "",
-    kind: item.item_type === "image" ? "image" : "product",
-  })).filter((img: { src: string }) => img.src);
-
-  return {
-    id: board.id,
-    title: board.title ?? "Gift board",
-    description: board.description ?? "",
-    coverImage: board.cover_image || images[0]?.src || undefined,
-    images,
-    likes: board.likes ?? 0,
-    liked: false,
-    isPublic: board.is_public ?? true,
-  };
-}
 
 const HOME_AI_PROMPTS = [
   { label: "For Mom 🌸", prompt: "Gift for my mom, birthday, $50 budget, loves cooking and gardening" },
@@ -50,7 +23,6 @@ export default function HomePage() {
   const featured = MARKETPLACE_PRODUCTS.slice(0, 4);
   const deals = MARKETPLACE_PRODUCTS.filter((p) => p.sale_price_cents && p.gift_match_score >= 75).slice(0, 8);
   const trending = MARKETPLACE_PRODUCTS.filter((p) => ["tech", "gaming", "writing", "home"].includes(p.category?.slug ?? "")).slice(0, 6);
-  const [publicBoards, setPublicBoards] = useState<UserBoard[]>([]);
   const [homeAiQuery, setHomeAiQuery] = useState("");
   const [, navigate] = useLocation();
 
@@ -59,25 +31,6 @@ export default function HomePage() {
     navigate(q ? `/gift?q=${encodeURIComponent(q)}` : "/gift");
   }
 
-  useEffect(() => {
-    let mounted = true;
-    getPublicBoards()
-      .then((boards) => { if (mounted) setPublicBoards(boards.map(dbBoardToHomeBoard).filter((board) => board.images.length > 0 || board.coverImage)); })
-      .catch(() => { if (mounted) setPublicBoards([]); });
-    return () => { mounted = false; };
-  }, []);
-
-  const homeBoards = publicBoards.length > 0 ? publicBoards.slice(0, 4) : GIFT_COLLECTIONS.slice(0, 4).map((collection) => ({
-    id: collection.slug,
-    title: collection.title,
-    description: collection.description,
-    coverImage: undefined,
-    images: [],
-    likes: 0,
-    liked: false,
-    isPublic: true,
-  }));
-
   return (
     <div className="pb-12">
       {/* Hero */}
@@ -85,18 +38,18 @@ export default function HomePage() {
         <div className="pointer-events-none absolute -top-32 right-0 h-[600px] w-[600px] rounded-full bg-givit-ember/25 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-givit-coral/20 blur-3xl" />
 
-        <div className="container relative grid gap-10 py-14 md:py-20 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-center lg:py-24">
-          <div className="slide-up max-w-2xl" style={{ animationDelay: "0ms" }}>
+        <div className="container relative py-14 md:py-20 lg:py-24">
+          <div className="slide-up mx-auto max-w-2xl text-center" style={{ animationDelay: "0ms" }}>
             <h1 className="font-serif text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl">
               Find the perfect gift in seconds —{" "}
               <span className="italic text-givit-coral">powered by AI.</span>
             </h1>
 
-            <p className="mt-5 max-w-xl text-base leading-7 text-white/75">
+            <p className="mt-5 text-base leading-7 text-white/75">
               Tell Givit who you're shopping for, the occasion, and your budget. We handle the rest — from curated picks to doorstep delivery.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button asChild className="h-12 rounded-md givit-gradient px-6 text-sm font-bold text-white shadow-lg givit-glow transition-transform hover:-translate-y-0.5 hover:brightness-110">
                 <Link href="/gift">
                   <Sparkles className="h-4 w-4" /> Try Givit AI <ArrowRight className="h-4 w-4" />
@@ -109,33 +62,10 @@ export default function HomePage() {
               </Button>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-4 text-xs text-white/60">
+            <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-white/60">
               <div className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-white/80" /> No brand deals</div>
               <div className="flex items-center gap-1.5"><CreditCard className="h-4 w-4 text-white/80" /> You approve before charge</div>
               <div className="flex items-center gap-1.5"><PackageCheck className="h-4 w-4 text-white/80" /> Handled start to finish</div>
-            </div>
-          </div>
-
-          <div className="slide-up rounded-xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur" style={{ animationDelay: "150ms" }}>
-            <div className="rounded-lg bg-card p-4 text-givit-ink">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">AutoGift preview</p>
-                  <h2 className="font-serif text-xl font-bold">For Mom's birthday</h2>
-                </div>
-              <Badge className="bg-givit-ember text-white">82% match</Badge>
-              </div>
-              <div className="stagger-children space-y-2.5">
-                {MARKETPLACE_PRODUCTS.filter((p) => ["aeropress-clear", "apple-airtags-4-pack", "patagonia-black-hole-duffel"].includes(p.slug)).map((product) => (
-                  <Link key={product.id} href={`/products/${product.slug}`} className="slide-up flex gap-3 rounded-lg border border-border/70 p-3 opacity-0 transition-all duration-200 hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-sm">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-givit-sand text-base">🎁</div>
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-1 text-sm font-semibold">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">{product.price_range} · {product.gift_match_score}/100 score</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
             </div>
           </div>
         </div>
@@ -222,34 +152,6 @@ export default function HomePage() {
               const avg = s?.avg_rating != null ? Number.parseFloat(String(s.avg_rating)) : null;
               return <ProductCard key={p.id} product={p} images={p.images} avgRating={avg ?? undefined} reviewCount={s?.review_count ?? 0} featured />;
             })}
-          </div>
-        </section>
-      </Reveal>
-
-      {/* Gift boards */}
-      <Reveal>
-        <section className="container py-4 md:py-8">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
-            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Gift boards</h2>
-            <Link href="/boards" className="givit-link text-sm font-medium">See all boards →</Link>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {homeBoards.map((board) => (
-              <Link key={board.id} href="/boards" className="overflow-hidden rounded-lg border border-border/70 bg-card transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/40 hover:shadow-lg">
-                <div className="aspect-[4/3] overflow-hidden bg-givit-sand">
-                  {board.coverImage || board.images[0]?.src ? (
-                    <img src={board.coverImage || board.images[0]?.src} alt={board.title} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-3xl">📌</div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-serif text-lg font-bold text-givit-ink">{board.title}</h3>
-                  <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-muted-foreground">{board.description}</p>
-                  {board.images.length > 0 && <p className="mt-2 text-xs font-semibold text-givit-ember">{board.images.length} public pick{board.images.length === 1 ? "" : "s"}</p>}
-                </div>
-              </Link>
-            ))}
           </div>
         </section>
       </Reveal>

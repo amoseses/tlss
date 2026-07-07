@@ -1,4 +1,4 @@
-import { callOpenAIJSON } from "./openai.mjs";
+import { callGeminiJSON } from "./gemini.mjs";
 
 const CATEGORIES = ["tech", "kitchen", "writing", "beauty", "fitness", "outdoor", "pets", "art", "experiences", "home", "gaming"];
 
@@ -43,7 +43,7 @@ export async function extractProductWithAI(url) {
     },
   });
 
-  const result = await callOpenAIJSON(
+  const result = await callGeminiJSON(
     [
       { role: "system", content: system },
       { role: "user", content: user },

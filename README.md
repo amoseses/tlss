@@ -26,12 +26,12 @@ Copy `.env.local` and ensure **no leading spaces** in any value (especially `VIT
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | `whsec_...` |
 | `SHIPPO_API_TOKEN` | Shippo API token (shipping) | `shippo_...` |
 | `NEXT_PUBLIC_APP_URL` | Base URL of your deployed app | `https://your-app.vercel.app` |
-| `OPENAI_API_KEY` | Powers Givit AI (gift finder, AutoGift suggestions, admin bulk-import extraction). Server-side only — never add a `VITE_`/`NEXT_PUBLIC_` prefix or it'll ship to every visitor's browser. | `sk-proj-...` |
-| `OPENAI_MODEL` | Optional, defaults to `gpt-4o-mini` | `gpt-4o-mini` |
+| `GEMINI_API_KEY` | Powers Givit AI (gift finder, AutoGift suggestions, admin bulk-import extraction). Server-side only — never add a `VITE_`/`NEXT_PUBLIC_` prefix or it'll ship to every visitor's browser. Get one at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). | `AIza...` |
+| `GEMINI_MODEL` | Optional, defaults to `gemini-2.5-flash` | `gemini-2.5-flash` |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push keys (phone/desktop notifications). Generate your own pair with `node -e "console.log(require('web-push').generateVAPIDKeys())"` — the private key must stay server-only. `VAPID_SUBJECT` is a `mailto:` address the push service can contact if there's abuse. | see below |
 | `VITE_VAPID_PUBLIC_KEY` | Same value as `VAPID_PUBLIC_KEY`, but `VITE_`-prefixed so the browser can subscribe. This one is meant to be public. | same as above |
 
-> ⚠️ **Billing note:** the OpenAI key only *works* once the OpenAI account behind it has billing/credits set up (platform.openai.com/account/billing). Without that, every AI call fails with `insufficient_quota` — the app is designed to fail soft (falls back to the non-AI rule-based matching) rather than break, so this won't crash anything, but AI features won't actually run until billing is added.
+> ⚠️ **Note:** as of July 2026 the Gemini API free tier is generous enough for testing without billing, but very high traffic may need billing enabled on the Google AI Studio / Cloud project behind the key. The app is designed to fail soft either way — every AI feature falls back to non-AI rule-based matching if the Gemini call errors or the key is missing, so this won't crash anything, but AI features won't actually run until a working key is set.
 
 ### 2. Supabase Setup
 
@@ -60,8 +60,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 **Also add these (new since AI/push were wired in), or the `/api` functions will 500 in production even though they work locally:**
 ```
-OPENAI_API_KEY=sk-proj-...
-OPENAI_MODEL=gpt-4o-mini
+GEMINI_API_KEY=AIza...
+GEMINI_MODEL=gemini-2.5-flash
 VAPID_PUBLIC_KEY=...
 VAPID_PRIVATE_KEY=...
 VAPID_SUBJECT=mailto:you@example.com
@@ -118,7 +118,7 @@ For production email testing, point your scheduler/email worker at rows in `gift
 
 ### 5. Givit AI (serverless functions)
 
-The app is a static Vite SPA with no built-in backend, so AI calls (which need a secret OpenAI key) live in a small `/api` directory at the repo root, deployed as Vercel serverless functions:
+The app is a static Vite SPA with no built-in backend, so AI calls (which need a secret Gemini key) live in a small `/api` directory at the repo root, deployed as Vercel serverless functions:
 
 - `api/ai/gift-chat.ts` — powers the `/gift` chat finder
 - `api/ai/autogift-suggestions.ts` — powers AutoGift's survey-to-suggestions step
@@ -128,7 +128,7 @@ The app is a static Vite SPA with no built-in backend, so AI calls (which need a
 
 Locally, `pnpm run dev` mirrors all of these through a Vite dev-server middleware (see `aiApiDevMiddleware` in `vite.config.ts`) so you get identical behavior without running `vercel dev`. In production, Vercel just picks the files up automatically — no extra config needed beyond the env vars in §1/§3.
 
-Every AI call is constrained to **only pick from a list of real candidate products/ids you already have** — it's never allowed to invent a product, price, or link, so a bad AI response can only mean "picked a worse gift," never a broken checkout link. If `OPENAI_API_KEY` is missing or the OpenAI call fails for any reason, each feature falls back to the pre-existing rule-based matching instead of erroring out.
+Every AI call is constrained to **only pick from a list of real candidate products/ids you already have** — it's never allowed to invent a product, price, or link, so a bad AI response can only mean "picked a worse gift," never a broken checkout link. If `GEMINI_API_KEY` is missing or the Gemini call fails for any reason, each feature falls back to the pre-existing rule-based matching instead of erroring out.
 
 ### 6. Push Notifications
 
@@ -175,7 +175,7 @@ If users can't log in or sessions don't persist:
 - **Routing:** wouter (lightweight)
 - **Auth:** Supabase Auth (email/password)
 - **Data:** LocalStorage (boards, recipients, surveys, some orders) + Supabase DB (user profiles, products, orders, board likes/comments, AutoGift orders, push subscriptions)
-- **AI:** OpenAI (`gpt-4o-mini` by default) via serverless functions under `/api` — see §5 above
+- **AI:** Google Gemini (`gemini-2.5-flash` by default) via serverless functions under `/api` — see §5 above
 - **Photos:** Microlink (scrapes real og:image metadata from product URLs) via `/api/photo`
 - **Push notifications:** Web Push (VAPID) + a service worker at `public/sw.js` — see §6 above
 - **Payments:** Stripe (API keys configured, UI ready) — checkout itself is not wired up; the business model redirects to the retailer (Amazon, etc.) for affiliate commission rather than taking payment in-app, except for AutoGift concierge orders

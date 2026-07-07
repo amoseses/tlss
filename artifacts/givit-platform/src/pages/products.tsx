@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { Bookmark, Compass, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 
@@ -64,6 +65,22 @@ export default function ProductsPage() {
   function cnLink(active: boolean) {
     return active ? "font-semibold text-primary" : "text-foreground hover:text-givit-ember hover:underline";
   }
+
+  // Switching category/search/sort/etc. re-renders this same route with new
+  // results, but the grid sits below a tall hero + filter bar — without this,
+  // nothing visibly moves and it looks like the click did nothing until you
+  // scroll down. Skip the very first render so landing on /products doesn't
+  // yank the page.
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const resultsKey = `${categorySlug ?? ""}|${q ?? ""}|${occasion ?? ""}|${sortVal}|${minStr}|${maxStr}`;
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [resultsKey]);
 
   return (
     <PageShell wide>
@@ -183,17 +200,19 @@ export default function ProductsPage() {
             </div>
           )}
 
+          <div ref={resultsRef} className="scroll-mt-32">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
             <p>
               <span className="font-semibold text-givit-ink">{sorted.length} ranked gift ideas</span>
               {q ? <span className="text-muted-foreground"> for "{q}"</span> : null}
+              {activeCategory ? <span className="text-muted-foreground"> in {activeCategory.name}</span> : null}
             </p>
             <Link href="/gift" className="inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
               <Sparkles className="h-4 w-4" /> Ask Givit AI
             </Link>
           </div>
 
-          <div className="givit-section">
+          <div key={resultsKey} className="givit-section slide-up">
             {sorted.length > 0 ? (
               <ProductGrid
                 products={sorted}
@@ -206,6 +225,7 @@ export default function ProductsPage() {
                 No products match your filters. <Link href="/products" className="givit-link">Clear filters</Link>
               </p>
             )}
+          </div>
           </div>
 
           <div className="mt-6"><RecentlyViewedRail compact /></div>
