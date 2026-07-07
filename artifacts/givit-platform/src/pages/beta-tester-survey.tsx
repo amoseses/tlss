@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
 const BETA_GOALS = [
-  { icon: Sparkles, title: "Gift AI", body: "Tell us where recommendations feel magical, generic, or missing context." },
+  { icon: Sparkles, title: "Givit AI", body: "Tell us where recommendations feel magical, generic, or missing context." },
   { icon: Gift, title: "Marketplace", body: "React to product discovery, wishlists, gift boards, and purchase handoff clarity." },
   { icon: Users, title: "AutoGift", body: "Help shape surveys, approvals, reminders, and concierge trust signals." },
 ];
 
-const TESTING_AREAS = ["AI gift finder", "Marketplace browsing", "Gift boards", "AutoGift / concierge", "Account setup", "Seller or product submission"];
+const TESTING_AREAS = ["Givit AI", "Marketplace browsing", "Gift boards", "AutoGift / concierge", "Account setup", "Seller or product submission"];
 const GIFTING_FREQUENCIES = ["Weekly", "Monthly", "A few times a year", "Mostly holidays", "Rarely"];
 const TIME_COMMITMENTS = ["15 minutes", "30 minutes", "1 hour", "A few sessions", "Open to follow-up interviews"];
 

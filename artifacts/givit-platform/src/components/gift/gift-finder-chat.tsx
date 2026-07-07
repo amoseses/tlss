@@ -146,7 +146,7 @@ function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index
   );
 }
 
-export function GiftFinderChat() {
+export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {}) {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -156,8 +156,18 @@ export function GiftFinderChat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    // block: "nearest" keeps this scoped to the chat panel's own scroll
+    // container — the default ("start"/"end") walks every scrollable
+    // ancestor, including the page itself, dragging the whole viewport
+    // down to the bottom every time a message is sent.
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages]);
+
+  useEffect(() => {
+    if (initialQuery?.trim()) sendMessage(initialQuery.trim());
+    // Only ever auto-send once, on mount — not on every initialQuery identity change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function startOver() {
     setMessages([GREETING]);
@@ -218,7 +228,7 @@ export function GiftFinderChat() {
     trackUserEvent("ai_recommendation_feedback", { scope: "response", satisfied, slugs: results.map((item) => item.slug) });
     setMessages((prev) => [
       ...prev,
-      { role: "assistant", content: satisfied ? "Great — I saved those positive signals. ✅" : "Got it — I saved that these were not quite right." },
+      { id: crypto.randomUUID(), role: "assistant", content: satisfied ? "Great — I saved those positive signals. ✅" : "Got it — I saved that these were not quite right." },
     ]);
   }
 
@@ -279,7 +289,7 @@ export function GiftFinderChat() {
 
         <div className="givit-panel flex flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
-            <p className="text-xs font-semibold text-muted-foreground">Givit AI · Gift Finder</p>
+            <p className="text-xs font-semibold text-muted-foreground">Givit AI</p>
             <div className="flex gap-1.5">
               {lastQuery && !loading && (
                 <button type="button" onClick={regenerate} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">

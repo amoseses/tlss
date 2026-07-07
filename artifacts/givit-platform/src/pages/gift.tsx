@@ -1,6 +1,10 @@
 import { GiftFinderChat } from "@/components/gift/gift-finder-chat";
+import { useSearchParams } from "@/lib/hooks/use-search-params";
 
 export default function GiftFinderPage() {
+  const { get } = useSearchParams();
+  const initialQuery = get("q");
+
   return (
     <div className="min-h-[calc(100vh-160px)] bg-gradient-to-b from-givit-mist to-givit-page">
       <div className="container py-8 md:py-12">
@@ -9,7 +13,7 @@ export default function GiftFinderPage() {
             Givit AI
           </h1>
         </div>
-        <GiftFinderChat />
+        <GiftFinderChat initialQuery={initialQuery} />
       </div>
     </div>
   );

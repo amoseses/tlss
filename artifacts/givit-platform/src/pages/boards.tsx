@@ -260,7 +260,12 @@ function BoardComments({ comments, onSubmit, canComment }: { comments: any[]; on
 export default function BoardsPage() {
   const { user, loading: authLoading } = useAuth();
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
-  const [activeTab, setActiveTab] = useState<"public" | "mine">("public");
+  const [activeTab, setActiveTabState] = useState<"public" | "mine">("public");
+  // "My boards" only means something once there's an account to attach boards
+  // to — force back to "public" if the user signs out (or never signed in).
+  function setActiveTab(tab: "public" | "mine") {
+    setActiveTabState(user ? tab : "public");
+  }
   const [userBoards, setUserBoards] = useState<UserBoard[]>([]);
   const [showCreateBoard, setShowCreateBoard] = useState(false);
   const [showAddImage, setShowAddImage] = useState(false);
@@ -270,6 +275,10 @@ export default function BoardsPage() {
   const [boardSearchQuery, setBoardSearchQuery] = useState("");
   const [openBoardLikes, setOpenBoardLikes] = useState({ count: 0, liked: false });
   const [openBoardComments, setOpenBoardComments] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user && !authLoading) setActiveTabState("public");
+  }, [user, authLoading]);
 
   useEffect(() => {
     async function loadBoards() {
@@ -511,29 +520,38 @@ export default function BoardsPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-serif text-3xl font-bold text-givit-ink">Gift boards</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Public boards — collect and share gift ideas</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {user ? "Browse public boards or manage your own" : "Browse public gift boards — sign in to start your own"}
+          </p>
         </div>
-        {user ? (
+        {user && (
           <Button onClick={() => setShowCreateBoard(true)} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
             <Plus className="h-4 w-4" /> Create board
-          </Button>
-        ) : (
-          <Button asChild className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
-            <Link href="/login">Log in to create</Link>
           </Button>
         )}
       </div>
 
+      {!user && (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-givit-ember/20 bg-givit-ember/5 px-4 py-3">
+          <p className="text-sm text-foreground">Sign in to create your own boards, like, and comment.</p>
+          <Button asChild size="sm" className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+            <Link href="/login">Log in</Link>
+          </Button>
+        </div>
+      )}
+
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <div className="relative min-w-[260px] flex-1 sm:max-w-md"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={boardSearchQuery} onChange={(e) => setBoardSearchQuery(e.target.value)} placeholder="Search boards by vibe, name, or description..." className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" /></div>
-        <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit">
-        <button type="button" onClick={() => setActiveTab("public")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "public" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-          Public boards
-        </button>
-        <button type="button" onClick={() => setActiveTab("mine")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "mine" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-          My boards {userBoards.length > 0 && <span className="ml-1 rounded-full bg-givit-ember/10 px-1.5 py-0.5 text-xs text-givit-ember">{userBoards.length}</span>}
-        </button>
-        </div>
+        {user && (
+          <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit">
+            <button type="button" onClick={() => setActiveTab("public")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "public" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              Public boards
+            </button>
+            <button type="button" onClick={() => setActiveTab("mine")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "mine" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              My boards {userBoards.length > 0 && <span className="ml-1 rounded-full bg-givit-ember/10 px-1.5 py-0.5 text-xs text-givit-ember">{userBoards.length}</span>}
+            </button>
+          </div>
+        )}
       </div>
 
       {selectedBoard && selectedBoardId && activeTab === "public" ? (
@@ -551,9 +569,9 @@ export default function BoardsPage() {
                 <Heart className={`h-4 w-4 ${openBoardLikes.liked ? "fill-current" : ""}`} /> {openBoardLikes.count > 0 ? openBoardLikes.count : "Like"}
               </button>
             ) : (
-              <div className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground">
-                <Heart className="h-4 w-4" /> {openBoardLikes.count > 0 ? openBoardLikes.count : "Like"}
-              </div>
+              <Link href="/login" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember">
+                <Heart className="h-4 w-4" /> {openBoardLikes.count > 0 ? openBoardLikes.count : "Log in to like"}
+              </Link>
             )}
           </div>
           {selectedBoard.images.length > 0 ? <PinterestGrid images={selectedBoard.images} /> : <p className="text-sm text-muted-foreground">No items yet.</p>}

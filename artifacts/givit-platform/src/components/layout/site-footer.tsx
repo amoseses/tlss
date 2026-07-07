@@ -23,7 +23,7 @@ export function SiteFooter() {
               className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-givit-ember px-4 py-2 text-xs font-semibold text-white shadow-md transition-colors hover:bg-givit-ember-hover"
             >
               <Sparkles className="h-3 w-3" />
-              Try Gift AI
+              Try Givit AI
             </Link>
           </div>
 
@@ -31,7 +31,7 @@ export function SiteFooter() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">Discover</p>
             <ul className="space-y-2 text-sm">
               <li><Link href="/products" className="hover:text-white transition-colors">Marketplace</Link></li>
-              <li><Link href="/gift" className="hover:text-white transition-colors">AI Finder</Link></li>
+              <li><Link href="/gift" className="hover:text-white transition-colors">Givit AI</Link></li>
               <li><Link href="/products?sort=popular" className="hover:text-white transition-colors">Top Ranked</Link></li>
               <li><Link href="/boards" className="hover:text-white transition-colors">Gift Boards</Link></li>
               <li><Link href="/concierge" className="hover:text-white transition-colors">AutoGift</Link></li>

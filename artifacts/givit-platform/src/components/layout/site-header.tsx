@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Bell } from "lucide-react";
+import { Bell, Sparkles } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
 import { HeaderSearch } from "@/components/layout/header-search";
@@ -57,9 +57,10 @@ export function SiteHeader() {
             </Link>
             <Link
               href="/gift"
-              className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
+              className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-givit-ember transition-colors hover:bg-white/10 hover:text-givit-ember-hover whitespace-nowrap"
             >
-              AI Finder
+              <Sparkles className="mr-1 inline h-3 w-3" />
+              Givit AI
             </Link>
             {categories.slice(0, 8).map((cat) => (
               <Link

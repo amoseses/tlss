@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowRight, Bell, Brain, CreditCard, PackageCheck, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
 
 import { GiftCalendar } from "@/components/personalization/gift-calendar";
@@ -39,12 +39,25 @@ function dbBoardToHomeBoard(board: any): UserBoard {
   };
 }
 
+const HOME_AI_PROMPTS = [
+  { label: "For Mom 🌸", prompt: "Gift for my mom, birthday, $50 budget, loves cooking and gardening" },
+  { label: "For Dad 🔧", prompt: "Gift for my dad, under $75, likes tools, coffee, and the outdoors" },
+  { label: "For a friend 🎉", prompt: "Gift for a close friend, just because, $30-$50, likes cozy nights in" },
+];
+
 export default function HomePage() {
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
   const featured = MARKETPLACE_PRODUCTS.slice(0, 4);
   const deals = MARKETPLACE_PRODUCTS.filter((p) => p.sale_price_cents && p.gift_match_score >= 75).slice(0, 8);
   const trending = MARKETPLACE_PRODUCTS.filter((p) => ["tech", "gaming", "writing", "home"].includes(p.category?.slug ?? "")).slice(0, 6);
   const [publicBoards, setPublicBoards] = useState<UserBoard[]>([]);
+  const [homeAiQuery, setHomeAiQuery] = useState("");
+  const [, navigate] = useLocation();
+
+  function goToGivitAI(query?: string) {
+    const q = (query ?? homeAiQuery).trim();
+    navigate(q ? `/gift?q=${encodeURIComponent(q)}` : "/gift");
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -127,6 +140,51 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Givit AI teaser */}
+      <Reveal>
+        <section className="container py-10 md:py-14">
+          <div className="givit-panel relative overflow-hidden p-6 md:p-8">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-givit-ember/10 blur-2xl" />
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-lg">
+                <p className="inline-flex items-center gap-1.5 rounded-full bg-givit-ember/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
+                  <Sparkles className="h-3.5 w-3.5" /> Givit AI
+                </p>
+                <h2 className="mt-3 font-serif text-2xl font-bold text-foreground md:text-3xl">Describe the person, not the product.</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Givit AI reads what actually matters — their interests, quirks, and any notes you give it — and picks real gifts with a specific reason for each one.
+                </p>
+              </div>
+              <form onSubmit={(e) => { e.preventDefault(); goToGivitAI(); }} className="flex w-full flex-col gap-3 lg:w-[380px]">
+                <div className="flex gap-2">
+                  <input
+                    value={homeAiQuery}
+                    onChange={(e) => setHomeAiQuery(e.target.value)}
+                    placeholder="e.g. my sister who loves hiking and coffee"
+                    className="h-11 w-full rounded-md border border-border bg-background px-4 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                  />
+                  <Button type="submit" className="h-11 shrink-0 rounded-md givit-gradient px-4 text-sm font-bold text-white shadow-md givit-glow">
+                    <Sparkles className="h-4 w-4" /> Ask
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {HOME_AI_PROMPTS.map((qp) => (
+                    <button
+                      key={qp.label}
+                      type="button"
+                      onClick={() => goToGivitAI(qp.prompt)}
+                      className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-givit-ember/40 hover:text-givit-ember"
+                    >
+                      {qp.label}
+                    </button>
+                  ))}
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+      </Reveal>
 
       {/* How it works */}
       <Reveal>
