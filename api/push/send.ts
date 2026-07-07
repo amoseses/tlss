@@ -1,3 +1,4 @@
+/// <reference path="../mjs-modules.d.ts" />
 import { sendPushToSubscription } from "../_lib/push.mjs";
 
 export default async function handler(req: any, res: any) {

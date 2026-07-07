@@ -1,3 +1,4 @@
+/// <reference path="./mjs-modules.d.ts" />
 import { resolveProductPhotoUrl } from "./_lib/photo.mjs";
 
 export default async function handler(req: any, res: any) {

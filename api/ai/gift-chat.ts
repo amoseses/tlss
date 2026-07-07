@@ -1,3 +1,4 @@
+/// <reference path="../mjs-modules.d.ts" />
 import { handleGiftChat } from "../_lib/handlers.mjs";
 
 export default async function handler(req: any, res: any) {

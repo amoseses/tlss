@@ -1,3 +1,4 @@
+/// <reference path="../mjs-modules.d.ts" />
 import { extractProductWithAI } from "../_lib/extract-product.mjs";
 
 export default async function handler(req: any, res: any) {
