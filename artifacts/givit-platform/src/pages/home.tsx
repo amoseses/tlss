@@ -7,6 +7,7 @@ import { RecentlyViewedRail } from "@/components/personalization/recently-viewed
 import { ProductCard } from "@/components/product/product-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Reveal } from "@/components/ui/reveal";
 import {
   GIFT_COLLECTIONS,
   MARKETPLACE_PRODUCTS,
@@ -72,7 +73,7 @@ export default function HomePage() {
         <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-givit-coral/20 blur-3xl" />
 
         <div className="container relative grid gap-10 py-14 md:py-20 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-center lg:py-24">
-          <div className="max-w-2xl">
+          <div className="slide-up max-w-2xl" style={{ animationDelay: "0ms" }}>
             <h1 className="font-serif text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl">
               Find the perfect gift in seconds —{" "}
               <span className="italic text-givit-coral">powered by AI.</span>
@@ -83,12 +84,12 @@ export default function HomePage() {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild className="h-12 rounded-md givit-gradient px-6 text-sm font-bold text-white shadow-lg givit-glow hover:brightness-110">
+              <Button asChild className="h-12 rounded-md givit-gradient px-6 text-sm font-bold text-white shadow-lg givit-glow transition-transform hover:-translate-y-0.5 hover:brightness-110">
                 <Link href="/gift">
                   <Sparkles className="h-4 w-4" /> Try Givit AI <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild className="h-12 rounded-md border border-white/30 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/20">
+              <Button asChild className="h-12 rounded-md border border-white/30 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-sm transition-transform hover:-translate-y-0.5 hover:bg-white/20">
                 <Link href="/concierge">
                   <Bell className="h-4 w-4" /> Set up AutoGift
                 </Link>
@@ -102,7 +103,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur">
+          <div className="slide-up rounded-xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur" style={{ animationDelay: "150ms" }}>
             <div className="rounded-lg bg-card p-4 text-givit-ink">
               <div className="mb-4 flex items-center justify-between">
                 <div>
@@ -111,9 +112,9 @@ export default function HomePage() {
                 </div>
               <Badge className="bg-givit-ember text-white">82% match</Badge>
               </div>
-              <div className="space-y-2.5">
+              <div className="stagger-children space-y-2.5">
                 {MARKETPLACE_PRODUCTS.filter((p) => ["aeropress-clear", "apple-airtags-4-pack", "patagonia-black-hole-duffel"].includes(p.slug)).map((product) => (
-                  <Link key={product.id} href={`/products/${product.slug}`} className="flex gap-3 rounded-lg border border-border/70 p-3 transition hover:border-givit-ember/40 hover:shadow-sm">
+                  <Link key={product.id} href={`/products/${product.slug}`} className="slide-up flex gap-3 rounded-lg border border-border/70 p-3 opacity-0 transition-all duration-200 hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-sm">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-givit-sand text-base">🎁</div>
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-1 text-sm font-semibold">{product.name}</p>
@@ -128,127 +129,141 @@ export default function HomePage() {
       </section>
 
       {/* How it works */}
-      <section className="border-b border-border/50 bg-givit-sand/40">
-        <div className="container grid gap-6 py-8 sm:grid-cols-3">
-          {[
-            { icon: Brain, title: "Tell us who it's for", desc: "Recipient, occasion, budget, and interests. Takes 30 seconds." },
-            { icon: Bell, title: "Get notified early", desc: "Reminders 5–6 weeks before every important date." },
-            { icon: PackageCheck, title: "Approve once, done", desc: "Pick a gift, approve it — we order, card-write, and ship." },
-          ].map((item) => (
-            <div key={item.title} className="flex gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card shadow-sm">
-                <item.icon className="h-5 w-5 text-givit-ember" />
+      <Reveal>
+        <section className="border-b border-border/50 bg-givit-sand/40">
+          <div className="stagger-children container grid gap-6 py-8 sm:grid-cols-3">
+            {[
+              { icon: Brain, title: "Tell us who it's for", desc: "Recipient, occasion, budget, and interests. Takes 30 seconds." },
+              { icon: Bell, title: "Get notified early", desc: "Reminders 5–6 weeks before every important date." },
+              { icon: PackageCheck, title: "Approve once, done", desc: "Pick a gift, approve it — we order, card-write, and ship." },
+            ].map((item) => (
+              <div key={item.title} className="slide-up flex gap-4 opacity-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card shadow-sm transition-transform hover:scale-110">
+                  <item.icon className="h-5 w-5 text-givit-ember" />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">{item.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.desc}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-foreground">{item.title}</p>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      </Reveal>
 
       {/* Featured gifts */}
-      <section className="container py-10 md:py-14">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
-          <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Featured gifts</h2>
-          <Link href="/products" className="givit-link text-sm font-medium">Shop all →</Link>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {featured.map((p) => {
-            const s = ratings[p.id];
-            const avg = s?.avg_rating != null ? Number.parseFloat(String(s.avg_rating)) : null;
-            return <ProductCard key={p.id} product={p} images={p.images} avgRating={avg ?? undefined} reviewCount={s?.review_count ?? 0} featured />;
-          })}
-        </div>
-      </section>
-
-      {/* Gift boards */}
-      <section className="container py-4 md:py-8">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
-          <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Gift boards</h2>
-          <Link href="/boards" className="givit-link text-sm font-medium">See all boards →</Link>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {homeBoards.map((board) => (
-            <Link key={board.id} href="/boards" className="overflow-hidden rounded-lg border border-border/70 bg-card transition hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-md">
-              <div className="aspect-[4/3] bg-givit-sand">
-                {board.coverImage || board.images[0]?.src ? (
-                  <img src={board.coverImage || board.images[0]?.src} alt={board.title} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-3xl">📌</div>
-                )}
-              </div>
-              <div className="p-4">
-                <h3 className="font-serif text-lg font-bold text-givit-ink">{board.title}</h3>
-                <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-muted-foreground">{board.description}</p>
-                {board.images.length > 0 && <p className="mt-2 text-xs font-semibold text-givit-ember">{board.images.length} public pick{board.images.length === 1 ? "" : "s"}</p>}
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Deals */}
-      {deals.length > 0 && (
-        <section className="container py-8 md:py-12">
+      <Reveal>
+        <section className="container py-10 md:py-14">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
-            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Today's deals</h2>
-            <Link href="/products?sort=popular" className="givit-link text-sm font-medium">See all deals →</Link>
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Featured gifts</h2>
+            <Link href="/products" className="givit-link text-sm font-medium">Shop all →</Link>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {deals.map((p) => {
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {featured.map((p) => {
               const s = ratings[p.id];
               const avg = s?.avg_rating != null ? Number.parseFloat(String(s.avg_rating)) : null;
-              return <ProductCard key={p.id} product={p} images={p.images} avgRating={avg ?? undefined} reviewCount={s?.review_count ?? 0} compact />;
+              return <ProductCard key={p.id} product={p} images={p.images} avgRating={avg ?? undefined} reviewCount={s?.review_count ?? 0} featured />;
             })}
           </div>
         </section>
+      </Reveal>
+
+      {/* Gift boards */}
+      <Reveal>
+        <section className="container py-4 md:py-8">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Gift boards</h2>
+            <Link href="/boards" className="givit-link text-sm font-medium">See all boards →</Link>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {homeBoards.map((board) => (
+              <Link key={board.id} href="/boards" className="overflow-hidden rounded-lg border border-border/70 bg-card transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/40 hover:shadow-lg">
+                <div className="aspect-[4/3] overflow-hidden bg-givit-sand">
+                  {board.coverImage || board.images[0]?.src ? (
+                    <img src={board.coverImage || board.images[0]?.src} alt={board.title} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-3xl">📌</div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="font-serif text-lg font-bold text-givit-ink">{board.title}</h3>
+                  <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-muted-foreground">{board.description}</p>
+                  {board.images.length > 0 && <p className="mt-2 text-xs font-semibold text-givit-ember">{board.images.length} public pick{board.images.length === 1 ? "" : "s"}</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </Reveal>
+
+      {/* Deals */}
+      {deals.length > 0 && (
+        <Reveal>
+          <section className="container py-8 md:py-12">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
+              <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Today's deals</h2>
+              <Link href="/products?sort=popular" className="givit-link text-sm font-medium">See all deals →</Link>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {deals.map((p) => {
+                const s = ratings[p.id];
+                const avg = s?.avg_rating != null ? Number.parseFloat(String(s.avg_rating)) : null;
+                return <ProductCard key={p.id} product={p} images={p.images} avgRating={avg ?? undefined} reviewCount={s?.review_count ?? 0} compact />;
+              })}
+            </div>
+          </section>
+        </Reveal>
       )}
 
       <section className="container py-4">
         <RecentlyViewedRail />
       </section>
 
-      <section className="container py-8 md:py-12">
-        <GiftCalendar />
-      </section>
+      <Reveal>
+        <section className="container py-8 md:py-12">
+          <GiftCalendar />
+        </section>
+      </Reveal>
 
       {/* Trending */}
-      <section className="container py-8 md:py-12">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
-          <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Trending ideas</h2>
-          <Link href="/products?sort=popular" className="givit-link text-sm font-medium">See top picks →</Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {trending.map((p) => {
-            const s = ratings[p.id];
-            const avg = s?.avg_rating != null ? Number.parseFloat(String(s.avg_rating)) : null;
-            return <ProductCard key={p.id} product={p} images={p.images} avgRating={avg ?? undefined} reviewCount={s?.review_count ?? 0} compact />;
-          })}
-        </div>
-      </section>
+      <Reveal>
+        <section className="container py-8 md:py-12">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Trending ideas</h2>
+            <Link href="/products?sort=popular" className="givit-link text-sm font-medium">See top picks →</Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {trending.map((p) => {
+              const s = ratings[p.id];
+              const avg = s?.avg_rating != null ? Number.parseFloat(String(s.avg_rating)) : null;
+              return <ProductCard key={p.id} product={p} images={p.images} avgRating={avg ?? undefined} reviewCount={s?.review_count ?? 0} compact />;
+            })}
+          </div>
+        </section>
+      </Reveal>
 
       {/* Footer CTA */}
-      <section className="container mt-4">
-        <div className="relative overflow-hidden rounded-xl bg-black px-8 py-10 text-white md:px-12">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
-          <div className="relative max-w-2xl">
-          <h2 className="font-serif text-2xl font-bold md:text-3xl">Automating your gift giving so you never forget.</h2>
-            <p className="mt-3 mb-6 text-sm leading-7 text-white/65">
-              AutoGift reminds you early, handles fulfillment once you approve, and learns your style over time. <Link href="/login" className="underline text-white/80 hover:text-white">Sign in</Link> to get started.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild className="rounded-lg bg-givit-ember px-5 text-white hover:bg-givit-ember-hover">
-                <Link href="/concierge"><Bell className="h-4 w-4" /> Set up AutoGift</Link>
-              </Button>
-              <Button asChild variant="outline" className="rounded-md border-white/20 text-white hover:bg-white/10">
-                <Link href="/gift"><Wand2 className="h-4 w-4" /> Try Givit AI</Link>
-              </Button>
+      <Reveal>
+        <section className="container mt-4">
+          <div className="relative overflow-hidden rounded-xl bg-black px-8 py-10 text-white md:px-12">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
+            <div className="relative max-w-2xl">
+            <h2 className="font-serif text-2xl font-bold md:text-3xl">Automating your gift giving so you never forget.</h2>
+              <p className="mt-3 mb-6 text-sm leading-7 text-white/65">
+                AutoGift reminds you early, handles fulfillment once you approve, and learns your style over time. <Link href="/login" className="underline text-white/80 hover:text-white">Sign in</Link> to get started.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
+                  <Link href="/concierge"><Bell className="h-4 w-4" /> Set up AutoGift</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-md border-white/20 text-white transition-transform hover:-translate-y-0.5 hover:bg-white/10">
+                  <Link href="/gift"><Wand2 className="h-4 w-4" /> Try Givit AI</Link>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </Reveal>
     </div>
   );
 }
