@@ -374,3 +374,56 @@ export async function saveBoardsToDb(userId: string, boards: any[]) {
     });
   }
 }
+
+// ============================================================
+// GIFT BOARD LIKES + COMMENTS
+// ============================================================
+export async function getBoardLikeCounts(boardIds: string[]): Promise<Record<string, number>> {
+  if (boardIds.length === 0) return {};
+  const supabase = getDb();
+  const { data } = await supabase.from("gift_board_likes").select("board_id").in("board_id", boardIds);
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) counts[row.board_id] = (counts[row.board_id] ?? 0) + 1;
+  return counts;
+}
+
+export async function getUserLikedBoardIds(userId: string, boardIds: string[]): Promise<Set<string>> {
+  if (boardIds.length === 0) return new Set();
+  const supabase = getDb();
+  const { data } = await supabase.from("gift_board_likes").select("board_id").eq("user_id", userId).in("board_id", boardIds);
+  return new Set((data ?? []).map((row: any) => row.board_id));
+}
+
+export async function toggleBoardLike(boardId: string, userId: string, currentlyLiked: boolean) {
+  const supabase = getDb();
+  if (currentlyLiked) {
+    const { error } = await supabase.from("gift_board_likes").delete().eq("board_id", boardId).eq("user_id", userId);
+    return { liked: false, error };
+  }
+  const { error } = await supabase.from("gift_board_likes").insert({ board_id: boardId, user_id: userId });
+  return { liked: true, error };
+}
+
+export async function getBoardComments(boardId: string) {
+  const supabase = getDb();
+  const { data: comments } = await supabase
+    .from("gift_board_comments")
+    .select("*")
+    .eq("board_id", boardId)
+    .order("created_at", { ascending: true });
+  if (!comments || comments.length === 0) return [];
+
+  const userIds = Array.from(new Set(comments.map((c: any) => c.user_id).filter(Boolean)));
+  const { data: profiles } = userIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
+    : { data: [] as { id: string; full_name: string | null }[] };
+  const nameById = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
+
+  return comments.map((c: any) => ({ ...c, author_name: nameById.get(c.user_id) ?? "Givit user" }));
+}
+
+export async function addBoardComment(boardId: string, userId: string, message: string) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("gift_board_comments").insert({ board_id: boardId, user_id: userId, message }).select().single();
+  return { data, error };
+}

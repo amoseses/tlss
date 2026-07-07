@@ -549,3 +549,41 @@ CREATE OR REPLACE VIEW analytics_pending_submissions AS
 SELECT COUNT(*) as pending_count
 FROM product_submissions
 WHERE status = 'pending';
+
+-- ============================================================
+-- GIFT BOARD LIKES + COMMENTS (run this block to add board
+-- likes/comments support; safe to re-run, all statements are
+-- idempotent via IF NOT EXISTS)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS gift_board_likes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  board_id UUID NOT NULL REFERENCES gift_boards(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (board_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS gift_board_comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  board_id UUID NOT NULL REFERENCES gift_boards(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE gift_board_likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gift_board_comments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view board likes" ON gift_board_likes;
+CREATE POLICY "Anyone can view board likes" ON gift_board_likes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can like boards" ON gift_board_likes;
+CREATE POLICY "Users can like boards" ON gift_board_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can remove their own like" ON gift_board_likes;
+CREATE POLICY "Users can remove their own like" ON gift_board_likes FOR DELETE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Anyone can view board comments" ON gift_board_comments;
+CREATE POLICY "Anyone can view board comments" ON gift_board_comments FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can comment on boards" ON gift_board_comments;
+CREATE POLICY "Users can comment on boards" ON gift_board_comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete their own comments" ON gift_board_comments;
+CREATE POLICY "Users can delete their own comments" ON gift_board_comments FOR DELETE USING (auth.uid() = user_id);

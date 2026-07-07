@@ -9,13 +9,12 @@ import { resolveProductImageSrc } from "@/lib/product-photo";
 import { useAuth } from "@/lib/auth/use-auth";
 import {
   mergeBoardLikes,
-  persistBoardLike,
   readUserBoards,
   writeUserBoards,
   type BoardImage,
   type UserBoard,
 } from "@/lib/boards/storage";
-import { getPublicBoards, getUserBoardsFromDb, saveBoardsToDb, addBoardItem, saveBoard } from "@/lib/supabase/db";
+import { getPublicBoards, getUserBoardsFromDb, saveBoardsToDb, addBoardItem, saveBoard, getBoardComments, addBoardComment, toggleBoardLike, getBoardLikeCounts, getUserLikedBoardIds } from "@/lib/supabase/db";
 
 const LIKED_BOARDS_KEY = "givit-liked-board-ids";
 
@@ -201,11 +200,11 @@ function BoardCard({ board, onOpen, onDelete }: { board: UserBoard; onOpen: () =
 function PinterestGrid({ images, onRemove }: { images: BoardImage[]; onRemove?: (id: string) => void }) {
   if (images.length === 0) return null;
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 [column-fill:balance]">
       {images.map((img) => (
-        <article key={img.id} className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-            <img src={img.src} alt={img.caption || "Gift board product"} className="h-full w-full object-cover transition group-hover:scale-105" />
+        <article key={img.id} className="group mb-4 break-inside-avoid overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div className="relative overflow-hidden bg-muted">
+            <img src={img.src} alt={img.caption || "Gift board product"} className="w-full object-cover transition group-hover:scale-105" loading="lazy" />
             {onRemove && (
               <button type="button" onClick={() => onRemove(img.id)} className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white transition hover:bg-black/75">
                 <X className="h-3 w-3" />
@@ -223,6 +222,41 @@ function PinterestGrid({ images, onRemove }: { images: BoardImage[]; onRemove?: 
   );
 }
 
+function BoardComments({ comments, onSubmit, canComment }: { comments: any[]; onSubmit: (message: string) => void; canComment: boolean }) {
+  const [text, setText] = useState("");
+  return (
+    <div className="mt-6 rounded-xl border border-border bg-card p-4">
+      <h3 className="mb-3 text-sm font-bold text-givit-ink">Comments {comments.length > 0 && `(${comments.length})`}</h3>
+      {comments.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No comments yet — be the first to say something.</p>
+      ) : (
+        <div className="mb-4 space-y-3">
+          {comments.map((c) => (
+            <div key={c.id} className="rounded-lg bg-muted/50 p-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-givit-ink">{c.author_name}</span>
+                <span className="text-[11px] text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
+              </div>
+              <p className="mt-1 text-muted-foreground">{c.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {canComment ? (
+        <form
+          onSubmit={(e) => { e.preventDefault(); if (!text.trim()) return; onSubmit(text.trim()); setText(""); }}
+          className="flex gap-2"
+        >
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a comment..." className="h-10 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+          <Button type="submit" size="sm" disabled={!text.trim()} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">Post</Button>
+        </form>
+      ) : (
+        <p className="text-xs text-muted-foreground"><Link href="/login" className="font-semibold text-givit-ember hover:underline">Log in</Link> to leave a comment.</p>
+      )}
+    </div>
+  );
+}
+
 export default function BoardsPage() {
   const { user, loading: authLoading } = useAuth();
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
@@ -234,6 +268,8 @@ export default function BoardsPage() {
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [boardSearchQuery, setBoardSearchQuery] = useState("");
+  const [openBoardLikes, setOpenBoardLikes] = useState({ count: 0, liked: false });
+  const [openBoardComments, setOpenBoardComments] = useState<any[]>([]);
 
   useEffect(() => {
     async function loadBoards() {
@@ -270,6 +306,42 @@ export default function BoardsPage() {
     }
     loadUserBoards();
   }, [user, authLoading]);
+
+  // Load real (server-side) like count/status and comments whenever a board is opened.
+  useEffect(() => {
+    if (!selectedBoardId) { setOpenBoardLikes({ count: 0, liked: false }); setOpenBoardComments([]); return; }
+    let cancelled = false;
+    async function loadEngagement() {
+      try {
+        const [counts, liked, comments] = await Promise.all([
+          getBoardLikeCounts([selectedBoardId as string]),
+          user ? getUserLikedBoardIds(user.id, [selectedBoardId as string]) : Promise.resolve(new Set<string>()),
+          getBoardComments(selectedBoardId as string),
+        ]);
+        if (cancelled) return;
+        setOpenBoardLikes({ count: counts[selectedBoardId as string] ?? 0, liked: liked.has(selectedBoardId as string) });
+        setOpenBoardComments(comments);
+      } catch (err) {
+        console.error("Failed to load board engagement:", err);
+      }
+    }
+    void loadEngagement();
+    return () => { cancelled = true; };
+  }, [selectedBoardId, user]);
+
+  async function toggleOpenBoardLike() {
+    if (!user || !selectedBoardId) return;
+    const { liked, error } = await toggleBoardLike(selectedBoardId, user.id, openBoardLikes.liked);
+    if (error) return;
+    setOpenBoardLikes((prev) => ({ count: Math.max(0, prev.count + (liked ? 1 : -1)), liked }));
+  }
+
+  async function submitOpenBoardComment(message: string) {
+    if (!user || !selectedBoardId) return;
+    const { data, error } = await addBoardComment(selectedBoardId, user.id, message);
+    if (error || !data) return;
+    setOpenBoardComments((prev) => [...prev, { ...data, author_name: "You" }]);
+  }
 
   async function persistBoards(boards: UserBoard[]) {
     setUserBoards(boards);
@@ -308,18 +380,6 @@ export default function BoardsPage() {
   function deleteBoard(id: string) {
     persistBoards(userBoards.filter((b) => b.id !== id));
     if (selectedBoardId === id) setSelectedBoardId(null);
-  }
-
-  function toggleLike(id: string) {
-    const board = userBoards.find((b) => b.id === id);
-    if (!board) return;
-    const liked = !board.liked;
-    const likes = liked ? board.likes + 1 : Math.max(0, board.likes - 1);
-    const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
-    if (liked) likedIds.add(id); else likedIds.delete(id);
-    window.localStorage.setItem(LIKED_BOARDS_KEY, JSON.stringify([...likedIds]));
-    persistBoardLike(id, liked, likes);
-    persistBoards(userBoards.map((b) => b.id === id ? { ...b, liked, likes } : b));
   }
 
   async function addImageToBoard(img: BoardImage) {
@@ -479,8 +539,25 @@ export default function BoardsPage() {
       {selectedBoard && selectedBoardId && activeTab === "public" ? (
         <div className="mb-6 rounded-xl border border-border bg-card p-5">
           <button type="button" onClick={() => setSelectedBoardId(null)} className="mb-4 text-sm font-semibold text-givit-ember hover:underline">← Back to public boards</button>
-          <div className="mb-4 flex items-center gap-3">{selectedBoard.coverImage && <img src={selectedBoard.coverImage} alt="" className="h-14 w-14 rounded-lg object-cover" />}<div><h2 className="font-serif text-2xl font-bold text-givit-ink">{selectedBoard.title}</h2>{selectedBoard.description && <p className="text-sm text-muted-foreground">{selectedBoard.description}</p>}</div></div>
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {selectedBoard.coverImage && <img src={selectedBoard.coverImage} alt="" className="h-14 w-14 rounded-lg object-cover" />}
+              <div><h2 className="font-serif text-2xl font-bold text-givit-ink">{selectedBoard.title}</h2>{selectedBoard.description && <p className="text-sm text-muted-foreground">{selectedBoard.description}</p>}</div>
+            </div>
+            {user ? (
+              <button type="button" onClick={toggleOpenBoardLike}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${openBoardLikes.liked ? "border-rose-400/40 bg-rose-500/10 text-rose-400" : "border-border text-muted-foreground hover:bg-muted"}`}
+              >
+                <Heart className={`h-4 w-4 ${openBoardLikes.liked ? "fill-current" : ""}`} /> {openBoardLikes.count > 0 ? openBoardLikes.count : "Like"}
+              </button>
+            ) : (
+              <div className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground">
+                <Heart className="h-4 w-4" /> {openBoardLikes.count > 0 ? openBoardLikes.count : "Like"}
+              </div>
+            )}
+          </div>
           {selectedBoard.images.length > 0 ? <PinterestGrid images={selectedBoard.images} /> : <p className="text-sm text-muted-foreground">No items yet.</p>}
+          <BoardComments comments={openBoardComments} onSubmit={submitOpenBoardComment} canComment={Boolean(user)} />
         </div>
       ) : activeTab === "public" && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
@@ -513,42 +590,33 @@ export default function BoardsPage() {
             </div>
           ) : selectedBoard && selectedBoardId ? (
             <>
-              <div className="mb-6 flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-3">
-                    {selectedBoard.coverImage && (
-                      <img src={selectedBoard.coverImage} alt="" className="h-12 w-12 rounded-lg object-cover" />
-                    )}
-                    <div>
-                      <h2 className="font-serif text-2xl font-bold text-givit-ink">{selectedBoard.title}</h2>
-                      {selectedBoard.description && <p className="text-sm text-muted-foreground">{selectedBoard.description}</p>}
-                    </div>
+              <button type="button" onClick={() => setSelectedBoardId(null)} className="mb-4 text-sm font-semibold text-givit-ember hover:underline">← Back to my boards</button>
+              <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  {selectedBoard.coverImage && (
+                    <img src={selectedBoard.coverImage} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                  )}
+                  <div>
+                    <h2 className="font-serif text-2xl font-bold text-givit-ink">{selectedBoard.title}</h2>
+                    {selectedBoard.description && <p className="text-sm text-muted-foreground">{selectedBoard.description}</p>}
                   </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <button type="button" onClick={() => toggleLike(selectedBoard.id)}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${selectedBoard.liked ? "border-rose-300 bg-rose-50 text-rose-600" : "border-border hover:bg-muted text-muted-foreground"}`}
-                  >
-                    <Heart className={`h-4 w-4 ${selectedBoard.liked ? "fill-current" : ""}`} />
-                    {selectedBoard.likes > 0 ? selectedBoard.likes : "Like"}
-                  </button>
-                  <Button onClick={saveAllBoards} size="sm" variant="outline" className="rounded-lg gap-1.5">
-                    <Bookmark className="h-3.5 w-3.5" /> Save all
-                  </Button>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <div className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground">
+                    <Heart className={openBoardLikes.count > 0 ? "h-4 w-4 fill-rose-400 text-rose-400" : "h-4 w-4"} /> {openBoardLikes.count}
+                  </div>
                   <Button onClick={() => setShowAddProduct(true)} size="sm" className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover gap-1.5">
                     <Sparkles className="h-3.5 w-3.5" /> Add products
                   </Button>
-                  <Button onClick={() => setShowAddImage(true)} size="sm" variant="outline" className="rounded-lg gap-1.5">
-                    <ImagePlus className="h-3.5 w-3.5" /> Add custom product
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedBoardId(null); }}
-                    className="rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
-                  >
-                    Back to all
-                  </button>
                 </div>
+              </div>
+              <div className="mb-6 flex flex-wrap gap-2">
+                <Button onClick={() => setShowAddImage(true)} size="sm" variant="outline" className="rounded-lg gap-1.5">
+                  <ImagePlus className="h-3.5 w-3.5" /> Add custom product
+                </Button>
+                <Button onClick={saveAllBoards} size="sm" variant="outline" className="rounded-lg gap-1.5">
+                  <Bookmark className="h-3.5 w-3.5" /> Save all
+                </Button>
               </div>
 
               {selectedBoard.images.length === 0 ? (
