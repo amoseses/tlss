@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { extractProductFromUrl, getImportedCount, saveImportedProduct } from "@/lib/admin/imported-products";
-import { getAnalytics, getProductSubmissions, updateProductSubmission, getProducts, upsertProduct, deleteProduct, getAllProfiles, getOrders, trackEvent } from "@/lib/supabase/db";
+import { getAnalytics, getProductSubmissions, updateProductSubmission, getProducts, upsertProduct, deleteProduct, getAllProfiles, getOrders, trackEvent, getAllAutoGiftOrdersFromDb, updateAutoGiftOrderStatusInDb } from "@/lib/supabase/db";
 import { getAutoGiftOrders } from "@/lib/autogift/survey";
 import { getLocalErrors, getLocalEvents } from "@/lib/monitoring";
 
@@ -53,7 +53,7 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [allOrders, setAllOrders] = useState<any[]>([]);
-  const [autoGiftOrders, setAutoGiftOrders] = useState<ReturnType<typeof getAutoGiftOrders>>([]);
+  const [autoGiftOrders, setAutoGiftOrders] = useState<any[]>([]);
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [monitoringErrors, setMonitoringErrors] = useState<any[]>([]);
   const [localEvents, setLocalEvents] = useState<any[]>([]);
@@ -95,7 +95,31 @@ export default function AdminPage() {
       } else if (activeTab === "orders") {
         const data = await getOrders({ limit: 50 });
         setAllOrders(data);
-        setAutoGiftOrders(getAutoGiftOrders());
+
+        // AutoGift orders live in Supabase (autogift_orders) once a customer
+        // places one while logged in, so admin sees them regardless of
+        // browser/device. Fall back to this browser's localStorage copies
+        // too (e.g. orders placed while testing without an account) and
+        // dedupe by id, preferring the DB version when both exist.
+        const dbOrders = (await getAllAutoGiftOrdersFromDb()).map((o: any) => ({
+          id: o.id,
+          recipientName: o.recipient_name,
+          occasion: o.occasion,
+          items: o.items ?? [],
+          subtotal: o.subtotal_cents,
+          serviceFee: o.service_fee_cents,
+          total: o.total_cents,
+          status: o.status,
+          chargeNote: o.charge_note,
+          shippingAddress: o.shipping_address,
+          cardMessage: o.card_message,
+          customerNotes: o.customer_notes,
+          adminNotes: o.admin_notes,
+          createdAt: o.created_at,
+        }));
+        const localOrders = getAutoGiftOrders();
+        const merged = new Map([...localOrders, ...dbOrders].map((o: any) => [o.id, o]));
+        setAutoGiftOrders(Array.from(merged.values()));
       } else if (activeTab === "users") {
         const data = await getAllProfiles();
         setAllProfiles(data);
@@ -647,8 +671,34 @@ export default function AdminPage() {
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{order.status}</span>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">Ship to {order.shippingAddress.line1}, {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Items: {order.items.map((item) => `${item.productName} ($${(item.price / 100).toFixed(2)})`).join(", ")}</p>
-                    <p className="mt-2 font-semibold">Charge saved card: ${(order.total / 100).toFixed(2)}</p>
+                    <ul className="mt-1 space-y-0.5">
+                      {order.items.map((item: any, idx: number) => (
+                        <li key={idx} className="text-xs text-muted-foreground">
+                          {item.productUrl ? (
+                            <a href={item.productUrl} target="_blank" rel="noreferrer" className="font-medium text-givit-ember underline">{item.productName}</a>
+                          ) : (
+                            <span className="font-medium text-foreground">{item.productName}</span>
+                          )}
+                          {" "}(${(item.price / 100).toFixed(2)}){item.notes ? ` — ${item.notes}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                    {order.customerNotes && <p className="mt-2 rounded bg-muted/50 p-2 text-xs text-muted-foreground"><span className="font-semibold text-givit-ink">Customer note: </span>{order.customerNotes}</p>}
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-semibold">Charge saved card: ${(order.total / 100).toFixed(2)}</p>
+                      {order.status !== "admin_fulfillment" && order.status !== "shipped" && order.status !== "delivered" && (
+                        <Button
+                          size="sm"
+                          className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"
+                          onClick={async () => {
+                            await updateAutoGiftOrderStatusInDb(order.id, "admin_fulfillment");
+                            setAutoGiftOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: "admin_fulfillment" } : o));
+                          }}
+                        >
+                          Mark as fulfilling
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

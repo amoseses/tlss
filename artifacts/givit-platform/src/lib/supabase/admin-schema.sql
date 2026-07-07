@@ -587,3 +587,44 @@ DROP POLICY IF EXISTS "Users can comment on boards" ON gift_board_comments;
 CREATE POLICY "Users can comment on boards" ON gift_board_comments FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can delete their own comments" ON gift_board_comments;
 CREATE POLICY "Users can delete their own comments" ON gift_board_comments FOR DELETE USING (auth.uid() = user_id);
+
+-- ============================================================
+-- AUTOGIFT ORDERS (run this block so AutoGift orders reach the
+-- admin fulfillment queue for every customer, not just orders
+-- placed in the admin's own browser. Idempotent / safe to re-run.
+-- Items are stored as JSONB since each item already carries its
+-- own name/price/productUrl/image from the AI suggestion step.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS autogift_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  recipient_name TEXT NOT NULL,
+  occasion TEXT NOT NULL,
+  items JSONB NOT NULL DEFAULT '[]'::jsonb,
+  subtotal_cents INTEGER NOT NULL,
+  service_fee_cents INTEGER NOT NULL,
+  total_cents INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending_approval' CHECK (status IN ('pending_approval', 'approved', 'charged', 'admin_fulfillment', 'ordered', 'shipped', 'delivered', 'cancelled')),
+  charge_note TEXT,
+  shipping_address JSONB NOT NULL DEFAULT '{}'::jsonb,
+  card_message TEXT,
+  customer_notes TEXT,
+  admin_notes TEXT,
+  approved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE autogift_orders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own autogift orders" ON autogift_orders;
+CREATE POLICY "Users can view their own autogift orders" ON autogift_orders FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can create their own autogift orders" ON autogift_orders;
+CREATE POLICY "Users can create their own autogift orders" ON autogift_orders FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Admins can view all autogift orders" ON autogift_orders;
+CREATE POLICY "Admins can view all autogift orders" ON autogift_orders FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+DROP POLICY IF EXISTS "Admins can update all autogift orders" ON autogift_orders;
+CREATE POLICY "Admins can update all autogift orders" ON autogift_orders FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);

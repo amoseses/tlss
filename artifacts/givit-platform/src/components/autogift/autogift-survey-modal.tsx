@@ -4,6 +4,8 @@ import { X, Sparkles, CheckCircle, ThumbsDown, ThumbsUp } from "lucide-react";
 import { respondToSurvey, generateGiftBundles, regenerateBundleItem, createAutoGiftOrder, type SurveyResponse, type GiftSuggestion, type AutoGiftBundle, type AutoGiftOrderItem } from "@/lib/autogift/survey";
 import { personalizeBundlesWithAI } from "@/lib/autogift/ai-personalize";
 import { trackUserEvent } from "@/lib/monitoring";
+import { useAuth } from "@/lib/auth/use-auth";
+import { saveAutoGiftOrderToDb } from "@/lib/supabase/db";
 
 const INTEREST_OPTIONS = [
   "tech", "reading", "cooking", "fitness", "music", "coffee",
@@ -29,6 +31,7 @@ export function GiftSurveyModal({
   occasionDate: string;
   onClose: () => void;
 }) {
+  const { user } = useAuth();
   const [step, setStep] = useState<"survey" | "suggestions" | "review" | "done">("survey");
   const [interests, setInterests] = useState<string[]>([]);
   const [budget, setBudget] = useState(50);
@@ -38,6 +41,8 @@ export function GiftSurveyModal({
   const [bundles, setBundles] = useState<AutoGiftBundle[]>([]);
   const [selectedBundleId, setSelectedBundleId] = useState("");
   const [cardMessage, setCardMessage] = useState("");
+  const [customerComment, setCustomerComment] = useState("");
+  const [placingOrder, setPlacingOrder] = useState(false);
   const [addressOptions, setAddressOptions] = useState<Array<{ label?: string; line1: string; city: string; state: string; zip: string }>>([]);
   const [address, setAddress] = useState({ label: "", line1: "", city: "", state: "", zip: "" });
   const [page, setPage] = useState(0);
@@ -125,7 +130,7 @@ export function GiftSurveyModal({
     trackUserEvent("autogift_item_feedback", { itemName: item.name, category: item.category, liked });
   }
 
-  function handlePlaceOrder() {
+  async function handlePlaceOrder() {
     const selectedItems = selectedBundle.items
       .map(s => ({
         productName: s.name,
@@ -138,14 +143,38 @@ export function GiftSurveyModal({
       }));
 
     trackUserEvent("autogift_order_approved", { recipientName, occasion, itemCount: selectedItems.length, total: grandTotal });
-    createAutoGiftOrder({
-      userId: "local-user",
+    setPlacingOrder(true);
+    const order = createAutoGiftOrder({
+      userId: user?.id ?? "local-user",
       recipientName,
       occasion,
       items: selectedItems,
       shippingAddress: { ...address, line2: "" },
       cardMessage,
     });
+
+    // Sync to Supabase so the order reaches the admin fulfillment queue
+    // regardless of which browser/device the admin checks from.
+    if (user) {
+      const { error } = await saveAutoGiftOrderToDb({
+        id: order.id,
+        userId: user.id,
+        recipientName: order.recipientName,
+        occasion: order.occasion,
+        items: order.items,
+        subtotal: order.subtotal,
+        serviceFee: order.serviceFee,
+        total: order.total,
+        status: order.status,
+        chargeNote: order.chargeNote,
+        shippingAddress: order.shippingAddress,
+        cardMessage: order.cardMessage,
+        customerNotes: customerComment.trim() || undefined,
+      });
+      if (error) console.error("Failed to sync AutoGift order to admin queue:", error.message);
+    }
+
+    setPlacingOrder(false);
     setStep("done");
   }
 
@@ -337,6 +366,17 @@ export function GiftSurveyModal({
                 />
               </div>
 
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Anything else for the concierge? (optional)</label>
+                <textarea
+                  value={customerComment}
+                  onChange={(e) => setCustomerComment(e.target.value)}
+                  rows={2}
+                  placeholder="Delivery timing, allergies, gift-wrap preference, anything the admin should know..."
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
+              </div>
+
               <div className="rounded-lg bg-givit-ember/5 border border-givit-ember/20 p-4 space-y-2">
                 <p className="text-sm font-semibold text-givit-ink">Order summary</p>
                 {selectedBundle.items.map(s => (
@@ -355,12 +395,12 @@ export function GiftSurveyModal({
                 <Button variant="outline" className="flex-1 rounded-lg" onClick={() => setStep("suggestions")}>
                   Back
                 </Button>
-                <Button 
+                <Button
                   onClick={handlePlaceOrder}
-                  disabled={!address.line1 || !address.city || !address.state || !address.zip}
+                  disabled={!address.line1 || !address.city || !address.state || !address.zip || placingOrder}
                   className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"
                 >
-                  <Sparkles className="h-4 w-4" /> Approve & send to admin — ${(grandTotal / 100).toFixed(2)}
+                  <Sparkles className="h-4 w-4" /> {placingOrder ? "Sending to admin…" : `Approve & send to admin — $${(grandTotal / 100).toFixed(2)}`}
                 </Button>
               </div>
             </div>

@@ -427,3 +427,56 @@ export async function addBoardComment(boardId: string, userId: string, message: 
   const { data, error } = await supabase.from("gift_board_comments").insert({ board_id: boardId, user_id: userId, message }).select().single();
   return { data, error };
 }
+
+// ============================================================
+// AUTOGIFT ORDERS
+// ============================================================
+export async function saveAutoGiftOrderToDb(order: {
+  id: string;
+  userId: string;
+  recipientName: string;
+  occasion: string;
+  items: unknown;
+  subtotal: number;
+  serviceFee: number;
+  total: number;
+  status: string;
+  chargeNote?: string;
+  shippingAddress: unknown;
+  cardMessage: string;
+  customerNotes?: string;
+}) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("autogift_orders").insert({
+    id: order.id,
+    user_id: order.userId,
+    recipient_name: order.recipientName,
+    occasion: order.occasion,
+    items: order.items,
+    subtotal_cents: order.subtotal,
+    service_fee_cents: order.serviceFee,
+    total_cents: order.total,
+    status: order.status,
+    charge_note: order.chargeNote ?? null,
+    shipping_address: order.shippingAddress,
+    card_message: order.cardMessage,
+    customer_notes: order.customerNotes ?? null,
+  }).select().single();
+  return { data, error };
+}
+
+export async function getAllAutoGiftOrdersFromDb() {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("autogift_orders").select("*").order("created_at", { ascending: false });
+  if (error) { console.warn("[AutoGift] Could not load orders from DB (has the migration run?):", error.message); return []; }
+  return data ?? [];
+}
+
+export async function updateAutoGiftOrderStatusInDb(orderId: string, status: string, adminNotes?: string) {
+  const supabase = getDb();
+  const updates: Record<string, unknown> = { status };
+  if (adminNotes !== undefined) updates.admin_notes = adminNotes;
+  if (status === "admin_fulfillment") updates.approved_at = new Date().toISOString();
+  const { error } = await supabase.from("autogift_orders").update(updates).eq("id", orderId);
+  return { error };
+}
