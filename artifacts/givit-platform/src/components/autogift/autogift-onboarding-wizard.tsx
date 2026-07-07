@@ -61,8 +61,22 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
     else if (step === "recipient") setStep("payment");
   }
 
+  // Address and payment can be filled in later from /account or at order
+  // approval time — the only thing AutoGift actually needs up front is a
+  // recipient and a date, so those two steps are skippable.
+  function skip() {
+    setError("");
+    if (step === "address") setStep("payment");
+    else if (step === "payment") setStep("recipient");
+  }
+
   async function finish() {
-    if (!user) return;
+    if (!user) {
+      // Anonymous "tour" — nothing to persist, just close and nudge to sign up.
+      onClose();
+      navigate("/signup?next=/concierge");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -84,13 +98,16 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
         });
       }
       window.localStorage.setItem("givit-autogift-addresses", JSON.stringify(validAddresses));
-      await saveUserPaymentMethod({
-        user_id: user.id,
-        stripe_payment_method_id: `pm_demo_${cardNumber.replace(/\D/g, "").slice(-8)}`,
-        card_brand: detectCardBrand(cardNumber),
-        card_last4: cardNumber.replace(/\D/g, "").slice(-4),
-        is_default: true,
-      });
+      const cardDigits = cardNumber.replace(/\D/g, "");
+      if (cardName.trim() && cardDigits.length >= 13) {
+        await saveUserPaymentMethod({
+          user_id: user.id,
+          stripe_payment_method_id: `pm_demo_${cardDigits.slice(-8)}`,
+          card_brand: detectCardBrand(cardNumber),
+          card_last4: cardDigits.slice(-4),
+          is_default: true,
+        });
+      }
       window.localStorage.setItem("givit-autogift-onboarded", "1");
       for (const draft of recipients.filter((r) => r.name.trim() && r.occasionDate)) {
         const { data: recipient } = await saveGiftRecipient({
@@ -263,7 +280,12 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                 </Button>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {(step === "address" || step === "payment") && (
+                <button type="button" onClick={skip} className="text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline">
+                  Skip for now
+                </button>
+              )}
               {step !== "done" ? (
                 <Button onClick={next} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
                   Continue <ArrowRight className="ml-1 h-4 w-4" />

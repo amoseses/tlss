@@ -396,6 +396,12 @@ export default function ConciergePage() {
   if (!user) {
     return (
       <PageShell>
+        {showOnboarding && (
+          <AutoGiftOnboardingWizard
+            required={false}
+            onClose={() => setShowOnboarding(false)}
+          />
+        )}
         <div className="relative overflow-hidden rounded-2xl bg-black px-6 py-16 text-center sm:px-12">
           <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-givit-ember/25 blur-3xl" />
           <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-givit-coral/20 blur-3xl" />
