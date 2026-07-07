@@ -15,7 +15,7 @@ Open http://localhost:3000
 
 ### 1. Environment Variables
 
-Copy `.env.local` and ensure **no leading spaces** in any value (especially `VITE_SUPABASE_URL`):
+Copy `.env.local` and ensure **no leading spaces** in any value (especially `VITE_SUPABASE_URL`). `.env.local` is git-ignored — it is **not** committed, so set the same values in Vercel too (see §3).
 
 | Variable | Description | Example |
 |----------|-------------|---------|
@@ -26,13 +26,23 @@ Copy `.env.local` and ensure **no leading spaces** in any value (especially `VIT
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | `whsec_...` |
 | `SHIPPO_API_TOKEN` | Shippo API token (shipping) | `shippo_...` |
 | `NEXT_PUBLIC_APP_URL` | Base URL of your deployed app | `https://your-app.vercel.app` |
+| `OPENAI_API_KEY` | Powers Givit AI (gift finder, AutoGift suggestions, admin bulk-import extraction). Server-side only — never add a `VITE_`/`NEXT_PUBLIC_` prefix or it'll ship to every visitor's browser. | `sk-proj-...` |
+| `OPENAI_MODEL` | Optional, defaults to `gpt-4o-mini` | `gpt-4o-mini` |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push keys (phone/desktop notifications). Generate your own pair with `node -e "console.log(require('web-push').generateVAPIDKeys())"` — the private key must stay server-only. `VAPID_SUBJECT` is a `mailto:` address the push service can contact if there's abuse. | see below |
+| `VITE_VAPID_PUBLIC_KEY` | Same value as `VAPID_PUBLIC_KEY`, but `VITE_`-prefixed so the browser can subscribe. This one is meant to be public. | same as above |
+
+> ⚠️ **Billing note:** the OpenAI key only *works* once the OpenAI account behind it has billing/credits set up (platform.openai.com/account/billing). Without that, every AI call fails with `insufficient_quota` — the app is designed to fail soft (falls back to the non-AI rule-based matching) rather than break, so this won't crash anything, but AI features won't actually run until billing is added.
 
 ### 2. Supabase Setup
 
 1. Create a project at https://supabase.com
-2. Run all SQL from `artifacts/givit-platform/src/lib/supabase/admin-schema.sql` in the Supabase SQL Editor
+2. Run all SQL from `artifacts/givit-platform/src/lib/supabase/admin-schema.sql` in the Supabase SQL Editor. **If you already ran this once**, re-run the whole file anyway — every block added since is idempotent (`CREATE TABLE IF NOT EXISTS`, `DROP POLICY IF EXISTS` + recreate), so it's safe to run repeatedly. This file now also creates:
+   - `gift_board_likes` / `gift_board_comments` — real per-account board likes and comments
+   - `autogift_orders` — AutoGift orders now sync here so admin sees every customer's order, not just ones placed in admin's own browser
+   - `push_subscriptions` — phone/desktop push notification subscriptions
+   - Until you run the updated file, those three features degrade gracefully (empty likes/comments, admin only sees local-browser orders, no push) rather than erroring.
 3. Enable **Email Auth** in Authentication → Providers (disable "Confirm email" for testing)
-4. Upload your logo to `artifacts/givit-platform/public/logo.png`
+4. Upload your logo to `artifacts/givit-platform/public/` (the header currently points at `Screenshot 2026-06-23 095149.png` — replace that file or update the `src` in `site-header.tsx`/`auth-shell.tsx`/`site-footer.tsx`)
 
 ### 3. Vercel Deployment (Important!)
 
@@ -47,6 +57,18 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 ```
 
 **Critical:** `VITE_SUPABASE_URL` must be exactly `https://zbhumepxaywxnluapcbs.supabase.co` with **no trailing slash** and **no leading space**. A leading space will cause session cookies to fail and users won't be able to log in.
+
+**Also add these (new since AI/push were wired in), or the `/api` functions will 500 in production even though they work locally:**
+```
+OPENAI_API_KEY=sk-proj-...
+OPENAI_MODEL=gpt-4o-mini
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:you@example.com
+VITE_VAPID_PUBLIC_KEY=...          (same value as VAPID_PUBLIC_KEY)
+```
+
+> 🔴 **Security reminder:** an earlier commit in this repo's history accidentally included live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `SHIPPO_API_TOKEN` values before `.env.local` was git-ignored. If you haven't already, **rotate all three in the Stripe and Shippo dashboards** — removing the file from the latest commit doesn't invalidate keys still readable in git history/GitHub.
 
 ### 4. AutoGift System
 
@@ -94,6 +116,31 @@ Use this checklist to test the local demo flow end-to-end:
 
 For production email testing, point your scheduler/email worker at rows in `gift_notifications` where `scheduled_for <= now()`, `status = 'scheduled'`, and `channel = 'email'`, then mark successful sends as `sent`.
 
+### 5. Givit AI (serverless functions)
+
+The app is a static Vite SPA with no built-in backend, so AI calls (which need a secret OpenAI key) live in a small `/api` directory at the repo root, deployed as Vercel serverless functions:
+
+- `api/ai/gift-chat.ts` — powers the `/gift` chat finder
+- `api/ai/autogift-suggestions.ts` — powers AutoGift's survey-to-suggestions step
+- `api/ai/extract-product.ts` — powers admin's "paste a link/spreadsheet of links, get products" bulk import
+- `api/photo.ts` — resolves a real product photo from a page URL (via Microlink) and redirects the browser to it, used so marketplace/submitted-product images are actual scraped photos instead of stock/AI-looking placeholders
+- `api/push/send.ts` — sends a Web Push notification to a saved subscription
+
+Locally, `pnpm run dev` mirrors all of these through a Vite dev-server middleware (see `aiApiDevMiddleware` in `vite.config.ts`) so you get identical behavior without running `vercel dev`. In production, Vercel just picks the files up automatically — no extra config needed beyond the env vars in §1/§3.
+
+Every AI call is constrained to **only pick from a list of real candidate products/ids you already have** — it's never allowed to invent a product, price, or link, so a bad AI response can only mean "picked a worse gift," never a broken checkout link. If `OPENAI_API_KEY` is missing or the OpenAI call fails for any reason, each feature falls back to the pre-existing rule-based matching instead of erroring out.
+
+### 6. Push Notifications
+
+Users opt in from `/account` (Notifications card). Test it end-to-end:
+
+1. Run the SQL migration in §2 (creates `push_subscriptions`) if you haven't already.
+2. Add the VAPID env vars from §1 to `.env.local` and restart `pnpm run dev`.
+3. On `/account`, click "Enable notifications" and accept the browser permission prompt.
+4. Use the "Send test notification" button — you should get a real OS-level notification (works even if the browser tab is closed, since it's delivered via the service worker at `public/sw.js`).
+
+Note: nothing in the app currently *triggers* AutoGift reminder pushes/emails on a schedule — sending scheduled reminders (35 days before an occasion) needs an external cron job or scheduler hitting the app on a timer, same limitation that already existed for email reminders before push was added.
+
 ## Key Pages
 
 | Route | Page | Access |
@@ -124,10 +171,13 @@ If users can't log in or sessions don't persist:
 
 ## Architecture
 
-- **Frontend:** React + Vite + TypeScript + Tailwind CSS
+- **Frontend:** React + Vite + TypeScript + Tailwind CSS, with `next-themes` for the light/dark toggle
 - **Routing:** wouter (lightweight)
 - **Auth:** Supabase Auth (email/password)
-- **Data:** LocalStorage (boards, recipients, surveys, orders) + Supabase DB (user profiles, products, orders)
-- **Payments:** Stripe (API keys configured, UI ready)
+- **Data:** LocalStorage (boards, recipients, surveys, some orders) + Supabase DB (user profiles, products, orders, board likes/comments, AutoGift orders, push subscriptions)
+- **AI:** OpenAI (`gpt-4o-mini` by default) via serverless functions under `/api` — see §5 above
+- **Photos:** Microlink (scrapes real og:image metadata from product URLs) via `/api/photo`
+- **Push notifications:** Web Push (VAPID) + a service worker at `public/sw.js` — see §6 above
+- **Payments:** Stripe (API keys configured, UI ready) — checkout itself is not wired up; the business model redirects to the retailer (Amazon, etc.) for affiliate commission rather than taking payment in-app, except for AutoGift concierge orders
 - **Shipping:** Shippo (API key configured)
-- **Deployment:** Vercel (SPA with client-side routing)
+- **Deployment:** Vercel (SPA with client-side routing + `/api` serverless functions)
