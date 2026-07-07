@@ -8,17 +8,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
-import { extractProductFromUrl, getImportedCount, saveImportedProduct } from "@/lib/admin/imported-products";
+import { extractProductWithAI, getImportedCount, saveImportedProduct } from "@/lib/admin/imported-products";
 import { getAnalytics, getProductSubmissions, updateProductSubmission, getProducts, upsertProduct, deleteProduct, getAllProfiles, getOrders, trackEvent, getAllAutoGiftOrdersFromDb, updateAutoGiftOrderStatusInDb } from "@/lib/supabase/db";
 import { getAutoGiftOrders } from "@/lib/autogift/survey";
 import { getLocalErrors, getLocalEvents } from "@/lib/monitoring";
 
 type ParsedRow = { url: string; name: string; brand: string; price: string; category: string; status: "pending" | "processing" | "done" | "error" };
 
-const SAMPLE_CSV = `product_url,name,brand,price,category
-https://amzn.to/example1,AeroPress Coffee Maker,AeroPress,39.99,Kitchen
-https://amzn.to/example2,Leuchtturm1917 Notebook,Leuchtturm,24.99,Writing
-https://amzn.to/example3,Tile Mate Tracker,Tile,24.99,Tech`;
+const SAMPLE_CSV = `product_url
+https://amzn.to/example1
+https://amzn.to/example2
+https://amzn.to/example3`;
 
 function parseCSVRows(text: string): ParsedRow[] {
   const lines = text.trim().split("\n").filter(Boolean);
@@ -157,13 +157,14 @@ export default function AdminPage() {
   async function runProcessing() {
     setProcessing(true);
     setDone(0);
+    // Sequential, not Promise.all: each row hits OpenAI + Microlink, and
+    // firing dozens at once would just rate-limit the whole batch.
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]!;
       if (row.status === "done") continue;
       setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "processing" } : r));
-      await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 400));
       try {
-        const extracted = extractProductFromUrl(row.url, row);
+        const extracted = await extractProductWithAI(row.url, row);
         saveImportedProduct({ ...extracted, status: "done" });
         setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, ...extracted, status: "done" as const } : r));
         setDone((n) => n + 1);
@@ -377,7 +378,7 @@ export default function AdminPage() {
                 <h2 className="font-semibold text-givit-ink">Upload spreadsheet</h2>
               </div>
               <p className="text-sm text-muted-foreground">
-                Upload a <strong>.csv</strong> or <strong>.xlsx</strong> file with columns: <code className="rounded bg-muted px-1 py-0.5 text-xs">product_url</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">name</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">brand</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">price</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">category</code>.
+                A <code className="rounded bg-muted px-1 py-0.5 text-xs">product_url</code> column is all you need — Givit AI reads each page and fills in name, brand, category, and price. Add <code className="rounded bg-muted px-1 py-0.5 text-xs">name</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">brand</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">price</code>, or <code className="rounded bg-muted px-1 py-0.5 text-xs">category</code> columns to override the AI for specific rows.
               </p>
               <div className="rounded-lg border-2 border-dashed border-border/60 p-6 text-center">
                 <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />

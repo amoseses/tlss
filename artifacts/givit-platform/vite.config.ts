@@ -23,6 +23,7 @@ function aiApiDevMiddleware(): Plugin {
     configureServer(server) {
       const handlersUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/handlers.mjs")).href;
       const photoUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/photo.mjs")).href;
+      const extractProductUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/extract-product.mjs")).href;
       server.middlewares.use(async (req, res, next) => {
         if (req.url?.startsWith("/api/photo") && req.method === "GET") {
           try {
@@ -50,7 +51,9 @@ function aiApiDevMiddleware(): Plugin {
               ? await handleAutogiftSuggestions(body)
               : req.url === "/api/ai/gift-chat"
                 ? await handleGiftChat(body)
-                : null;
+                : req.url === "/api/ai/extract-product"
+                  ? await (await import(extractProductUrl)).extractProductWithAI(body?.url)
+                  : null;
           if (!result) {
             res.statusCode = 404;
             res.end(JSON.stringify({ error: "Unknown AI endpoint" }));

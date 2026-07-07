@@ -123,6 +123,37 @@ export function extractProductFromUrl(url: string, hints?: Partial<ImportedProdu
   return { url: normalizeProductUrl(url), name, brand, price, category, imageUrl: hints?.imageUrl || bestProductImageUrl(url) };
 }
 
+/**
+ * Real AI extraction (page metadata + LLM) for admin bulk import — falls
+ * back to the regex/heuristic extractProductFromUrl() above if the AI call
+ * fails or isn't configured, so a bulk import never hard-fails.
+ */
+export async function extractProductWithAI(url: string, hints?: Partial<ImportedProductRow>): Promise<Omit<ImportedProductRow, "status"> & { aiPowered: boolean }> {
+  const fallback = extractProductFromUrl(url, hints);
+  try {
+    const res = await fetch("/api/ai/extract-product", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return { ...fallback, aiPowered: false };
+    const ai = await res.json();
+    return {
+      url: normalizeProductUrl(url),
+      name: hints?.name?.trim() || ai.name || fallback.name,
+      brand: hints?.brand?.trim() || ai.brand || fallback.brand,
+      category: hints?.category?.trim() || ai.category || fallback.category,
+      price: hints?.price?.trim() || ai.price || fallback.price,
+      description: ai.description || undefined,
+      imageUrl: hints?.imageUrl || ai.imageUrl || fallback.imageUrl,
+      aiPowered: true,
+    };
+  } catch {
+    return { ...fallback, aiPowered: false };
+  }
+}
+
 function readStored(): StoredProduct[] {
   if (typeof window === "undefined") return [];
   try {
