@@ -58,50 +58,50 @@
   --font-sans: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", Georgia, ui-serif, serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --background: #121116;
-  --foreground: #f3f0f5;
-  --card: #18171d;
-  --card-foreground: #f3f0f5;
-  --popover: #18171d;
-  --popover-foreground: #f3f0f5;
+  --background: #faf9f7;
+  --foreground: #1a1208;
+  --card: #ffffff;
+  --card-foreground: #1a1208;
+  --popover: #ffffff;
+  --popover-foreground: #1a1208;
 
   --primary: #ff5a3d;
-  --primary-foreground: #150b08;
+  --primary-foreground: #ffffff;
 
-  --secondary: #1f1e24;
-  --secondary-foreground: #f3f0f5;
-  --muted: #1c1b20;
-  --muted-foreground: #9b93a8;
-  --accent: #2a1f30;
-  --accent-foreground: #ffd9c2;
+  --secondary: #f5f1ec;
+  --secondary-foreground: #1a1208;
+  --muted: #f2ede6;
+  --muted-foreground: #6b6558;
+  --accent: #ffe8d9;
+  --accent-foreground: #7c3010;
 
-  --destructive: #ff5470;
-  --border: #29272d;
-  --input: #29272d;
+  --destructive: #dc2626;
+  --border: #e8e2d8;
+  --input: #e8e2d8;
   --ring: #ff5a3d;
 
-  --givit-ink: #f3f0f5;
+  --givit-ink: #1a1208;
   --givit-ember: #ff5a3d;
-  --givit-ember-hover: #ff7a52;
+  --givit-ember-hover: #e84426;
   --givit-coral: #ff2f87;
-  --givit-sand: #241a12;
-  --givit-mist: #18171d;
-  --givit-page: #121116;
+  --givit-sand: #fdf3e4;
+  --givit-mist: #ffffff;
+  --givit-page: #faf9f7;
 
   --chart-1: #ff5a3d;
   --chart-2: #ff2f87;
   --chart-3: #ffb000;
   --chart-4: #a16207;
-  --chart-5: #9b93a8;
+  --chart-5: #6b6558;
   --radius: 0.6rem;
 
-  --sidebar: #18171d;
-  --sidebar-foreground: #f3f0f5;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a1208;
   --sidebar-primary: #ff5a3d;
-  --sidebar-primary-foreground: #150b08;
-  --sidebar-accent: #1f1e24;
-  --sidebar-accent-foreground: #ffd9c2;
-  --sidebar-border: #29272d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f1ec;
+  --sidebar-accent-foreground: #7c3010;
+  --sidebar-border: #e8e2d8;
   --sidebar-ring: #ff5a3d;
 }
 
@@ -154,11 +154,13 @@
   }
   body {
     @apply bg-givit-page text-foreground antialiased;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+  .dark body {
     background-image:
       radial-gradient(1100px 560px at 8% -12%, rgb(255 90 61 / 0.11), transparent 60%),
       radial-gradient(900px 520px at 105% 0%, rgb(255 47 135 / 0.07), transparent 55%);
-    background-attachment: fixed;
-    background-repeat: no-repeat;
   }
   html {
     @apply scroll-smooth;

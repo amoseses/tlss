@@ -3,6 +3,7 @@ import { Bell } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
 import { HeaderSearch } from "@/components/layout/header-search";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { MARKETPLACE_CATEGORIES } from "@/lib/data/marketplace";
 import { useAuth } from "@/lib/auth/use-auth";
 
@@ -23,6 +24,7 @@ export function SiteHeader() {
           </Link>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <ThemeToggle />
             <HeaderProfileButton
               loggedIn={Boolean(user && profile)}
               email={profile?.email}
