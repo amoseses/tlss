@@ -62,6 +62,10 @@ export async function extractProductWithAI(url) {
     price: priceUsd.toFixed(2),
     priceIsEstimate: result?.priceIsEstimate !== false,
     description: typeof result?.description === "string" ? result.description.trim().slice(0, 500) : null,
-    imageUrl: meta?.image?.url ?? null,
+    // No imageUrl here on purpose: the client resolves photos exclusively
+    // through GET /api/photo (see api/_lib/photo.mjs), which redirects to
+    // the real image or 404s cleanly. Handing back Microlink's raw
+    // data.image.url here would let a caller embed it directly, bypassing
+    // that ORB-safe redirect path.
   };
 }

@@ -146,7 +146,9 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
       category: hints?.category?.trim() || ai.category || fallback.category,
       price: hints?.price?.trim() || ai.price || fallback.price,
       description: ai.description || undefined,
-      imageUrl: hints?.imageUrl || ai.imageUrl || fallback.imageUrl,
+      // Always resolved via /api/photo (fallback.imageUrl), never a raw
+      // Microlink URL from the AI response — see extract-product.mjs.
+      imageUrl: hints?.imageUrl || fallback.imageUrl,
       aiPowered: true,
     };
   } catch {
