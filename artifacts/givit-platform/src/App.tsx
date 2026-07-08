@@ -67,7 +67,7 @@ function Router() {
       </main>
       {!isLanding && <SiteFooter />}
       {!isLanding && <LoginPrompt />}
-      {!isLanding && <BetaFeedbackWidget />}
+      <BetaFeedbackWidget />
     </div>
   );
 }
