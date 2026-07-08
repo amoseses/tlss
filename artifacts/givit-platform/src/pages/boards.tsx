@@ -61,7 +61,7 @@ function CreateBoardModal({ onAdd, onClose }: { onAdd: (b: UserBoard) => void; o
       id: crypto.randomUUID(),
       title: title.trim(),
       description: description.trim(),
-      coverImage: coverUrl.trim() || `https://picsum.photos/seed/board-${Date.now()}/400/300`,
+      coverImage: coverUrl.trim() || undefined,
       images: [],
       likes: 0,
       liked: false,
@@ -457,7 +457,16 @@ export default function BoardsPage() {
   }
 
   const selectedBoard = userBoards.find((b) => b.id === selectedBoardId);
-  const publicBoards = userBoards.filter((b) => b.isPublic).map((b) => ({ board: b, score: boardSearchScore(b, boardSearchQuery) })).filter(({ score }) => score > 0).sort((a, b) => b.score - a.score).map(({ board }) => board);
+  // Empty boards aren't useful to anyone browsing public boards — a board
+  // can still have a coverImage here even with zero items, since
+  // CreateBoardModal auto-generates a random placeholder cover when none is
+  // given, so only b.images.length actually reflects real content.
+  const publicBoards = userBoards
+    .filter((b) => b.isPublic && b.images.length > 0)
+    .map((b) => ({ board: b, score: boardSearchScore(b, boardSearchQuery) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(({ board }) => board);
 
   // Filter products based on search
   const filteredProducts = MARKETPLACE_PRODUCTS.filter(p => {

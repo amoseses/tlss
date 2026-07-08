@@ -47,6 +47,11 @@ const TAG_MAP: Record<string, string[]> = {
   godfather: ["family", "keepsake", "tools", "outdoor", "coffee"],
   mentor: ["professional", "office", "coffee", "keepsake", "reading"],
   neighbor: ["neutral", "home", "kitchen", "fun", "lifestyle"],
+  employee: ["professional", "office", "coffee", "milestone", "neutral"],
+  "brother-in-law": ["family", "gaming", "tech", "fitness", "outdoor"],
+  "brother in law": ["family", "gaming", "tech", "fitness", "outdoor"],
+  "sister-in-law": ["family", "beauty", "self care", "creative", "lifestyle"],
+  "sister in law": ["family", "beauty", "self care", "creative", "lifestyle"],
   cooking: ["kitchen", "food", "dessert", "cooking"],
   gardening: ["garden", "plants", "outdoor", "nature"],
   fitness: ["fitness", "wellness", "running", "hydration"],
@@ -59,6 +64,21 @@ const TAG_MAP: Record<string, string[]> = {
   coffee: ["coffee", "kitchen", "desk setup"],
   beauty: ["beauty", "self care", "skincare"],
   pens: ["pens", "writing", "journaling", "office", "school"],
+  hiking: ["outdoor", "adventure", "fitness", "travel"],
+  outdoorsy: ["outdoor", "adventure", "fitness", "travel"],
+  outdoors: ["outdoor", "adventure", "fitness", "travel"],
+  yoga: ["fitness", "wellness", "self care"],
+  running: ["fitness", "wellness", "hydration"],
+  photography: ["art", "creative", "tech", "keepsake"],
+  pets: ["home", "lifestyle", "fun"],
+  wellness: ["wellness", "self care", "fitness", "cozy"],
+  diy: ["creative", "crafts", "art", "home"],
+  "board games": ["fun", "gaming", "entertainment"],
+  wine: ["kitchen", "food", "self care", "lifestyle"],
+  tea: ["kitchen", "cozy", "self care"],
+  hosting: ["home", "kitchen", "lifestyle", "design"],
+  sustainability: ["eco", "home", "lifestyle", "unique"],
+  eco: ["eco", "home", "lifestyle", "unique"],
   birthday: ["birthday", "giftable", "fun"],
   anniversary: ["anniversary", "romantic", "keepsake"],
   christmas: ["christmas", "holiday", "cozy"],
@@ -70,9 +90,16 @@ const TAG_MAP: Record<string, string[]> = {
   luxury: ["premium", "self care", "design"],
   unique: ["unique", "novelty", "creative"],
   cozy: ["cozy", "home", "comfort", "reading"],
+  funny: ["fun", "novelty", "unique", "giftable"],
+  minimal: ["design", "home", "useful", "unique"],
+  minimalist: ["design", "home", "useful", "unique"],
+  introvert: ["cozy", "reading", "self care", "home"],
+  extrovert: ["fun", "unique", "gaming", "lifestyle"],
+  serious: ["professional", "useful", "office", "premium"],
   experience: ["experience", "memories", "date night", "local"],
   "new baby": ["baby", "family", "keepsake", "home"],
   "baby shower": ["baby", "family", "keepsake", "home"],
+  "bridal shower": ["wedding", "home", "romantic", "keepsake"],
   retirement: ["milestone", "keepsake", "self care", "hobby"],
   promotion: ["professional", "office", "milestone", "keepsake"],
   "new job": ["professional", "office", "desk setup", "milestone"],
@@ -83,6 +110,7 @@ const TAG_MAP: Record<string, string[]> = {
   congratulations: ["milestone", "giftable", "keepsake", "fun"],
   engagement: ["romantic", "keepsake", "home", "milestone"],
   valentine: ["romantic", "keepsake", "self care", "date night"],
+  "valentine's day": ["romantic", "keepsake", "self care", "date night"],
   "mother's day": ["parent", "home", "self care", "keepsake"],
   "mothers day": ["parent", "home", "self care", "keepsake"],
   "father's day": ["parent", "tools", "outdoor", "keepsake"],
@@ -90,7 +118,47 @@ const TAG_MAP: Record<string, string[]> = {
   easter: ["family", "fun", "cozy", "giftable"],
   halloween: ["fun", "unique", "giftable", "creative"],
   "new year": ["milestone", "fun", "self care", "giftable"],
+  hanukkah: ["holiday", "cozy", "family", "giftable"],
+  diwali: ["holiday", "cozy", "family", "giftable"],
+  "goodbye gift": ["keepsake", "professional", "milestone", "giftable"],
+  "secret santa": ["fun", "giftable", "unique", "novelty"],
+  "white elephant": ["fun", "giftable", "unique", "novelty"],
+  engraved: ["keepsake", "personalized", "jewelry", "unique"],
+  "engraved gift": ["keepsake", "personalized", "jewelry", "unique"],
+  "personalized jewelry": ["jewelry", "keepsake", "personalized", "beauty"],
+  "custom book": ["reading", "keepsake", "personalized", "writing"],
+  "custom books": ["reading", "keepsake", "personalized", "writing"],
+  "photo gift": ["keepsake", "home", "personalized", "family"],
+  "photo gifts": ["keepsake", "home", "personalized", "family"],
+  handmade: ["creative", "crafts", "unique", "keepsake"],
+  "same-day delivery": ["giftable", "convenient"],
+  "same day delivery": ["giftable", "convenient"],
+  "digital gift": ["tech", "convenient", "giftable"],
+  printable: ["creative", "keepsake", "personalized"],
+  personalized: ["personalized", "keepsake", "unique", "custom"],
+  custom: ["personalized", "keepsake", "unique", "custom"],
 };
+
+const AGE_TAG_MAP: Array<{ pattern: RegExp; tags: string[] }> = [
+  { pattern: /\bteen(?:ager)?s?\b/i, tags: ["gaming", "school", "trendy", "creative"] },
+  { pattern: /\bin (?:their|her|his) (?:early |late )?teens\b/i, tags: ["gaming", "school", "trendy", "creative"] },
+  { pattern: /\bin (?:their|her|his) (?:early |late )?20s\b/i, tags: ["trendy", "lifestyle", "tech", "fun"] },
+  { pattern: /\bin (?:their|her|his) (?:early |late )?30s\b/i, tags: ["home", "lifestyle", "professional", "self care"] },
+  { pattern: /\bin (?:their|her|his) (?:early |late )?40s\b/i, tags: ["home", "self care", "professional", "premium"] },
+  { pattern: /\bin (?:their|her|his) (?:early |late )?50s\b/i, tags: ["home", "self care", "premium", "comfort"] },
+  { pattern: /\bin (?:their|her|his) (?:early |late )?60s\b/i, tags: ["comfort", "home", "self care", "family"] },
+  { pattern: /\b(?:elderly|senior|retiree|in (?:their|her|his) 70s|in (?:their|her|his) 80s)\b/i, tags: ["comfort", "home", "family", "self care"] },
+  { pattern: /\btoddler|preschooler\b/i, tags: ["kid", "toys", "creative"] },
+  { pattern: /\bnewborn|infant\b/i, tags: ["baby", "family", "keepsake"] },
+];
+
+function extractAgeTags(query: string) {
+  const tags = new Set<string>();
+  for (const { pattern, tags: mapped } of AGE_TAG_MAP) {
+    if (pattern.test(query)) mapped.forEach((tag) => tags.add(tag));
+  }
+  return Array.from(tags);
+}
 
 export type LearningProfile = {
   productWeights?: Record<string, number>;
@@ -134,9 +202,10 @@ export type GiftRecommendResponse = {
   needsFollowUp?: boolean;
   tags: string[];
   budget: number | null;
+  context: ParsedContext;
 };
 
-type ParsedContext = {
+export type ParsedContext = {
   recipient: string | null;
   occasion: string | null;
   budget: number | null;
@@ -150,6 +219,7 @@ function extractTags(query: string) {
   for (const [keyword, mappedTags] of Object.entries(TAG_MAP)) {
     if (lower.includes(keyword)) mappedTags.forEach((tag) => tags.add(tag));
   }
+  extractAgeTags(query).forEach((tag) => tags.add(tag));
   return Array.from(tags);
 }
 
@@ -177,22 +247,32 @@ function extractAvoidTerms(query: string) {
   return avoidMatch[1].split(/,| and | or |\//).map((term) => term.trim()).filter((term) => term.length > 2);
 }
 
+const OCCASION_WORDS = "birthday|anniversary|christmas|graduation|wedding|holiday|housewarming|thank you|valentine's day|valentine|new baby|baby shower|bridal shower|retirement|promotion|new job|sympathy|condolence|get well|congratulations|engagement|mother's day|mothers day|father's day|fathers day|easter|halloween|new year|hanukkah|diwali|goodbye gift|secret santa|white elephant";
+
+const RECIPIENT_KEYWORDS = [
+  // Multi-word / hyphenated phrases must come before the shorter words they
+  // contain (e.g. "brother-in-law" before "brother") since matching just
+  // takes the first hit in this list — sorted by length below as a backstop.
+  "mother-in-law", "mother in law", "father-in-law", "father in law",
+  "brother-in-law", "brother in law", "sister-in-law", "sister in law",
+  "best friend", "girlfriend", "boyfriend", "fiancee", "fiance",
+  "mom", "mother", "dad", "father", "partner", "friend", "boss", "teacher", "student", "wife", "husband",
+  "sister", "brother", "grandma", "grandpa", "coworker", "employee",
+  "roommate", "aunt", "uncle", "cousin", "niece", "nephew", "daughter", "son",
+  "stepmom", "stepdad", "godmother", "godfather", "mentor", "neighbor",
+].sort((a, b) => b.length - a.length);
+
 function parseContext(query: string): ParsedContext {
   const lower = query.toLowerCase();
-  const recipientMatch = query.match(/(?:recipient|for my|for a|shopping for|gift for)\s+([^,.;]+)/i);
-  const OCCASION_WORDS = "birthday|anniversary|christmas|graduation|wedding|holiday|housewarming|thank you|valentine|new baby|baby shower|retirement|promotion|new job|sympathy|condolence|get well|congratulations|engagement|mother's day|mothers day|father's day|fathers day|easter|halloween|new year";
+  // Stop the capture at a clause boundary (who/that/which/and/comma) so
+  // "for my brother in law who loves hiking" captures "brother in law"
+  // instead of the whole run-on clause.
+  const recipientMatch = query.match(/(?:recipient|for my|for a|shopping for|gift for)\s+([^,.;]+?)(?=\s+(?:who|that|which|and)\b|[,.;]|$)/i);
   const occasionMatch = query.match(new RegExp(`(?:occasion|for (?:a|their|his|her))\\s*(${OCCASION_WORDS})`, "i"))
     ?? lower.match(new RegExp(`\\b(${OCCASION_WORDS})\\b`));
   const interestMatch = query.match(/(?:interests?|likes?|loves?|into)\s*[:\s]+([^.;]+)/i);
 
-  const recipientKeywords = [
-    "mom", "mother", "dad", "father", "partner", "friend", "boss", "teacher", "student", "wife", "husband",
-    "sister", "brother", "grandma", "grandpa", "coworker", "girlfriend", "boyfriend", "fiancee", "fiance",
-    "roommate", "best friend", "aunt", "uncle", "cousin", "niece", "nephew", "daughter", "son",
-    "mother-in-law", "mother in law", "father-in-law", "father in law", "stepmom", "stepdad",
-    "godmother", "godfather", "mentor", "neighbor",
-  ];
-  const recipientFromKeyword = recipientKeywords.find((k) => lower.includes(k));
+  const recipientFromKeyword = RECIPIENT_KEYWORDS.find((k) => lower.includes(k));
 
   return {
     recipient: recipientMatch?.[1]?.trim() ?? recipientFromKeyword ?? null,
@@ -360,10 +440,34 @@ function buildResultsMessage(ctx: ParsedContext, count: number, usedLearning: bo
   return `Here ${count === 1 ? "is" : "are"} ${count} thoughtful idea${count === 1 ? "" : "s"}${who}${occasion}${budget}. Each includes a short "why this gift" note.${learning} Want something more personal or more fun? Just say the word.`;
 }
 
-export function recommendGifts(query: string, learningProfile: LearningProfile = {}, resultLimit = 5): GiftRecommendResponse {
+export const EMPTY_CONTEXT: ParsedContext = { recipient: null, occasion: null, budget: null, interests: [], avoid: [] };
+
+// The chat sends each message as its own call — without this, answering a
+// follow-up like "her birthday" (after already saying who it's for) gets
+// parsed in isolation, the recipient info from the earlier message is lost,
+// and buildFollowUp ends up asking the exact same "who's it for" question
+// again. Merging keeps whatever the new message didn't mention.
+export function mergeContext(prior: ParsedContext, next: ParsedContext): ParsedContext {
+  return {
+    recipient: next.recipient ?? prior.recipient,
+    occasion: next.occasion ?? prior.occasion,
+    budget: next.budget ?? prior.budget,
+    interests: next.interests.length > 0 ? next.interests : prior.interests,
+    avoid: Array.from(new Set([...prior.avoid, ...next.avoid])),
+  };
+}
+
+export function recommendGifts(
+  query: string,
+  learningProfile: LearningProfile = {},
+  resultLimit = 5,
+  options: { priorContext?: ParsedContext; excludeIds?: string[] } = {},
+): GiftRecommendResponse {
+  const priorContext = options.priorContext ?? EMPTY_CONTEXT;
+  const excludeIds = new Set(options.excludeIds ?? []);
   const trimmed = query.trim();
   if (!trimmed) {
-    return { message: "Tell me who you're shopping for and I'll get started.", results: [], tags: [], budget: null, needsFollowUp: true };
+    return { message: "Tell me who you're shopping for and I'll get started.", results: [], tags: [], budget: priorContext.budget, needsFollowUp: true, context: priorContext };
   }
 
   if (isGreeting(trimmed)) {
@@ -371,8 +475,9 @@ export function recommendGifts(query: string, learningProfile: LearningProfile =
       message: "Hey! I'm Givit — your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll find thoughtful picks with a reason for each one.",
       results: [],
       tags: [],
-      budget: null,
+      budget: priorContext.budget,
       needsFollowUp: true,
+      context: priorContext,
     };
   }
 
@@ -381,24 +486,29 @@ export function recommendGifts(query: string, learningProfile: LearningProfile =
       message: "I help you find personalized gifts through conversation. Share who it's for, the occasion, budget, interests, and anything to avoid — I'll rank curated products and explain why each fits.",
       results: [],
       tags: [],
-      budget: null,
+      budget: priorContext.budget,
       needsFollowUp: true,
+      context: priorContext,
     };
   }
 
-  const ctx = parseContext(trimmed);
+  const ctx = mergeContext(priorContext, parseContext(trimmed));
   const tags = extractTags(trimmed);
   const budget = ctx.budget;
   const avoidTerms = ctx.avoid;
   const missing = missingContext(ctx);
 
-  if (missing.length >= 3 && tags.length < 2) {
+  // Only ask a follow-up when there's truly nothing to go on — a bare theme
+  // query like "hiking gifts" or "photo gifts" should surface real results
+  // even without a recipient/occasion, not get blocked pending more info.
+  if (missing.length >= 3 && tags.length === 0) {
     return {
       message: buildFollowUp(ctx),
       results: [],
       tags,
       budget,
       needsFollowUp: true,
+      context: ctx,
     };
   }
 
@@ -408,6 +518,7 @@ export function recommendGifts(query: string, learningProfile: LearningProfile =
   );
 
   const results = getAllMarketplaceProducts()
+    .filter((product) => !excludeIds.has(product.id))
     .map((product) => ({ product, score: scoreProduct(product, trimmed, tags, budget, learningProfile, avoidTerms) }))
     .filter(({ score }) => score > 1.25 || tags.length === 0)
     .sort((a, b) => b.score - a.score || a.product.rank - b.product.rank)
@@ -440,5 +551,6 @@ export function recommendGifts(query: string, learningProfile: LearningProfile =
     tags,
     budget,
     needsFollowUp: results.length === 0,
+    context: ctx,
   };
 }

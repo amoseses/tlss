@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { AlertTriangle, ExternalLink, Send, Sparkles, Star, ThumbsDown, ThumbsUp, Wand2 } from "lucide-react";
 import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
-import { recommendGifts, type GiftRecommendResult } from "@/lib/gift-recommend";
+import { recommendGifts, EMPTY_CONTEXT, type GiftRecommendResult, type ParsedContext } from "@/lib/gift-recommend";
 import { personalizeChatResponse } from "@/lib/ai/gift-chat-personalize";
 import { readLearningProfile, applyFeedback as applyLearningFeedback } from "@/lib/gift-learning";
 import { productPhotoFallback } from "@/lib/product-photo";
@@ -154,6 +154,13 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   const [form, setForm] = useState<Questionnaire>({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // Accumulates recipient/occasion/budget/interests across turns so
+  // answering a follow-up question (e.g. "her birthday") doesn't lose what
+  // was already said and get asked the same question again.
+  const contextRef = useRef<ParsedContext>(EMPTY_CONTEXT);
+  // Ids already shown, so "Not yet" can ask for a genuinely different set
+  // instead of just acknowledging and stopping.
+  const shownIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     // block: "nearest" keeps this scoped to the chat panel's own scroll
@@ -174,7 +181,18 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     setInput("");
     setLastQuery("");
     setForm({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
-    inputRef.current?.focus();
+    contextRef.current = EMPTY_CONTEXT;
+    shownIdsRef.current = new Set();
+    focusInput();
+  }
+
+  // preventScroll: true — inputRef sits at the bottom of the chat panel, and
+  // a plain .focus() call makes the browser scroll it into view by default,
+  // dragging the whole page down every time a response finishes. The chat's
+  // own scroll behavior is handled separately by bottomRef's
+  // scrollIntoView({ block: "nearest" }) below.
+  function focusInput() {
+    inputRef.current?.focus({ preventScroll: true });
   }
 
   async function regenerate() {
@@ -182,7 +200,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     await sendMessage(lastQuery, true);
   }
 
-  async function sendMessage(text: string, isRegenerate = false) {
+  async function sendMessage(text: string, isRegenerate = false, excludeIds: string[] = []) {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
@@ -195,18 +213,21 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     try {
       await new Promise((resolve) => setTimeout(resolve, 250));
       const profile = await readLearningProfile();
+      const recommendOptions = { priorContext: contextRef.current, excludeIds };
       // Score a wider pool (20) than we display (5): the deterministic
       // scorer is a decent first pass, but capping the AI to only the same
       // 5 it would've shown anyway means it can only reword them, never
       // actually pick something the rule-based ranking under-scored. The
       // display-facing message/result count still comes from a normal
       // 5-result call so copy like "here are 5 ideas" stays accurate.
-      const widePool = recommendGifts(trimmed, profile, 20);
-      const data = recommendGifts(trimmed, profile, 5);
+      const widePool = recommendGifts(trimmed, profile, 20, recommendOptions);
+      const data = recommendGifts(trimmed, profile, 5, recommendOptions);
+      contextRef.current = data.context;
+      (data.results ?? []).forEach((r) => shownIdsRef.current.add(r.id));
       trackUserEvent("ai_recommendation_generated", { queryLength: trimmed.length, resultCount: data.results?.length ?? 0, tags: data.tags });
       setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: data.message ?? "", results: data.results ?? [], loading: false } : m)));
       setLoading(false);
-      inputRef.current?.focus();
+      focusInput();
 
       if (widePool.results && widePool.results.length > 0) {
         personalizeChatResponse(trimmed, data, widePool.results)
@@ -219,17 +240,30 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       logError(error, "GiftFinderChat.sendMessage", { query: trimmed });
       setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, loading: false, content: "I hit a snag while ranking gifts. Try again with recipient, occasion, budget, interests, and avoid-list details." } : m)));
       setLoading(false);
-      inputRef.current?.focus();
+      focusInput();
     }
   }
 
   function handleFeedback(results: GiftResult[], satisfied: boolean) {
     void applyLearningFeedback(results, satisfied);
     trackUserEvent("ai_recommendation_feedback", { scope: "response", satisfied, slugs: results.map((item) => item.slug) });
-    setMessages((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), role: "assistant", content: satisfied ? "Great — I saved those positive signals. ✅" : "Got it — I saved that these were not quite right." },
-    ]);
+    if (satisfied) {
+      setMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), role: "assistant", content: "Great — I saved those positive signals. ✅" },
+      ]);
+      return;
+    }
+    // "Not yet" should actually try again with a different set, not just
+    // acknowledge and leave the shopper stuck with picks that missed.
+    if (lastQuery) {
+      void sendMessage(lastQuery, true, Array.from(shownIdsRef.current));
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), role: "assistant", content: "Got it — tell me a bit more about them (interests, budget, or style) and I'll try a different set." },
+      ]);
+    }
   }
 
   function handleItemFeedback(result: GiftResult, liked: boolean) {

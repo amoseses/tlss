@@ -45,9 +45,12 @@ export default function LandingPage() {
       <div className="pointer-events-none absolute -left-24 top-0 h-[420px] w-[420px] animate-drift rounded-full bg-givit-ember/25 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-0 h-[420px] w-[420px] animate-drift-slow rounded-full bg-givit-coral/20 blur-3xl" />
 
-      <div className="slide-up mb-10 flex items-center gap-2" style={{ animationDelay: "0ms" }}>
-        <img src="/Screenshot 2026-06-23 095149.png" alt="Givit" className="h-10 w-10 rounded-lg object-cover" />
-        <span className="font-serif text-2xl font-bold tracking-tight">
+      <div className="slide-up mb-10 flex flex-col items-center gap-3" style={{ animationDelay: "0ms" }}>
+        <div className="relative">
+          <div className="animate-pulse-ring pointer-events-none absolute inset-0 rounded-2xl bg-givit-ember/40 blur-xl" />
+          <img src="/Screenshot 2026-06-23 095149.png" alt="Givit" className="animate-float relative h-20 w-20 rounded-2xl object-cover shadow-2xl md:h-24 md:w-24" />
+        </div>
+        <span className="font-serif text-3xl font-bold tracking-tight">
           GIV<span className="text-givit-coral">IT</span>
         </span>
       </div>
