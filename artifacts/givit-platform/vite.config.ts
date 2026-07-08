@@ -14,16 +14,18 @@ async function readJsonBody(req: import("http").IncomingMessage): Promise<any> {
   return raw ? JSON.parse(raw) : {};
 }
 
-// Mirrors the /api/ai/* and /api/photo Vercel serverless functions for local
-// `pnpm run dev`, so behavior matches between dev and production without
-// needing `vercel dev`.
+// Mirrors the /api/* Vercel serverless functions for local `pnpm run dev`,
+// so behavior matches between dev and production without needing
+// `vercel dev`. Givit AI itself runs client-side via Puter.js (see
+// src/lib/ai/puter-client.ts) — these are just the remaining plain-data
+// endpoints (photo/metadata proxying, push) that still need a secret-free
+// or CORS-avoiding server hop.
 function aiApiDevMiddleware(): Plugin {
   return {
     name: "givit-ai-api-dev-middleware",
     configureServer(server) {
-      const handlersUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/handlers.mjs")).href;
       const photoUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/photo.mjs")).href;
-      const extractProductUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/extract-product.mjs")).href;
+      const metadataUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/metadata.mjs")).href;
       const pushUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../api/_lib/push.mjs")).href;
       server.middlewares.use(async (req, res, next) => {
         if (req.url?.startsWith("/api/push/send") && req.method === "POST") {
@@ -59,30 +61,22 @@ function aiApiDevMiddleware(): Plugin {
           return;
         }
 
-        if (!req.url?.startsWith("/api/ai/") || req.method !== "POST") return next();
-        try {
-          const { handleAutogiftSuggestions, handleGiftChat } = await import(handlersUrl);
-          const body = await readJsonBody(req);
-          const result =
-            req.url === "/api/ai/autogift-suggestions"
-              ? await handleAutogiftSuggestions(body)
-              : req.url === "/api/ai/gift-chat"
-                ? await handleGiftChat(body)
-                : req.url === "/api/ai/extract-product"
-                  ? await (await import(extractProductUrl)).extractProductWithAI(body?.url)
-                  : null;
-          if (!result) {
-            res.statusCode = 404;
-            res.end(JSON.stringify({ error: "Unknown AI endpoint" }));
-            return;
+        if (req.url?.startsWith("/api/metadata") && req.method === "GET") {
+          try {
+            const { fetchPageMetadata } = await import(metadataUrl);
+            const pageUrl = new URL(req.url, "http://localhost").searchParams.get("url");
+            if (!pageUrl) { res.statusCode = 400; res.end(JSON.stringify({ error: "url query param is required" })); return; }
+            const meta = await fetchPageMetadata(pageUrl);
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ data: meta }));
+          } catch {
+            res.statusCode = 502;
+            res.end(JSON.stringify({ data: null }));
           }
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify(result));
-        } catch (error: any) {
-          res.statusCode = 500;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ error: error?.message ?? "AI request failed" }));
+          return;
         }
+
+        next();
       });
     },
   };
@@ -90,8 +84,6 @@ function aiApiDevMiddleware(): Plugin {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.resolve(import.meta.dirname), "");
-  process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY;
-  process.env.GEMINI_MODEL = process.env.GEMINI_MODEL || env.GEMINI_MODEL;
   process.env.VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || env.VAPID_PUBLIC_KEY;
   process.env.VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || env.VAPID_PRIVATE_KEY;
   process.env.VAPID_SUBJECT = process.env.VAPID_SUBJECT || env.VAPID_SUBJECT;

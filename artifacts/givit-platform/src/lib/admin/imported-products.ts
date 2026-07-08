@@ -1,6 +1,9 @@
 import type { MarketplaceProduct } from "@/lib/data/marketplace";
 import { MARKETPLACE_CATEGORIES } from "@/lib/data/marketplace";
 import type { Category } from "@/types/database";
+import { callPuterJSON } from "@/lib/ai/puter-client";
+
+const EXTRACT_CATEGORIES = ["tech", "kitchen", "writing", "beauty", "fitness", "outdoor", "pets", "art", "experiences", "home", "gaming"];
 
 const STORAGE_KEY = "givit-admin-imported-products";
 
@@ -124,30 +127,59 @@ export function extractProductFromUrl(url: string, hints?: Partial<ImportedProdu
 }
 
 /**
- * Real AI extraction (page metadata + LLM) for admin bulk import — falls
- * back to the regex/heuristic extractProductFromUrl() above if the AI call
- * fails or isn't configured, so a bulk import never hard-fails.
+ * Real AI extraction (page metadata + Puter.js LLM) for admin bulk import —
+ * falls back to the regex/heuristic extractProductFromUrl() above if
+ * metadata fetch or the AI call fails, so a bulk import never hard-fails.
+ * Metadata comes from /api/metadata (plain Microlink proxy, no AI, no
+ * secret key); the normalization pass itself runs client-side via Puter.js
+ * since that's a browser-only SDK.
  */
 export async function extractProductWithAI(url: string, hints?: Partial<ImportedProductRow>): Promise<Omit<ImportedProductRow, "status"> & { aiPowered: boolean }> {
   const fallback = extractProductFromUrl(url, hints);
   try {
-    const res = await fetch("/api/ai/extract-product", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-      signal: AbortSignal.timeout(15000),
+    const metaRes = await fetch(`/api/metadata?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(8000) });
+    const meta = metaRes.ok ? (await metaRes.json())?.data : null;
+
+    const system =
+      `You turn a raw product or experience page into a clean marketplace listing for a gift shop called Givit. ` +
+      `Use only the page metadata given to you — never invent specifics you weren't told (no fake prices/reviews). ` +
+      `If the price isn't in the metadata, make a reasonable estimate based on the category and note it's estimated. ` +
+      `Categories must be exactly one of: ${EXTRACT_CATEGORIES.join(", ")}. Return strict JSON only, matching the requested shape, with no markdown code fences.`;
+
+    const user = JSON.stringify({
+      url,
+      pageMetadata: meta ? { title: meta.title, description: meta.description, publisher: meta.publisher, author: meta.author } : null,
+      responseShape: {
+        name: "string, clean product/experience name (not a URL slug)",
+        brand: "string, the retailer or provider",
+        category: EXTRACT_CATEGORIES.join("|"),
+        isExperience: "boolean",
+        priceUsd: "number, best estimate if not in metadata",
+        priceIsEstimate: "boolean",
+        description: "string, 1-2 sentences, warm gift-shop tone, no filler",
+      },
     });
-    if (!res.ok) return { ...fallback, aiPowered: false };
-    const ai = await res.json();
+
+    const ai = await callPuterJSON(
+      [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      { temperature: 0.4, maxTokens: 400 },
+    );
+
+    const category = EXTRACT_CATEGORIES.includes(ai?.category) ? ai.category : fallback.category;
+    const priceUsd = typeof ai?.priceUsd === "number" && ai.priceUsd > 0 ? ai.priceUsd.toFixed(2) : fallback.price;
+
     return {
       url: normalizeProductUrl(url),
-      name: hints?.name?.trim() || ai.name || fallback.name,
-      brand: hints?.brand?.trim() || ai.brand || fallback.brand,
-      category: hints?.category?.trim() || ai.category || fallback.category,
-      price: hints?.price?.trim() || ai.price || fallback.price,
-      description: ai.description || undefined,
+      name: hints?.name?.trim() || (typeof ai?.name === "string" && ai.name.trim()) || fallback.name,
+      brand: hints?.brand?.trim() || (typeof ai?.brand === "string" && ai.brand.trim()) || fallback.brand,
+      category: hints?.category?.trim() || category,
+      price: hints?.price?.trim() || priceUsd,
+      description: typeof ai?.description === "string" ? ai.description.trim().slice(0, 500) : undefined,
       // Always resolved via /api/photo (fallback.imageUrl), never a raw
-      // Microlink URL from the AI response — see extract-product.mjs.
+      // Microlink URL from the AI response.
       imageUrl: hints?.imageUrl || fallback.imageUrl,
       aiPowered: true,
     };

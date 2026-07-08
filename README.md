@@ -26,12 +26,10 @@ Copy `.env.local` and ensure **no leading spaces** in any value (especially `VIT
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | `whsec_...` |
 | `SHIPPO_API_TOKEN` | Shippo API token (shipping) | `shippo_...` |
 | `NEXT_PUBLIC_APP_URL` | Base URL of your deployed app | `https://your-app.vercel.app` |
-| `GEMINI_API_KEY` | Powers Givit AI (gift finder, AutoGift suggestions, admin bulk-import extraction). Server-side only — never add a `VITE_`/`NEXT_PUBLIC_` prefix or it'll ship to every visitor's browser. Get one at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). | `AIza...` |
-| `GEMINI_MODEL` | Optional, defaults to `gemini-2.5-flash` | `gemini-2.5-flash` |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push keys (phone/desktop notifications). Generate your own pair with `node -e "console.log(require('web-push').generateVAPIDKeys())"` — the private key must stay server-only. `VAPID_SUBJECT` is a `mailto:` address the push service can contact if there's abuse. | see below |
 | `VITE_VAPID_PUBLIC_KEY` | Same value as `VAPID_PUBLIC_KEY`, but `VITE_`-prefixed so the browser can subscribe. This one is meant to be public. | same as above |
 
-> ⚠️ **Note:** as of July 2026 the Gemini API free tier is generous enough for testing without billing, but very high traffic may need billing enabled on the Google AI Studio / Cloud project behind the key. The app is designed to fail soft either way — every AI feature falls back to non-AI rule-based matching if the Gemini call errors or the key is missing, so this won't crash anything, but AI features won't actually run until a working key is set.
+Givit AI needs **no environment variable at all** — see §5.
 
 ### 2. Supabase Setup
 
@@ -58,15 +56,15 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 **Critical:** `VITE_SUPABASE_URL` must be exactly `https://zbhumepxaywxnluapcbs.supabase.co` with **no trailing slash** and **no leading space**. A leading space will cause session cookies to fail and users won't be able to log in.
 
-**Also add these (new since AI/push were wired in), or the `/api` functions will 500 in production even though they work locally:**
+**Also add these (new since push was wired in), or the `/api` functions will 500 in production even though they work locally:**
 ```
-GEMINI_API_KEY=AIza...
-GEMINI_MODEL=gemini-2.5-flash
 VAPID_PUBLIC_KEY=...
 VAPID_PRIVATE_KEY=...
 VAPID_SUBJECT=mailto:you@example.com
 VITE_VAPID_PUBLIC_KEY=...          (same value as VAPID_PUBLIC_KEY)
 ```
+
+Givit AI (Puter.js) needs nothing added here — see §5.
 
 > 🔴 **Security reminder:** an earlier commit in this repo's history accidentally included live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `SHIPPO_API_TOKEN` values before `.env.local` was git-ignored. If you haven't already, **rotate all three in the Stripe and Shippo dashboards** — removing the file from the latest commit doesn't invalidate keys still readable in git history/GitHub.
 
@@ -116,19 +114,18 @@ Use this checklist to test the local demo flow end-to-end:
 
 For production email testing, point your scheduler/email worker at rows in `gift_notifications` where `scheduled_for <= now()`, `status = 'scheduled'`, and `channel = 'email'`, then mark successful sends as `sent`.
 
-### 5. Givit AI (serverless functions)
+### 5. Givit AI (Puter.js — client-side, no API key)
 
-The app is a static Vite SPA with no built-in backend, so AI calls (which need a secret Gemini key) live in a small `/api` directory at the repo root, deployed as Vercel serverless functions:
+Givit AI runs entirely **client-side** via [Puter.js](https://developer.puter.com/) (loaded in `index.html` as `<script src="https://js.puter.com/v2/">`), not through a server API key. Puter uses a "User-Pays" model: each visitor's own free Puter.com account covers their own AI usage, so there's nothing to configure, bill, or rotate on Givit's side — see `src/lib/ai/puter-client.ts` for the thin wrapper (`callPuterJSON`) everything else calls.
 
-- `api/ai/gift-chat.ts` — powers the `/gift` chat finder
-- `api/ai/autogift-suggestions.ts` — powers AutoGift's survey-to-suggestions step
-- `api/ai/extract-product.ts` — powers admin's "paste a link/spreadsheet of links, get products" bulk import
-- `api/photo.ts` — resolves a real product photo from a page URL (via Microlink) and redirects the browser to it, used so marketplace/submitted-product images are actual scraped photos instead of stock/AI-looking placeholders
-- `api/push/send.ts` — sends a Web Push notification to a saved subscription
+**Tradeoff to know about:** the first time someone uses an AI feature (Givit AI chat, AutoGift suggestions, admin product import), Puter may pop up a sign-in window asking them to log into (or create) a Puter.com account. That's how their usage gets billed to *them*, not to Givit. If they decline or the popup is blocked, the call fails and the app **falls back to the existing deterministic rule-based matching** — nothing crashes, results just get less personalized.
 
-Locally, `pnpm run dev` mirrors all of these through a Vite dev-server middleware (see `aiApiDevMiddleware` in `vite.config.ts`) so you get identical behavior without running `vercel dev`. In production, Vercel just picks the files up automatically — no extra config needed beyond the env vars in §1/§3.
+- `src/lib/ai/gift-ai.ts` — builds the prompts and calls Puter for the `/gift` chat finder and AutoGift's survey-to-suggestions step
+- `src/lib/admin/imported-products.ts` (`extractProductWithAI`) — powers admin's "paste a link/spreadsheet of links, get products" bulk import
+- `api/photo.ts` + `api/metadata.ts` — small serverless functions that stay server-side on purpose: they proxy Microlink (for real product photos and page metadata) to avoid CORS/rate-limit issues calling it directly from the browser. Neither needs a secret key. `pnpm run dev` mirrors both locally via `aiApiDevMiddleware` in `vite.config.ts`.
+- `api/push/send.ts` — sends a Web Push notification to a saved subscription (unrelated to AI, still server-side since it needs the VAPID private key)
 
-Every AI call is constrained to **only pick from a list of real candidate products/ids you already have** — it's never allowed to invent a product, price, or link, so a bad AI response can only mean "picked a worse gift," never a broken checkout link. If `GEMINI_API_KEY` is missing or the Gemini call fails for any reason, each feature falls back to the pre-existing rule-based matching instead of erroring out.
+Every AI call is constrained to **only pick from a list of real candidate products/ids you already have** — it's never allowed to invent a product, price, or link, so a bad AI response can only mean "picked a worse gift," never a broken checkout link.
 
 ### 6. Push Notifications
 
@@ -178,8 +175,8 @@ If users can't log in or sessions don't persist:
 - **Routing:** wouter (lightweight)
 - **Auth:** Supabase Auth (email/password)
 - **Data:** LocalStorage (boards, recipients, surveys, some orders) + Supabase DB (user profiles, products, orders, board likes/comments, AutoGift orders, push subscriptions)
-- **AI:** Google Gemini (`gemini-2.5-flash` by default) via serverless functions under `/api` — see §5 above
-- **Photos:** Microlink (scrapes real og:image metadata from product URLs) via `/api/photo`
+- **AI:** Puter.js (client-side, "User-Pays," no API key) — see §5 above
+- **Photos:** Microlink (scrapes real og:image metadata from product URLs) via `/api/photo` and `/api/metadata`
 - **Push notifications:** Web Push (VAPID) + a service worker at `public/sw.js` — see §6 above
 - **Payments:** Stripe (API keys configured, UI ready) — checkout itself is not wired up; the business model redirects to the retailer (Amazon, etc.) for affiliate commission rather than taking payment in-app, except for AutoGift concierge orders
 - **Shipping:** Shippo (API key configured)
