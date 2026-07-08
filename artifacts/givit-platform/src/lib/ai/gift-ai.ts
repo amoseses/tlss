@@ -1,7 +1,7 @@
 /**
- * Client-side AI personalization via Puter.js (see puter-client.ts). Always
+ * Client-side AI personalization via Gemini generateContent API (see gemini-client.ts). Always
  * fails soft (returns null) so callers can fall back to the deterministic
- * local matching if Puter is unavailable, the user declines to sign in, or
+ * local matching if Gemini is unavailable, the API key is missing, or
  * the call errors/times out.
  *
  * Never invent products: the model can only select/reorder/reword the exact
@@ -10,7 +10,7 @@
  * AI-generated.
  */
 
-import { callPuterJSON } from "./puter-client";
+import { callGeminiJSON } from "./gemini-client";
 
 export type AutogiftAISuggestion = { id: string; reason?: string; rating?: number };
 export type AutogiftAIResult = {
@@ -44,14 +44,14 @@ export async function personalizeAutogiftSuggestions(
 
   try {
     const result = await Promise.race([
-      callPuterJSON(
+      callGeminiJSON(
         [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
         { temperature: 0.8, maxTokens: 900 },
       ),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Puter AI request timed out")), timeoutMs)),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini API request timed out")), timeoutMs)),
     ]);
 
     const candidateIds = new Set(candidates.map((c) => c.id));
@@ -99,14 +99,14 @@ export async function personalizeGiftChat(
 
   try {
     const result = await Promise.race([
-      callPuterJSON(
+      callGeminiJSON(
         [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
         { temperature: 0.7, maxTokens: 600 },
       ),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Puter AI request timed out")), timeoutMs)),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini API request timed out")), timeoutMs)),
     ]);
 
     const candidateIds = new Set(candidates.map((c) => c.id));
