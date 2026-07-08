@@ -1,11 +1,7 @@
 /**
  * Thin wrapper around Puter.js (js.puter.com), loaded via a <script> tag in
  * index.html — it's a client-side-only SDK with no server-side API key.
- * First call may pop up a Puter sign-in window (their "User-Pays" model:
- * the end user's own Puter account covers usage, not Givit's). That popup
- * only opens on a real user gesture, so callers here should only run from
- * click handlers (send message, analyze gifts, approve order, etc.), never
- * from a background effect.
+ * Authentication is handled silently without user-facing popups.
  *
  * Puter.ai.chat() has no native structured/JSON-output mode (unlike the
  * OpenAI/Gemini APIs this replaced), so JSON is enforced by prompting for
