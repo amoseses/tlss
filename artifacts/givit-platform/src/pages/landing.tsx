@@ -4,8 +4,6 @@ import { ArrowRight, Bell, Gift, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 
-export const LANDING_ENTERED_KEY = "givit-entered-app";
-
 const ROTATING_PROMPTS = [
   "a mom who loves gardening and cozy nights in",
   "a best friend's milestone birthday",
@@ -18,18 +16,16 @@ export default function LandingPage() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const [promptIndex, setPromptIndex] = useState(0);
-  // Computed synchronously (not inside an effect) so a returning guest never
-  // sees the splash flash in for a frame before getting redirected — that
-  // flash-then-jump was the "glitch" this fixes.
-  const [alreadyEntered] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(LANDING_ENTERED_KEY) === "1");
 
-  // Skip straight to the real app for anyone who's already signed in or has
-  // been here before — the splash is meant to be a first impression, not a
-  // recurring speed bump.
+  // The splash shows on every visit to "/" — it's not a one-time onboarding
+  // step, it's the front door, with "continue without an account" always
+  // available as an explicit choice. The only auto-skip is for people who
+  // are already signed in, since showing them a sign-in/sign-up screen
+  // wouldn't make sense.
   useEffect(() => {
     if (loading) return;
-    if (user || alreadyEntered) navigate("/home", { replace: true });
-  }, [user, loading, alreadyEntered, navigate]);
+    if (user) navigate("/home", { replace: true });
+  }, [user, loading, navigate]);
 
   useEffect(() => {
     const id = setInterval(() => setPromptIndex((i) => (i + 1) % ROTATING_PROMPTS.length), 2600);
@@ -37,11 +33,10 @@ export default function LandingPage() {
   }, []);
 
   function enterAsGuest() {
-    window.localStorage.setItem(LANDING_ENTERED_KEY, "1");
     navigate("/home");
   }
 
-  if (loading || user || alreadyEntered) return null;
+  if (loading || user) return null;
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 py-16 text-center text-white">

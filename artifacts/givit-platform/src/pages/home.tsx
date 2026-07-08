@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowRight, Bell, Brain, CreditCard, PackageCheck, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
 
@@ -11,7 +11,6 @@ import {
   MARKETPLACE_PRODUCTS,
   MARKETPLACE_RATINGS,
 } from "@/lib/data/marketplace";
-import { LANDING_ENTERED_KEY } from "@/pages/landing";
 
 const HOME_AI_PROMPTS = [
   { label: "For Mom 🌸", prompt: "Gift for my mom, birthday, $50 budget, loves cooking and gardening" },
@@ -31,12 +30,6 @@ export default function HomePage() {
     const q = (query ?? homeAiQuery).trim();
     navigate(q ? `/gift?q=${encodeURIComponent(q)}` : "/gift");
   }
-
-  // Anyone who reaches /home directly (bookmark, deep link, back button)
-  // counts as "entered" so the landing splash doesn't ambush them next time.
-  useEffect(() => {
-    window.localStorage.setItem(LANDING_ENTERED_KEY, "1");
-  }, []);
 
   return (
     <div className="pb-12">

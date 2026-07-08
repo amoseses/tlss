@@ -153,7 +153,7 @@ Note: nothing in the app currently *triggers* AutoGift reminder pushes/emails on
 | `/account` | User account | Login required |
 | `/feedback` | Contact & Feedback | Public |
 
-`/` shows once per browser — after signing in, signing up, or clicking "Continue browsing without an account," a `givit-entered-app` flag is set in `localStorage` and `/` redirects straight to `/home` on future visits. Browsing (marketplace, product pages, Givit AI, public boards) never requires an account; every write action (submit a product, save/wishlist, write a review, create/like/comment on a board, place an AutoGift order) does.
+`/` shows the splash on every visit, not just the first — the only auto-skip is for visitors who are already signed in (redirected straight to `/home`, since a sign-in/sign-up screen doesn't make sense for them). Anonymous visitors always get the choice of signing in, signing up, or "Continue browsing without an account." Browsing (marketplace, product pages, Givit AI, public boards) never requires an account; every write action (submit a product, save/wishlist, write a review, create/like/comment on a board, place an AutoGift order) does.
 
 ## Login Troubleshooting
 
