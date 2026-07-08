@@ -265,6 +265,15 @@
 .animate-drift { animation: drift 14s ease-in-out infinite; }
 .animate-drift-slow { animation: drift 20s ease-in-out infinite reverse; }
 
+@keyframes particle-float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(8px, -18px) rotate(6deg); }
+  50% { transform: translate(-6px, -28px) rotate(-4deg); }
+  75% { transform: translate(-12px, -10px) rotate(3deg); }
+}
+
+.animate-particle { animation: particle-float 7s ease-in-out infinite; }
+
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }

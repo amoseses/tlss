@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, Bell, Gift, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Bell, Gift, Heart, PartyPopper, ShieldCheck, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 
@@ -10,6 +10,18 @@ const ROTATING_PROMPTS = [
   "a coworker you don't know that well",
   "a partner's anniversary, no clichés",
   "a dad who says he \"doesn't need anything\"",
+];
+
+// Ambient floating icons scattered around the splash — purely decorative
+// movement, kept low-opacity and pointer-events-none so they never compete
+// with the actual content or intercept clicks.
+const FLOATING_ICONS = [
+  { Icon: Gift, className: "left-[8%] top-[18%] h-7 w-7 text-givit-ember/25", duration: "7s", delay: "0s" },
+  { Icon: Sparkles, className: "right-[12%] top-[14%] h-6 w-6 text-givit-coral/30", duration: "8.5s", delay: "0.6s" },
+  { Icon: Star, className: "left-[15%] bottom-[22%] h-5 w-5 text-givit-coral/25", duration: "6.5s", delay: "1.2s" },
+  { Icon: Heart, className: "right-[18%] bottom-[28%] h-6 w-6 text-givit-ember/20", duration: "9s", delay: "0.3s" },
+  { Icon: PartyPopper, className: "left-[6%] top-[55%] h-6 w-6 text-givit-ember/20", duration: "7.5s", delay: "1.6s" },
+  { Icon: Sparkles, className: "right-[7%] top-[50%] h-5 w-5 text-givit-coral/20", duration: "6.8s", delay: "0.9s" },
 ];
 
 export default function LandingPage() {
@@ -42,6 +54,14 @@ export default function LandingPage() {
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 py-16 text-center text-white">
       <div className="pointer-events-none absolute -left-24 top-0 h-[420px] w-[420px] animate-drift rounded-full bg-givit-ember/25 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-0 h-[420px] w-[420px] animate-drift-slow rounded-full bg-givit-coral/20 blur-3xl" />
+
+      {FLOATING_ICONS.map(({ Icon, className, duration, delay }, i) => (
+        <Icon
+          key={i}
+          className={`animate-particle pointer-events-none absolute hidden sm:block ${className}`}
+          style={{ animationDuration: duration, animationDelay: delay }}
+        />
+      ))}
 
       <div className="slide-up mb-10 flex flex-col items-center gap-3" style={{ animationDelay: "0ms" }}>
         <div className="relative">
