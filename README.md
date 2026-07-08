@@ -15,7 +15,7 @@ Open http://localhost:3000
 
 ### 1. Environment Variables
 
-Copy `.env.local` and ensure **no leading spaces** in any value (especially `VITE_SUPABASE_URL`). `.env.local` is git-ignored — it is **not** committed, so set the same values in Vercel too (see §3).
+Copy `artifacts/givit-platform/.env.example` to `artifacts/givit-platform/.env.local` and fill in real values — ensure **no leading spaces** in any value (especially `VITE_SUPABASE_URL`). `.env.local` is git-ignored on purpose (it holds live secrets: Stripe key, Shippo token, VAPID private key) — it is **not** committed, so set the same values in Vercel too (see §3).
 
 | Variable | Description | Example |
 |----------|-------------|---------|
