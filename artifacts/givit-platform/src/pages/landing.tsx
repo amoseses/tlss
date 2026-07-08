@@ -18,15 +18,18 @@ export default function LandingPage() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const [promptIndex, setPromptIndex] = useState(0);
+  // Computed synchronously (not inside an effect) so a returning guest never
+  // sees the splash flash in for a frame before getting redirected — that
+  // flash-then-jump was the "glitch" this fixes.
+  const [alreadyEntered] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(LANDING_ENTERED_KEY) === "1");
 
   // Skip straight to the real app for anyone who's already signed in or has
   // been here before — the splash is meant to be a first impression, not a
   // recurring speed bump.
   useEffect(() => {
     if (loading) return;
-    const alreadyEntered = window.localStorage.getItem(LANDING_ENTERED_KEY) === "1";
     if (user || alreadyEntered) navigate("/home", { replace: true });
-  }, [user, loading, navigate]);
+  }, [user, loading, alreadyEntered, navigate]);
 
   useEffect(() => {
     const id = setInterval(() => setPromptIndex((i) => (i + 1) % ROTATING_PROMPTS.length), 2600);
@@ -38,7 +41,7 @@ export default function LandingPage() {
     navigate("/home");
   }
 
-  if (loading || user) return null;
+  if (loading || user || alreadyEntered) return null;
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 py-16 text-center text-white">
