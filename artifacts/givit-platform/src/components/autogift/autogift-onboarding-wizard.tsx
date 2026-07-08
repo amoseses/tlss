@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { X, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck } from "lucide-react";
+import { X, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 import { createNotification, saveGiftOccasion, saveGiftRecipient, saveUserAddress, saveUserPaymentMethod, updateProfile } from "@/lib/supabase/db";
+import { SPECIAL_DATES } from "@/lib/data/special-dates";
 
 type Step = "welcome" | "address" | "payment" | "recipient" | "done";
 
@@ -12,23 +13,63 @@ const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Fath
 type RecipientDraft = { name: string; relationship: string; occasionLabel: string; occasionDate: string; yearsContext: string };
 const emptyRecipient = (): RecipientDraft => ({ name: "", relationship: "", occasionLabel: "Birthday", occasionDate: "", yearsContext: "" });
 function scheduledAt10Est(occasionDate: string) { const d = new Date(`${occasionDate}T12:00:00`); d.setDate(d.getDate() - 35); d.setUTCHours(15,0,0,0); return d.toISOString(); }
+function todayIso() { return new Date().toISOString().slice(0, 10); }
+
+// Standardized holidays (Christmas, Valentine's Day, etc.) fall on the same
+// real calendar date every year — the date field should reflect that
+// automatically instead of letting someone pick "Valentine's Day" and then
+// set the date to some unrelated day in March.
+function standardHoliday(label: string) {
+  return SPECIAL_DATES.find((sd) => sd.name === label) ?? null;
+}
+
+function nextOccurrenceIso(getDate: (year: number) => Date) {
+  const now = new Date();
+  const thisYear = getDate(now.getFullYear());
+  const target = thisYear >= new Date(now.getFullYear(), now.getMonth(), now.getDate()) ? thisYear : getDate(now.getFullYear() + 1);
+  return target.toISOString().slice(0, 10);
+}
+
+// Draft persistence covers step/addresses/recipients so a tab switch, page
+// reload, or accidental close doesn't send someone back to "Welcome" after
+// they've already filled things in. Never includes card fields — payment
+// details stay in memory only and are discarded the moment the component
+// unmounts, not written to localStorage.
+const DRAFT_KEY = "givit-autogift-onboarding-draft";
+type Draft = { step: Step; addresses: typeof INITIAL_ADDRESS[]; recipients: RecipientDraft[] };
+const INITIAL_ADDRESS = { label: "", line1: "", city: "", state: "", zip: "", country: "US" };
+
+function readDraft(): Partial<Draft> {
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
 
 export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClose: () => void; required?: boolean }) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const [step, setStep] = useState<Step>("welcome");
+  const savedDraft = readDraft();
+  const [step, setStep] = useState<Step>(savedDraft.step ?? "welcome");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   // Address
-  const [addresses, setAddresses] = useState([{ label: "", line1: "", city: "", state: "", zip: "", country: "US" }]);
-  // Payment (simplified - in production use Stripe Elements)
+  const [addresses, setAddresses] = useState(savedDraft.addresses?.length ? savedDraft.addresses : [INITIAL_ADDRESS]);
+  // Payment (simplified - in production use Stripe Elements) — intentionally
+  // not persisted, see DRAFT_KEY comment above.
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
   // Recipients
-  const [recipients, setRecipients] = useState<RecipientDraft[]>([emptyRecipient()]);
+  const [recipients, setRecipients] = useState<RecipientDraft[]>(savedDraft.recipients?.length ? savedDraft.recipients : [emptyRecipient()]);
+
+  useEffect(() => {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, addresses, recipients }));
+  }, [step, addresses, recipients]);
 
   function next() {
     setError("");
@@ -102,7 +143,10 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
       if (cardName.trim() && cardDigits.length >= 13) {
         await saveUserPaymentMethod({
           user_id: user.id,
-          stripe_payment_method_id: `pm_demo_${cardDigits.slice(-8)}`,
+          // Random id, not derived from the real card number — storing any
+          // more than the last 4 digits (card_last4 below) has no purpose
+          // here and is exactly the kind of over-retention PCI DSS forbids.
+          stripe_payment_method_id: `pm_demo_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
           card_brand: detectCardBrand(cardNumber),
           card_last4: cardDigits.slice(-4),
           is_default: true,
@@ -140,6 +184,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
           });
         }
       }
+      window.localStorage.removeItem(DRAFT_KEY);
       onClose();
       navigate("/concierge");
     } catch (err: any) {
@@ -236,7 +281,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
               </div>
               <div className="flex gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span>Stripe integration note: use Stripe Elements / SetupIntents in production. This demo only stores brand and last four after validation.</span>
+                <span>We only keep your card type and last 4 digits on file — never the full card number. You'll approve every charge before it happens.</span>
               </div>
             </div>
           )}
@@ -252,9 +297,32 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                     <select value={r.relationship} onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, relationship: e.target.value } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm"><option value="">Relationship...</option>{RELATIONSHIPS.map((rel) => <option key={rel}>{rel}</option>)}</select>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <select value={r.occasionLabel} onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionLabel: e.target.value } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm">{OCCASIONS.map((item) => <option key={item}>{item}</option>)}</select>
-                    <input type="date" value={r.occasionDate} onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: e.target.value } : item))} className="h-9 rounded-md border border-border bg-background px-3 text-sm" />
+                    <select
+                      value={r.occasionLabel}
+                      onChange={(e) => {
+                        const label = e.target.value;
+                        const holiday = standardHoliday(label);
+                        setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionLabel: label, occasionDate: holiday ? nextOccurrenceIso(holiday.getDate) : item.occasionDate } : item));
+                      }}
+                      className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                    >
+                      {OCCASIONS.map((item) => <option key={item}>{item}</option>)}
+                    </select>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={r.occasionDate}
+                        min={standardHoliday(r.occasionLabel) ? undefined : todayIso()}
+                        readOnly={Boolean(standardHoliday(r.occasionLabel))}
+                        onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: e.target.value } : item))}
+                        className={`h-9 w-full rounded-md border border-border bg-background px-3 text-sm ${standardHoliday(r.occasionLabel) ? "cursor-not-allowed text-muted-foreground" : ""}`}
+                      />
+                      {standardHoliday(r.occasionLabel) && <Lock className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />}
+                    </div>
                   </div>
+                  {standardHoliday(r.occasionLabel) && (
+                    <p className="-mt-1 text-xs text-muted-foreground">{r.occasionLabel} is a fixed date, set automatically each year.</p>
+                  )}
                   <input value={r.yearsContext} onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, yearsContext: e.target.value } : item))} placeholder={occasionDateHelp(r.occasionLabel)} className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
                 </div>
               ))}

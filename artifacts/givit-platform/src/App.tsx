@@ -17,6 +17,8 @@ import GiftFinderPage from "@/pages/gift";
 import AutoGiftRecommendPage from "@/pages/autogift-recommend";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import AuthCallbackPage from "@/pages/auth-callback";
 import ConciergePage from "@/pages/concierge";
 import BoardsPage from "@/pages/boards";
@@ -48,6 +50,8 @@ function Router() {
           <Route path="/autogift/recommend" component={AutoGiftRecommendPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/signup" component={SignupPage} />
+          <Route path="/forgot-password" component={ForgotPasswordPage} />
+          <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/auth-callback" component={AuthCallbackPage} />
           <Route path="/concierge" component={ConciergePage} />
           <Route path="/boards" component={BoardsPage} />

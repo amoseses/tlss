@@ -266,6 +266,15 @@ export default function ConciergePage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  // useAuth() re-validates the session (and flips loading back to true)
+  // whenever the tab regains focus — without this, the full-page spinner
+  // below would unmount the whole page, including an in-progress
+  // AutoGiftOnboardingWizard, wiping its step/address/card/recipient state
+  // back to the first slide every time someone switched tabs and came back.
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  useEffect(() => {
+    if (!loading) setHasLoadedOnce(true);
+  }, [loading]);
   const [surveyNotification, setSurveyNotification] = useState<Notification | null>(null);
   const onboardingComplete = Boolean((profile as any)?.concierge_onboarding_completed) || window.localStorage.getItem("givit-autogift-onboarded") === "1";
 
@@ -383,7 +392,7 @@ export default function ConciergePage() {
     .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())
     .slice(0, 5);
 
-  if (loading) {
+  if (loading && !hasLoadedOnce) {
     return (
       <PageShell>
         <div className="flex min-h-[400px] items-center justify-center">
