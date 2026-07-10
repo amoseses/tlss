@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { MessageSquarePlus, X, Send, CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowDownRight, MessageSquarePlus, X, Send, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/use-auth";
 
@@ -16,6 +16,20 @@ export function BetaFeedbackWidget() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [showNudge, setShowNudge] = useState(false);
+
+  useEffect(() => {
+    const storageKey = "givit-beta-feedback-nudge-dismissed";
+    if (window.localStorage.getItem(storageKey) === "true") return;
+
+    const nudgeTimer = window.setTimeout(() => setShowNudge(true), 900);
+    return () => window.clearTimeout(nudgeTimer);
+  }, []);
+
+  function dismissNudge() {
+    setShowNudge(false);
+    window.localStorage.setItem("givit-beta-feedback-nudge-dismissed", "true");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +57,11 @@ export function BetaFeedbackWidget() {
   function close() {
     setOpen(false);
     setTimeout(() => { setSent(false); setError(""); }, 200);
+  }
+
+  function openFeedback() {
+    dismissNudge();
+    setOpen(true);
   }
 
   return (
@@ -93,9 +112,38 @@ export function BetaFeedbackWidget() {
         </div>
       )}
 
+      {showNudge && !open && (
+        <div className="slide-up relative mr-1 max-w-[18rem] rounded-2xl border border-givit-ember/25 bg-card p-4 pr-10 text-left shadow-2xl shadow-black/20">
+          <button
+            type="button"
+            onClick={dismissNudge}
+            aria-label="Dismiss beta feedback tip"
+            className="absolute right-2 top-2 rounded-full p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+          <p className="text-sm font-semibold text-givit-ink">Beta testers: quick feedback lives here.</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Tap the corner widget anytime to share bugs, confusing moments, or ideas while you browse.
+          </p>
+          <button
+            type="button"
+            onClick={openFeedback}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-givit-ember px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-givit-ember-hover"
+          >
+            Leave feedback
+            <ArrowDownRight className="h-3.5 w-3.5" />
+          </button>
+          <div className="absolute -bottom-2 right-5 h-4 w-4 rotate-45 border-b border-r border-givit-ember/25 bg-card" aria-hidden="true" />
+        </div>
+      )}
+
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (!open) dismissNudge();
+          setOpen((v) => !v);
+        }}
         aria-label="Leave beta feedback"
         className="flex h-12 w-12 items-center justify-center rounded-full givit-gradient text-white shadow-lg givit-glow transition hover:brightness-110"
       >
