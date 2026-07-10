@@ -1,5 +1,4 @@
 import { useSearch } from "wouter";
-import { Search } from "lucide-react";
 
 export function HeaderSearch() {
   const search = useSearch();
@@ -22,7 +21,12 @@ export function HeaderSearch() {
         aria-label="Search"
         className="bg-givit-ember hover:bg-givit-ember-hover flex shrink-0 items-center justify-center rounded-r-md px-5 transition-colors"
       >
-        <Search className="h-5 w-5 text-white" strokeWidth={2.5} />
+        <img
+          src="/Screenshot 2026-06-23 095149.png"
+          alt=""
+          aria-hidden="true"
+          className="h-6 w-6 rounded-md object-cover"
+        />
       </button>
     </form>
   );
