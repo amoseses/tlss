@@ -52,6 +52,8 @@ export type Product = {
   occasion_tags?: string[];
   relationship_tags?: string[];
   affiliate_url?: string | null;
+  /** YouTube link shown as a "Watch video" redirect on the product card, when set. */
+  video_url?: string | null;
   created_at: string;
   updated_at: string;
 };

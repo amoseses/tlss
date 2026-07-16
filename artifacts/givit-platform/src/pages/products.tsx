@@ -1,6 +1,27 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import { Bookmark, Compass, Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import {
+  Bookmark,
+  Compass,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  Cpu,
+  Gamepad2,
+  Home as HomeIcon,
+  ChefHat,
+  BookOpen,
+  PenTool,
+  Flower2,
+  Trees,
+  Dumbbell,
+  PawPrint,
+  Palette,
+  Cookie,
+  Ticket,
+  LayoutGrid,
+  type LucideIcon,
+} from "lucide-react";
 
 import { Breadcrumbs, PageShell } from "@/components/layout/page-shell";
 import { RecentlyViewedRail } from "@/components/personalization/recently-viewed";
@@ -12,13 +33,31 @@ import {
   MARKETPLACE_CATEGORIES,
   MARKETPLACE_RATINGS,
   getMarketplaceProducts,
+  type MarketplaceProduct,
 } from "@/lib/data/marketplace";
+import { fetchAdminProducts } from "@/lib/data/data-layer";
 import { useSearchParams } from "@/lib/hooks/use-search-params";
 
 const OCCASIONS = [
   "Christmas", "Valentine's Day", "Mother's Day", "Father's Day",
   "Graduation", "Baby Shower", "Wedding", "Anniversary", "Retirement",
 ];
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  tech: Cpu,
+  gaming: Gamepad2,
+  home: HomeIcon,
+  kitchen: ChefHat,
+  books: BookOpen,
+  writing: PenTool,
+  beauty: Flower2,
+  outdoor: Trees,
+  fitness: Dumbbell,
+  pets: PawPrint,
+  art: Palette,
+  food: Cookie,
+  experiences: Ticket,
+};
 
 const TRENDING_TAGS = [
   { label: "Tech under $150", q: "tech under 150" },
@@ -46,7 +85,30 @@ export default function ProductsPage() {
   const maxCents = Number.isFinite(maxPrice) && maxPrice > 0 ? Math.round(maxPrice * 100) : undefined;
 
   const categories = MARKETPLACE_CATEGORIES;
-  const list = getMarketplaceProducts({ categorySlug, q }).filter((product) => {
+
+  // Admin-managed products live in Supabase (real backend, not localStorage)
+  // — fetched once and merged in on top of the static seed catalog so they
+  // show up in the real marketplace, not just the admin dashboard.
+  const [adminProducts, setAdminProducts] = useState<MarketplaceProduct[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    fetchAdminProducts().then((products) => { if (mounted) setAdminProducts(products); });
+    return () => { mounted = false; };
+  }, []);
+
+  const seedList = getMarketplaceProducts({ categorySlug, q });
+  const adminList = adminProducts.filter((product) => {
+    if (categorySlug && product.category?.slug !== categorySlug) return false;
+    if (!q) return true;
+    const needle = q.toLowerCase();
+    const haystack = [product.name, product.brand, product.retailer, product.ai_summary, product.why_we_picked_it, ...product.interests]
+      .filter(Boolean).join(" ").toLowerCase();
+    return haystack.includes(needle);
+  });
+  const bySlug = new Map(seedList.map((p) => [p.slug, p]));
+  for (const p of adminList) bySlug.set(p.slug, p);
+
+  const list = Array.from(bySlug.values()).filter((product) => {
     if (occasion && !product.occasions.some((item) => item.toLowerCase().includes(occasion))) return false;
     if (minCents && product.price_cents < minCents) return false;
     if (maxCents && product.price_cents > maxCents) return false;
@@ -62,8 +124,10 @@ export default function ProductsPage() {
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
   const activeCategory = categories.find((c) => c.slug === categorySlug);
 
-  function cnLink(active: boolean) {
-    return active ? "font-semibold text-primary" : "text-foreground hover:text-givit-ember hover:underline";
+  function cnPill(active: boolean) {
+    return active
+      ? "givit-gradient text-white shadow-sm"
+      : "bg-givit-sand/50 text-foreground hover:bg-givit-sand hover:text-givit-ember";
   }
 
   // Switching category/search/sort/etc. re-renders this same route with new
@@ -131,6 +195,27 @@ export default function ProductsPage() {
         </div>
       </section>
 
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1 lg:hidden">
+        <Link
+          href="/products"
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors ${cnPill(!categorySlug)}`}
+        >
+          <LayoutGrid className="h-3.5 w-3.5" /> All
+        </Link>
+        {categories.map((c) => {
+          const Icon = CATEGORY_ICONS[c.slug] ?? LayoutGrid;
+          return (
+            <Link
+              key={c.id}
+              href={`/products?category=${encodeURIComponent(c.slug)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors ${cnPill(categorySlug === c.slug)}`}
+            >
+              <Icon className="h-3.5 w-3.5" /> {c.name}
+            </Link>
+          );
+        })}
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
           <div className="givit-section sticky top-36 space-y-6">
@@ -138,20 +223,28 @@ export default function ProductsPage() {
               <h2 className="flex items-center gap-2 text-sm font-bold text-givit-ink">
                 <Compass className="h-4 w-4 text-givit-ember" /> Departments
               </h2>
-              <ul className="mt-3 space-y-1 text-sm">
+              <ul className="mt-3 space-y-1">
                 <li>
-                  <Link href="/products" className={cnLink(!categorySlug)}>All categories</Link>
+                  <Link
+                    href="/products"
+                    className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${cnPill(!categorySlug)}`}
+                  >
+                    <LayoutGrid className="h-4 w-4 shrink-0" /> All categories
+                  </Link>
                 </li>
-                {categories.map((c) => (
-                  <li key={c.id}>
-                    <Link
-                      href={`/products?category=${encodeURIComponent(c.slug)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-                      className={cnLink(categorySlug === c.slug)}
-                    >
-                      {c.name}
-                    </Link>
-                  </li>
-                ))}
+                {categories.map((c) => {
+                  const Icon = CATEGORY_ICONS[c.slug] ?? LayoutGrid;
+                  return (
+                    <li key={c.id}>
+                      <Link
+                        href={`/products?category=${encodeURIComponent(c.slug)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${cnPill(categorySlug === c.slug)}`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" /> {c.name}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>

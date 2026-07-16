@@ -8,6 +8,7 @@ import { getTodaySpecialDate } from "@/lib/data/special-dates";
 import { createNotification, getGiftRecipients, saveGiftOccasion, saveGiftRecipient } from "@/lib/supabase/db";
 import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
 import { GiftSurveyModal } from "@/components/autogift/autogift-survey-modal";
+import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
 
 type Occasion = { label: string; date: string };
 type Recipient = { id: string; name: string; relationship: string; occasions: Occasion[] };
@@ -560,6 +561,8 @@ export default function ConciergePage() {
         </div>
 
         <aside className="space-y-4">
+          {recipients.length > 0 && <AutoGiftCalendar recipients={recipients} />}
+
           {upcomingAll.length > 0 && (
             <div className="givit-section">
               <div className="mb-3 flex items-center gap-2">

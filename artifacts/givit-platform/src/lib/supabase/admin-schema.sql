@@ -546,6 +546,8 @@ ALTER TABLE product_submissions ADD COLUMN IF NOT EXISTS category TEXT;
 ALTER TABLE product_submissions ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE product_submissions ADD COLUMN IF NOT EXISTS ai_summary TEXT;
 ALTER TABLE product_submissions ADD COLUMN IF NOT EXISTS scraped_metadata JSONB DEFAULT '{}'::jsonb;
+-- Optional YouTube link shown as a "Watch video" redirect on the product card.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS video_url TEXT;
 
 -- Product submissions pending
 CREATE OR REPLACE VIEW analytics_pending_submissions AS

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Play } from "lucide-react";
 
 import { WishlistButton } from "@/components/product/wishlist-button";
 import type { MarketplaceProduct } from "@/lib/data/marketplace";
@@ -34,9 +34,15 @@ export function ProductCard({
   const marketplaceProduct = product as Product & Partial<MarketplaceProduct>;
   const salePrice = marketplaceProduct.sale_price_cents;
   const priceLabel = salePrice ? formatMoney(salePrice) : marketplaceProduct.price_range ?? formatMoney(product.price_cents);
+  // A "#47 in Tech" badge on a 700-item catalog isn't a credible ranking
+  // signal — it reads as filler. Only surface the rank (and the quality
+  // score next to it) when it's genuinely a top-10 standing; every other
+  // card just shows the honest basics (name, why-this-gift, rating, price).
+  const categoryRank = marketplaceProduct.category_rank ?? marketplaceProduct.rank ?? 1;
+  const withinTop10 = Boolean(rankLabel) || categoryRank <= 10;
   const rankingLabel = rankLabel ?? (marketplaceProduct.category?.name
-    ? `#${marketplaceProduct.category_rank ?? marketplaceProduct.rank ?? 1} in ${marketplaceProduct.category.name}`
-    : `#${marketplaceProduct.rank ?? 1} in Marketplace`);
+    ? `#${categoryRank} in ${marketplaceProduct.category.name}`
+    : `#${categoryRank} in Marketplace`);
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-card p-2 transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/30 hover:shadow-lg hover:shadow-black/5">
@@ -49,14 +55,30 @@ export function ProductCard({
             onError={() => setImageSrc(productPhotoFallback(product.id || product.slug))}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
-            <span className="line-clamp-1">{rankingLabel}</span>
-          </div>
+          {withinTop10 && (
+            <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
+              <span className="line-clamp-1">{rankingLabel}</span>
+            </div>
+          )}
           {salePrice ? (
             <div className="absolute right-2 top-2 rounded-full bg-emerald-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
               Deal
             </div>
           ) : null}
+          {marketplaceProduct.video_url && (
+            <button
+              type="button"
+              title="Watch video"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(marketplaceProduct.video_url!, "_blank", "noopener,noreferrer");
+              }}
+              className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white shadow-sm transition hover:scale-110 hover:bg-black/85"
+            >
+              <Play className="h-3.5 w-3.5 fill-current" />
+            </button>
+          )}
           <div className="absolute inset-x-0 bottom-0 translate-y-full transition-transform duration-200 group-hover:translate-y-0">
             <div className="flex items-center justify-center gap-1.5 bg-givit-ember/90 py-2 text-white backdrop-blur-sm">
               <ExternalLink className="h-3.5 w-3.5" />
@@ -95,8 +117,9 @@ export function ProductCard({
               {salePrice ? <p className="text-xs text-muted-foreground line-through">{formatMoney(product.price_cents)}</p> : null}
             </div>
             <p className="text-left text-[10px] text-muted-foreground">
-              {marketplaceProduct.brand ? `${marketplaceProduct.brand} · ` : ""}
-              Product Quality Score: {marketplaceProduct.gift_match_score ?? 90}/100
+              {withinTop10
+                ? `${marketplaceProduct.brand ? `${marketplaceProduct.brand} · ` : ""}Product Quality Score: ${marketplaceProduct.gift_match_score ?? 90}/100`
+                : marketplaceProduct.brand}
             </p>
           </div>
         </div>

@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
-import { extractProductWithAI, getImportedCount, saveImportedProduct } from "@/lib/admin/imported-products";
+import { extractProductWithAI } from "@/lib/admin/imported-products";
 import { getAnalytics, getProductSubmissions, updateProductSubmission, getProducts, upsertProduct, deleteProduct, getAllProfiles, getOrders, trackEvent, getAllAutoGiftOrdersFromDb, updateAutoGiftOrderStatusInDb } from "@/lib/supabase/db";
 import { getAutoGiftOrders } from "@/lib/autogift/survey";
 import { getLocalErrors, getLocalEvents } from "@/lib/monitoring";
@@ -165,14 +165,42 @@ export default function AdminPage() {
       setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "processing" } : r));
       try {
         const extracted = await extractProductWithAI(row.url, row);
-        saveImportedProduct({ ...extracted, status: "done" });
+        const priceCents = Math.round(Number.parseFloat(extracted.price.replace(/[^0-9.]/g, "")) * 100) || 4999;
+        // Saved straight to the real products table (not localStorage) so
+        // imports are backend-persisted and visible from any device/admin —
+        // admin is the approver here, so no separate review step needed.
+        const { error: saveError } = await upsertProduct({
+          name: extracted.name,
+          slug: slugSafe(`${extracted.name}-${Date.now().toString(36)}-${i}`),
+          description: extracted.description || `Admin-imported ${extracted.category} gift sourced from ${extracted.brand}.`,
+          price_cents: priceCents,
+          stock: 50,
+          is_published: true,
+          is_approved: true,
+          affiliate_url: extracted.url,
+          retailer: extracted.brand,
+          brand: extracted.brand,
+          gift_match_score: 82,
+          interests: [extracted.category, "giftable", "curated"],
+          occasions: ["birthday", "holiday"],
+          recipients: ["friend", "family"],
+          ai_summary: extracted.description || `Admin-imported ${extracted.category} gift.`,
+          why_we_picked_it: "Added via admin link import — curated for the Givit marketplace.",
+          images: extracted.imageUrl ? [{ storage_path: extracted.imageUrl, sort_order: 0 }] : [],
+          metadata: { category: extracted.category, source: "admin_bulk_import", importedAt: new Date().toISOString() },
+        });
+        // Supabase reports failures via { error }, not a thrown exception —
+        // without this check a blocked RLS insert would still mark "done".
+        if (saveError) throw saveError;
         setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, ...extracted, status: "done" as const } : r));
         setDone((n) => n + 1);
-      } catch {
+      } catch (err) {
+        console.error("Failed to save imported product:", err);
         setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "error" } : r));
       }
     }
     setProcessing(false);
+    loadData();
   }
 
   async function handleApproveSubmission(id: string) {
@@ -817,6 +845,16 @@ export default function AdminPage() {
                   rows={3}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
                 />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm font-semibold">YouTube video URL (optional)</label>
+                <input
+                  value={editingProduct.video_url || ""}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, video_url: e.target.value || null })}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
+                <p className="text-xs text-muted-foreground">Shown as a "Watch video" button/redirect on the product card when set.</p>
               </div>
               <div className="flex items-center gap-2">
                 <input

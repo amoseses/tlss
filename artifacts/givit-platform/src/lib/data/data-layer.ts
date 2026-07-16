@@ -1,90 +1,95 @@
 /**
- * Data layer that tries Supabase first, falls back to seed data.
- * This allows the app to work with real data once the SQL schema is run,
- * while still having the seed data as a fallback for development.
+ * Merges admin-managed Supabase products (the real `products` table) into
+ * the static seed catalog. Admin-added products store their category as a
+ * plain slug in metadata.category rather than products.category_id — the
+ * static MARKETPLACE_CATEGORIES list uses fake string ids ("cat-tech")
+ * that don't match the real categories table's UUIDs, so resolving by
+ * slug through the same lookup the rest of the app already uses avoids
+ * that mismatch entirely.
  */
 import { createClient } from "@/lib/supabase/client";
-import { getAllMarketplaceProducts, getMarketplaceProductBySlug, getMarketplaceProducts, MARKETPLACE_CATEGORIES, type MarketplaceProduct } from "@/lib/data/marketplace";
+import { getAllMarketplaceProducts, getMarketplaceProductBySlug, MARKETPLACE_CATEGORIES, type MarketplaceProduct } from "@/lib/data/marketplace";
 
-export async function fetchProducts(options?: { categorySlug?: string; q?: string }): Promise<MarketplaceProduct[]> {
+const categoryBySlug = new Map(MARKETPLACE_CATEGORIES.map((c) => [c.slug, c]));
+
+function dbProductToMarketplaceProduct(p: any, rank: number): MarketplaceProduct {
+  const categorySlug = p.metadata?.category as string | undefined;
+  const category = (categorySlug && categoryBySlug.get(categorySlug)) || null;
+  const images = Array.isArray(p.images) && p.images.length > 0
+    ? p.images.map((img: any, i: number) => ({ id: `${p.id}-image-${i}`, product_id: p.id, storage_path: img.storage_path ?? img, sort_order: img.sort_order ?? i }))
+    : [];
+
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    description: p.description ?? "",
+    sku: `GIVIT-DB-${p.id.slice(0, 8)}`,
+    price_cents: p.price_cents,
+    weight_oz: p.weight_oz ?? 8,
+    min_order_qty: p.min_order_qty ?? 1,
+    stock: p.stock ?? 50,
+    is_published: p.is_published ?? true,
+    category_id: category?.id ?? null,
+    seller_id: p.seller_id ?? null,
+    created_at: p.created_at,
+    updated_at: p.updated_at ?? p.created_at,
+    affiliate_url: p.affiliate_url,
+    video_url: p.video_url ?? null,
+    retailer: p.retailer ?? p.brand ?? "",
+    brand: p.brand ?? "",
+    price_range: p.price_cents < 3000 ? "Under $30" : p.price_cents < 10000 ? "$30-$100" : "$100+",
+    rank,
+    category_rank: rank,
+    gift_match_score: p.gift_match_score ?? 82,
+    tested_badge: "Admin added",
+    interests: p.interests ?? [],
+    occasions: p.occasions?.length ? p.occasions : ["birthday", "holiday"],
+    recipients: p.recipients?.length ? p.recipients : ["friend", "family"],
+    ai_summary: p.ai_summary ?? "",
+    why_we_picked_it: p.why_we_picked_it ?? "",
+    category,
+    images,
+  } satisfies MarketplaceProduct;
+}
+
+/** Real, admin-managed products from Supabase — published + approved only. */
+export async function fetchAdminProducts(): Promise<MarketplaceProduct[]> {
   try {
     const supabase = createClient();
-    let query = supabase.from("products").select("*");
-    if (options?.categorySlug) {
-      query = query.eq("category_id", options.categorySlug);
-    }
-    if (options?.q) {
-      query = query.ilike("name", `%${options.q}%`);
-    }
-    const { data, error } = await query.limit(50);
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("is_published", true)
+      .eq("is_approved", true)
+      .order("created_at", { ascending: false })
+      .limit(500);
     if (error) throw error;
-    if (data && data.length > 0) {
-      return data.map((p: any) => ({
-        id: p.id,
-        slug: p.slug,
-        name: p.name,
-        description: p.description,
-        price_cents: p.price_cents,
-        images: p.images || [],
-        category: null,
-        is_published: p.is_published,
-        gift_match_score: p.gift_match_score || 0,
-        affiliate_url: p.affiliate_url,
-        retailer: p.retailer,
-        brand: p.brand,
-        price_range: "",
-        rank: 0,
-        category_rank: 0,
-        tested_badge: "",
-        interests: p.interests || [],
-        occasions: p.occasions || [],
-        recipients: p.recipients || [],
-        ai_summary: p.ai_summary || "",
-        why_we_picked_it: p.why_we_picked_it || "",
-      })) as MarketplaceProduct[];
-    }
+    return (data ?? []).map((p, i) => dbProductToMarketplaceProduct(p, 8000 + i));
   } catch {
-    // Fall through to seed data
+    return [];
   }
-  // Fallback to seed data
-  return getMarketplaceProducts(options);
+}
+
+/** Static catalog + localStorage-imported + Supabase admin products, deduped by slug (DB wins). */
+export async function fetchAllProducts(): Promise<MarketplaceProduct[]> {
+  const [seed, admin] = await Promise.all([Promise.resolve(getAllMarketplaceProducts()), fetchAdminProducts()]);
+  const bySlug = new Map(seed.map((p) => [p.slug, p]));
+  for (const p of admin) bySlug.set(p.slug, p);
+  return Array.from(bySlug.values());
 }
 
 export async function fetchProductBySlug(slug: string): Promise<MarketplaceProduct | null> {
   try {
     const supabase = createClient();
-    const { data, error } = await supabase.from("products").select("*").eq("slug", slug).single();
+    const { data, error } = await supabase.from("products").select("*").eq("slug", slug).eq("is_published", true).maybeSingle();
     if (error) throw error;
-    if (data) {
-      return {
-        id: data.id,
-        slug: data.slug,
-        name: data.name,
-        description: data.description,
-        price_cents: data.price_cents,
-        images: data.images || [],
-        category: null,
-        is_published: data.is_published,
-        gift_match_score: data.gift_match_score || 0,
-        affiliate_url: data.affiliate_url,
-        retailer: data.retailer,
-        brand: data.brand,
-        price_range: "",
-        rank: 0,
-        category_rank: 0,
-        tested_badge: "",
-        interests: data.interests || [],
-        occasions: data.occasions || [],
-        recipients: data.recipients || [],
-        ai_summary: data.ai_summary || "",
-        why_we_picked_it: data.why_we_picked_it || "",
-      } as MarketplaceProduct;
-    }
+    if (data) return dbProductToMarketplaceProduct(data, 8000);
   } catch {
-    // Fall through
+    // fall through to seed data
   }
   return getMarketplaceProductBySlug(slug);
 }
 
-export { MARKETPLACE_CATEGORIES, getAllMarketplaceProducts, getMarketplaceProducts, getMarketplaceProductBySlug };
+export { MARKETPLACE_CATEGORIES, getAllMarketplaceProducts };
 export type { MarketplaceProduct };

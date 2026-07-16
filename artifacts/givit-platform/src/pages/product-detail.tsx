@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link, useParams, useLocation } from "wouter";
-import { ExternalLink, Share2, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { ExternalLink, Play, Share2, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 
 import { Breadcrumbs, PageShell } from "@/components/layout/page-shell";
 import { ProductGrid } from "@/components/product/product-grid";
@@ -14,7 +15,9 @@ import {
   MARKETPLACE_RATINGS,
   getMarketplaceProductBySlug,
   getRelatedMarketplaceProducts,
+  type MarketplaceProduct,
 } from "@/lib/data/marketplace";
+import { fetchProductBySlug } from "@/lib/data/data-layer";
 import { formatMoney } from "@/lib/format";
 import { productPhotoFallback, resolveProductImageSrc } from "@/lib/product-photo";
 
@@ -22,8 +25,29 @@ export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const [, navigate] = useLocation();
 
-  const product = getMarketplaceProductBySlug(slug ?? "");
+  const seedProduct = getMarketplaceProductBySlug(slug ?? "");
+  // Admin-added products live only in Supabase, not the static seed catalog
+  // — fall back to an async DB lookup so their detail pages actually work
+  // once linked to from the marketplace grid.
+  const [dbProduct, setDbProduct] = useState<MarketplaceProduct | null>(null);
+  const [dbChecked, setDbChecked] = useState(false);
+  useEffect(() => {
+    if (seedProduct || !slug) { setDbChecked(true); return; }
+    let mounted = true;
+    fetchProductBySlug(slug).then((p) => { if (mounted) { setDbProduct(p); setDbChecked(true); } });
+    return () => { mounted = false; };
+  }, [slug, seedProduct]);
+
+  const product = seedProduct ?? dbProduct;
+
   if (!product) {
+    if (!dbChecked) {
+      return (
+        <PageShell>
+          <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>
+        </PageShell>
+      );
+    }
     return (
       <PageShell>
         <div className="py-16 text-center">
@@ -91,10 +115,12 @@ export default function ProductDetailPage() {
 
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <StarRating value={avg} count={reviewCount} />
-              <Badge className="rounded-full bg-givit-ember/10 text-givit-ember">
-                <Trophy className="mr-1 h-3 w-3" />
-                #{product.category_rank} in {product.category?.name ?? "Marketplace"}
-              </Badge>
+              {product.category_rank != null && product.category_rank <= 10 && (
+                <Badge className="rounded-full bg-givit-ember/10 text-givit-ember">
+                  <Trophy className="mr-1 h-3 w-3" />
+                  #{product.category_rank} in {product.category?.name ?? "Marketplace"}
+                </Badge>
+              )}
             </div>
 
             <div className="mt-4 flex items-baseline gap-3">
@@ -130,6 +156,13 @@ export default function ProductDetailPage() {
               >
                 <a href={product.affiliate_url} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4" /> Shop at {product.retailer ?? "retailer"}
+                </a>
+              </Button>
+            ) : null}
+            {product.video_url ? (
+              <Button asChild variant="outline" className="h-12 rounded-full">
+                <a href={product.video_url} target="_blank" rel="noopener noreferrer">
+                  <Play className="h-4 w-4 fill-current" /> Watch video
                 </a>
               </Button>
             ) : null}
