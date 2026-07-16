@@ -29,7 +29,7 @@ Copy `artifacts/givit-platform/.env.example` to `artifacts/givit-platform/.env.l
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push keys (phone/desktop notifications). Generate your own pair with `node -e "console.log(require('web-push').generateVAPIDKeys())"` — the private key must stay server-only. `VAPID_SUBJECT` is a `mailto:` address the push service can contact if there's abuse. | see below |
 | `VITE_VAPID_PUBLIC_KEY` | Same value as `VAPID_PUBLIC_KEY`, but `VITE_`-prefixed so the browser can subscribe. This one is meant to be public. | same as above |
 
-Givit AI needs **no environment variable at all** — see §5.
+Givit AI needs `VITE_GEMINI_API_KEY` — see §5.
 
 ### 2. Supabase Setup
 
@@ -64,7 +64,7 @@ VAPID_SUBJECT=mailto:you@example.com
 VITE_VAPID_PUBLIC_KEY=...          (same value as VAPID_PUBLIC_KEY)
 ```
 
-Givit AI (Puter.js) needs nothing added here — see §5.
+Givit AI needs `VITE_GEMINI_API_KEY` added here — see §5.
 
 > 🔴 **Security reminder:** an earlier commit in this repo's history accidentally included live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `SHIPPO_API_TOKEN` values before `.env.local` was git-ignored. If you haven't already, **rotate all three in the Stripe and Shippo dashboards** — removing the file from the latest commit doesn't invalidate keys still readable in git history/GitHub.
 
@@ -114,17 +114,18 @@ Use this checklist to test the local demo flow end-to-end:
 
 For production email testing, point your scheduler/email worker at rows in `gift_notifications` where `scheduled_for <= now()`, `status = 'scheduled'`, and `channel = 'email'`, then mark successful sends as `sent`.
 
-### 5. Givit AI (Puter.js — client-side, no API key)
+### 5. Givit AI (Gemini generateContent API)
 
-Givit AI runs entirely **client-side** via [Puter.js](https://developer.puter.com/) (loaded in `index.html` as `<script src="https://js.puter.com/v2/">`), not through a server API key. Puter uses a "User-Pays" model: each visitor's own free Puter.com account covers their own AI usage, so there's nothing to configure, bill, or rotate on Givit's side — see `src/lib/ai/puter-client.ts` for the thin wrapper (`callPuterJSON`) everything else calls.
+Givit AI runs client-side through Google's Gemini `generateContent` REST API using `VITE_GEMINI_API_KEY`. Set this in `.env.local` for local development and in Vercel → Project Settings → Environment Variables for production. The thin wrapper lives at `src/lib/ai/gemini-client.ts`.
 
-**Tradeoff to know about:** the first time someone uses an AI feature (Givit AI chat, AutoGift suggestions, admin product import), Puter may pop up a sign-in window asking them to log into (or create) a Puter.com account. That's how their usage gets billed to *them*, not to Givit. If they decline or the popup is blocked, the call fails and the app **falls back to the existing deterministic rule-based matching** — nothing crashes, results just get less personalized.
+Because `VITE_` variables are bundled into the browser, use a browser-restricted Gemini API key. The app still falls back to the existing deterministic rule-based matching if the AI call fails, so nothing crashes and results just get less personalized.
 
-- `src/lib/ai/gift-ai.ts` — builds the prompts and calls Puter for the `/gift` chat finder and AutoGift's survey-to-suggestions step
+Current AI entry points:
+
+- `src/lib/ai/gift-ai.ts` — builds the prompts and calls Gemini for the `/gift` chat finder and AutoGift's survey-to-suggestions step
 - `src/lib/admin/imported-products.ts` (`extractProductWithAI`) — powers admin's "paste a link/spreadsheet of links, get products" bulk import
 - `api/photo.ts` + `api/metadata.ts` — small serverless functions that stay server-side on purpose: they proxy Microlink (for real product photos and page metadata) to avoid CORS/rate-limit issues calling it directly from the browser. Neither needs a secret key. `pnpm run dev` mirrors both locally via `aiApiDevMiddleware` in `vite.config.ts`.
 - `api/push/send.ts` — sends a Web Push notification to a saved subscription (unrelated to AI, still server-side since it needs the VAPID private key)
-
 Every AI call is constrained to **only pick from a list of real candidate products/ids you already have** — it's never allowed to invent a product, price, or link, so a bad AI response can only mean "picked a worse gift," never a broken checkout link.
 
 ### 6. Push Notifications
@@ -175,7 +176,7 @@ If users can't log in or sessions don't persist:
 - **Routing:** wouter (lightweight)
 - **Auth:** Supabase Auth (email/password)
 - **Data:** LocalStorage (boards, recipients, surveys, some orders) + Supabase DB (user profiles, products, orders, board likes/comments, AutoGift orders, push subscriptions)
-- **AI:** Puter.js (client-side, "User-Pays," no API key) — see §5 above
+- **AI:** Gemini generateContent API (client-side, via `VITE_GEMINI_API_KEY`) — see §5 above
 - **Photos:** Microlink (scrapes real og:image metadata from product URLs) via `/api/photo` and `/api/metadata`
 - **Push notifications:** Web Push (VAPID) + a service worker at `public/sw.js` — see §6 above
 - **Payments:** Stripe (API keys configured, UI ready) — checkout itself is not wired up; the business model redirects to the retailer (Amazon, etc.) for affiliate commission rather than taking payment in-app, except for AutoGift concierge orders

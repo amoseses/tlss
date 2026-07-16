@@ -1,7 +1,7 @@
 // Plain Microlink metadata proxy — no AI, no secret key needed. Kept
 // server-side purely to avoid CORS/rate-limit issues calling Microlink
 // directly from the browser. The AI normalization pass that used to happen
-// here moved client-side to Puter.js (see src/lib/admin/imported-products.ts).
+// here moved client-side to Gemini (see src/lib/admin/imported-products.ts).
 export async function fetchPageMetadata(pageUrl) {
   try {
     const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(pageUrl)}`, { signal: AbortSignal.timeout(8000) });
