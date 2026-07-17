@@ -134,11 +134,11 @@ export default function ProductDetailPage() {
 
           <div className="rounded-2xl bg-givit-sand/60 p-4">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-givit-ember">
-              <Sparkles className="h-3.5 w-3.5" /> Product Quality Score: {product.gift_match_score}/100
+              <Sparkles className="h-3.5 w-3.5" /> Editorial pick
             </div>
             <p className="mt-2 text-sm leading-6 text-foreground">{product.ai_summary}</p>
             {product.why_we_picked_it ? (
-              <p className="mt-2 text-xs text-muted-foreground">Why we picked it: {product.why_we_picked_it}</p>
+              <p className="mt-2 text-sm italic leading-6 text-muted-foreground">"{product.why_we_picked_it}"</p>
             ) : null}
           </div>
 

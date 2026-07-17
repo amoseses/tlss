@@ -25,6 +25,7 @@ import {
 
 import { Breadcrumbs, PageShell } from "@/components/layout/page-shell";
 import { RecentlyViewedRail } from "@/components/personalization/recently-viewed";
+import { ProductCard } from "@/components/product/product-card";
 import { ProductGrid } from "@/components/product/product-grid";
 import { WishlistRail } from "@/components/product/wishlist-button";
 import { Button } from "@/components/ui/button";
@@ -123,6 +124,11 @@ export default function ProductsPage() {
 
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
   const activeCategory = categories.find((c) => c.slug === categorySlug);
+
+  // A spotlight of a handful of genuinely top-ranked picks up top, distinct
+  // in size from the regular grid, so the page reads as curated rather than
+  // an undifferentiated e-commerce feed. Only on the unfiltered default view.
+  const featuredPicks = !q && !categorySlug ? sorted.slice(0, 3) : [];
 
   function cnPill(active: boolean) {
     return active
@@ -251,36 +257,64 @@ export default function ProductsPage() {
         </aside>
 
         <div>
-          <div className="givit-section mb-4 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-givit-ink">
-              <SlidersHorizontal className="h-4 w-4 text-givit-ember" /> Filter the marketplace
-            </div>
-            <form method="get" className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              {q ? <input type="hidden" name="q" value={q} /> : null}
-              <div className="grid gap-1.5 sm:w-48">
-                <label className="text-xs font-bold text-givit-ink" htmlFor="category">Category</label>
-                <select id="category" name="category" defaultValue={categorySlug ?? ""} className="border-input bg-background h-10 w-full rounded-sm border px-3 text-sm outline-none">
-                  <option value="">All</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.slug}>{c.name}</option>
-                  ))}
-                </select>
+          {!q && !categorySlug && featuredPicks.length > 0 && (
+            <section className="mb-6">
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-givit-ember" />
+                <h2 className="font-serif text-lg font-bold text-givit-ink">This week's curated picks</h2>
               </div>
-              <div className="grid gap-1.5 md:w-48">
-                <label className="text-xs font-bold text-givit-ink" htmlFor="sort">Sort by</label>
-                <select id="sort" name="sort" defaultValue={sortVal} className="border-input bg-background h-10 w-full rounded-sm border px-3 text-sm outline-none">
+              <div className="grid gap-4 sm:grid-cols-3">
+                {featuredPicks.map((p) => {
+                  const s = ratings[p.id];
+                  const avg = s?.avg_rating != null ? Number.parseFloat(String(s.avg_rating)) : null;
+                  return (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      images={p.images}
+                      avgRating={avg ?? undefined}
+                      reviewCount={s?.review_count ?? 0}
+                      featured
+                      rankLabel={`#${p.category_rank ?? p.rank} in ${p.category?.name ?? "Marketplace"}`}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          <div ref={resultsRef} className="scroll-mt-32">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-sm">
+            <p>
+              <span className="font-semibold text-givit-ink">{sorted.length} ranked gift ideas</span>
+              {q ? <span className="text-muted-foreground"> for "{q}"</span> : null}
+              {activeCategory ? <span className="text-muted-foreground"> in {activeCategory.name}</span> : null}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <form method="get" className="flex items-center gap-2">
+                {q ? <input type="hidden" name="q" value={q} /> : null}
+                {categorySlug ? <input type="hidden" name="category" value={categorySlug} /> : null}
+                <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                <select
+                  name="sort"
+                  defaultValue={sortVal}
+                  onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                  className="h-8 rounded-full border border-border/60 bg-card px-3 text-xs font-medium text-foreground outline-none"
+                >
                   <option value="ranked">Givit ranked</option>
                   <option value="popular">Gift match score</option>
                   <option value="price_asc">Price: Low to High</option>
                   <option value="price_desc">Price: High to Low</option>
                 </select>
-              </div>
-              <Button type="submit" className="h-10 rounded-sm bg-primary text-primary-foreground hover:bg-primary/90">Apply</Button>
-            </form>
+              </form>
+              <Link href="/gift" className="inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
+                <Sparkles className="h-4 w-4" /> Ask Givit AI
+              </Link>
+            </div>
           </div>
 
           {!q && !categorySlug && (
-            <div className="mb-3 flex flex-wrap gap-1.5">
+            <div className="mb-4 flex flex-wrap gap-1.5">
               {TRENDING_TAGS.map((tag) => (
                 <a
                   key={tag.label}
@@ -293,22 +327,10 @@ export default function ProductsPage() {
             </div>
           )}
 
-          <div ref={resultsRef} className="scroll-mt-32">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-            <p>
-              <span className="font-semibold text-givit-ink">{sorted.length} ranked gift ideas</span>
-              {q ? <span className="text-muted-foreground"> for "{q}"</span> : null}
-              {activeCategory ? <span className="text-muted-foreground"> in {activeCategory.name}</span> : null}
-            </p>
-            <Link href="/gift" className="inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
-              <Sparkles className="h-4 w-4" /> Ask Givit AI
-            </Link>
-          </div>
-
-          <div key={resultsKey} className="givit-section slide-up">
+          <div key={resultsKey} className="slide-up">
             {sorted.length > 0 ? (
               <ProductGrid
-                products={sorted}
+                products={featuredPicks.length > 0 ? sorted.slice(featuredPicks.length) : sorted}
                 ratings={ratings}
                 compact
                 rankContext={q ? { query: q } : activeCategory ? { categoryName: activeCategory.name } : undefined}

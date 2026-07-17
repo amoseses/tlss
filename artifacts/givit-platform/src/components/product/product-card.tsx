@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ExternalLink, Play } from "lucide-react";
+import { ExternalLink, Play, Sparkles } from "lucide-react";
 
 import { WishlistButton } from "@/components/product/wishlist-button";
 import type { MarketplaceProduct } from "@/lib/data/marketplace";
@@ -35,33 +35,36 @@ export function ProductCard({
   const salePrice = marketplaceProduct.sale_price_cents;
   const priceLabel = salePrice ? formatMoney(salePrice) : marketplaceProduct.price_range ?? formatMoney(product.price_cents);
   // A "#47 in Tech" badge on a 700-item catalog isn't a credible ranking
-  // signal — it reads as filler. Only surface the rank (and the quality
-  // score next to it) when it's genuinely a top-10 standing; every other
-  // card just shows the honest basics (name, why-this-gift, rating, price).
+  // signal — it reads as filler. Only surface the rank when it's genuinely
+  // a top-10 standing; every other card just shows the honest basics
+  // (name, why-this-gift, rating, price) with no algorithmic-looking score.
   const categoryRank = marketplaceProduct.category_rank ?? marketplaceProduct.rank ?? 1;
   const withinTop10 = Boolean(rankLabel) || categoryRank <= 10;
   const rankingLabel = rankLabel ?? (marketplaceProduct.category?.name
     ? `#${categoryRank} in ${marketplaceProduct.category.name}`
     : `#${categoryRank} in Marketplace`);
+  const blurb = marketplaceProduct.why_we_picked_it || (!compact ? marketplaceProduct.ai_summary : undefined);
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-card p-2 transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/30 hover:shadow-lg hover:shadow-black/5">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/30 hover:shadow-xl hover:shadow-black/10">
       <Link href={`/products/${product.slug}`} className="flex flex-1 flex-col">
-        <div className={featured ? "relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-givit-sand" : "relative aspect-square w-full overflow-hidden rounded-xl bg-givit-sand"}>
+        <div className={featured ? "relative aspect-[4/3] w-full overflow-hidden bg-givit-sand" : "relative aspect-square w-full overflow-hidden bg-givit-sand"}>
           <img
             src={imageSrc}
             alt={product.name}
             loading="lazy"
             onError={() => setImageSrc(productPhotoFallback(product.id || product.slug))}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           {withinTop10 && (
-            <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
+            <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-givit-ink/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm">
+              <Sparkles className="h-2.5 w-2.5 text-givit-coral" />
               <span className="line-clamp-1">{rankingLabel}</span>
             </div>
           )}
           {salePrice ? (
-            <div className="absolute right-2 top-2 rounded-full bg-emerald-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+            <div className="absolute right-3 top-3 rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
               Deal
             </div>
           ) : null}
@@ -74,7 +77,7 @@ export function ProductCard({
                 e.stopPropagation();
                 window.open(marketplaceProduct.video_url!, "_blank", "noopener,noreferrer");
               }}
-              className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white shadow-sm transition hover:scale-110 hover:bg-black/85"
+              className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white shadow-sm transition hover:scale-110 hover:bg-black/85"
             >
               <Play className="h-3.5 w-3.5 fill-current" />
             </button>
@@ -87,45 +90,33 @@ export function ProductCard({
           </div>
         </div>
 
-        <div className="mt-2 flex flex-1 flex-col gap-1 px-0.5">
-          <p className="line-clamp-2 text-left text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
+        <div className="flex flex-1 flex-col gap-1.5 p-3">
+          {marketplaceProduct.brand && (
+            <p className="text-[10px] font-bold uppercase tracking-widest text-givit-ember/80">{marketplaceProduct.brand}</p>
+          )}
+
+          <p className={`line-clamp-2 text-left font-serif font-semibold leading-snug text-foreground transition-colors group-hover:text-givit-ember ${featured ? "text-lg" : "text-sm"}`}>
             {product.name}
           </p>
 
-          {marketplaceProduct.why_we_picked_it && (
-            <p className="line-clamp-2 text-left text-xs leading-snug text-muted-foreground">
-              <span className="font-medium text-foreground/80">Why this gift: </span>
-              {marketplaceProduct.why_we_picked_it}
-            </p>
-          )}
-
-          {marketplaceProduct.ai_summary && !compact && !marketplaceProduct.why_we_picked_it && (
-            <p className="line-clamp-2 text-left text-xs leading-snug text-muted-foreground">
-              {marketplaceProduct.ai_summary}
+          {blurb && (
+            <p className="line-clamp-2 text-left text-xs italic leading-snug text-muted-foreground">
+              "{blurb}"
             </p>
           )}
 
           {avgRating != null && reviewCount != null && reviewCount > 0 ? (
             <StarRating value={avgRating} count={reviewCount} size={compact ? 12 : 14} />
-          ) : (
-            <span className="text-xs text-muted-foreground">No ratings yet</span>
-          )}
+          ) : null}
 
-          <div className="mt-auto pt-1.5">
-            <div className="flex items-center gap-2">
-              <p className="price-tag text-left text-base font-bold tabular-nums text-givit-ember">{priceLabel}</p>
-              {salePrice ? <p className="text-xs text-muted-foreground line-through">{formatMoney(product.price_cents)}</p> : null}
-            </div>
-            <p className="text-left text-[10px] text-muted-foreground">
-              {withinTop10
-                ? `${marketplaceProduct.brand ? `${marketplaceProduct.brand} · ` : ""}Product Quality Score: ${marketplaceProduct.gift_match_score ?? 90}/100`
-                : marketplaceProduct.brand}
-            </p>
+          <div className="mt-auto flex items-center gap-2 pt-1.5">
+            <p className="price-tag text-left text-base font-bold tabular-nums text-givit-ember">{priceLabel}</p>
+            {salePrice ? <p className="text-xs text-muted-foreground line-through">{formatMoney(product.price_cents)}</p> : null}
           </div>
         </div>
       </Link>
 
-      <div className="mt-2">
+      <div className="px-3 pb-3">
         <WishlistButton
           compact
           item={{
