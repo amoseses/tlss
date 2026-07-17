@@ -1,22 +1,32 @@
 import { useEffect, useState } from "react";
-import { ArrowDownRight, MessageSquarePlus, X, Send, CheckCircle2 } from "lucide-react";
+import { ArrowDownRight, MessageSquarePlus, X, Send, CheckCircle2, Heart, Bug, Lightbulb } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/use-auth";
+
+const REACTIONS = [
+  { key: "love", label: "Love it", icon: Heart, message: "Loving it so far!" },
+  { key: "bug", label: "Found a bug", icon: Bug, message: "" },
+  { key: "idea", label: "Have an idea", icon: Lightbulb, message: "" },
+] as const;
 
 /**
  * Always-available corner widget so testers/devs can drop a quick note
  * without navigating away or signing in — separate from the full
- * /beta-tester-survey intake form.
+ * /beta-tester-survey intake form. Leads with one-tap reaction buttons
+ * (send instantly, no typing required) since a required textarea was the
+ * main friction stopping people from actually leaving feedback; typing
+ * more detail is still there as an optional next step, not the default.
  */
 export function BetaFeedbackWidget() {
   const { profile } = useAuth();
   const [open, setOpen] = useState(false);
+  const [reaction, setReaction] = useState<(typeof REACTIONS)[number] | null>(null);
   const [message, setMessage] = useState("");
-  const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [showNudge, setShowNudge] = useState(false);
+  const [addingDetail, setAddingDetail] = useState(false);
 
   useEffect(() => {
     const storageKey = "givit-beta-feedback-nudge-dismissed";
@@ -31,19 +41,13 @@ export function BetaFeedbackWidget() {
     window.localStorage.setItem("givit-beta-feedback-nudge-dismissed", "true");
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!message.trim()) return;
+  async function submitFeedback(subject: string, body: string) {
     setSending(true);
     setError("");
     try {
       const supabase = createClient();
-      const contactEmail = email.trim() || profile?.email;
-      const fullMessage = contactEmail ? `Email: ${contactEmail}\n\n${message.trim()}` : message.trim();
-      const { error: dbError } = await supabase.from("feedback").insert({
-        subject: "Corner widget note",
-        message: fullMessage,
-      });
+      const fullMessage = profile?.email ? `Email: ${profile.email}\n\n${body}` : body;
+      const { error: dbError } = await supabase.from("feedback").insert({ subject, message: fullMessage || subject });
       if (dbError) throw dbError;
       setSent(true);
       setMessage("");
@@ -54,9 +58,28 @@ export function BetaFeedbackWidget() {
     }
   }
 
+  // One tap, no typing required — this is the default path. "Found a bug"
+  // and "Have an idea" open the detail box since those are rarely useful
+  // without a sentence of context; "Love it" sends immediately since the
+  // reaction alone is already the whole signal.
+  function tapReaction(r: (typeof REACTIONS)[number]) {
+    setReaction(r);
+    if (r.key === "love") {
+      void submitFeedback(r.label, r.message);
+    } else {
+      setAddingDetail(true);
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!message.trim()) return;
+    await submitFeedback(reaction?.label ?? "Corner widget note", message.trim());
+  }
+
   function close() {
     setOpen(false);
-    setTimeout(() => { setSent(false); setError(""); }, 200);
+    setTimeout(() => { setSent(false); setError(""); setReaction(null); setAddingDetail(false); setMessage(""); }, 200);
   }
 
   function openFeedback() {
@@ -78,36 +101,65 @@ export function BetaFeedbackWidget() {
             <div className="flex flex-col items-center gap-2 px-5 py-8 text-center">
               <CheckCircle2 className="h-8 w-8 text-emerald-500" />
               <p className="text-sm font-medium text-givit-ink">Got it, thank you!</p>
-              <button type="button" onClick={() => setSent(false)} className="text-xs font-semibold text-givit-ember hover:underline">Leave another note</button>
+              <button
+                type="button"
+                onClick={() => { setSent(false); setReaction(null); setAddingDetail(false); setMessage(""); }}
+                className="text-xs font-semibold text-givit-ember hover:underline"
+              >
+                Leave another note
+              </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-3 p-4">
-              <p className="text-xs leading-5 text-muted-foreground">Notice something while you're testing? Drop it here, no need to sign in.</p>
-              <textarea
-                autoFocus
-                required
-                rows={4}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="What's on your mind: a bug, something confusing, an idea..."
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-              />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email (optional, if you want a reply)"
-                className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-              />
-              {error && <p className="text-xs text-destructive">{error}</p>}
-              <button
-                type="submit"
-                disabled={sending || !message.trim()}
-                className="flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-givit-ember text-sm font-semibold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Send className="h-3.5 w-3.5" /> {sending ? "Sending…" : "Send note"}
-              </button>
-            </form>
+            <div className="p-4">
+              <p className="mb-3 text-xs leading-5 text-muted-foreground">One tap, no need to sign in.</p>
+              <div className="grid grid-cols-3 gap-2">
+                {REACTIONS.map((r) => (
+                  <button
+                    key={r.key}
+                    type="button"
+                    disabled={sending}
+                    onClick={() => tapReaction(r)}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-xs font-semibold transition disabled:opacity-50 ${
+                      reaction?.key === r.key ? "border-givit-ember bg-givit-ember/10 text-givit-ember" : "border-border bg-background text-foreground hover:border-givit-ember/40 hover:bg-givit-sand"
+                    }`}
+                  >
+                    <r.icon className="h-5 w-5" />
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+
+              {addingDetail && (
+                <form onSubmit={handleSubmit} className="slide-up mt-3 space-y-2">
+                  <textarea
+                    autoFocus
+                    rows={3}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder={reaction?.key === "bug" ? "What happened, and where?" : "What's the idea?"}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  {error && <p className="text-xs text-destructive">{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={sending || !message.trim()}
+                    className="flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-givit-ember text-xs font-semibold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Send className="h-3.5 w-3.5" /> {sending ? "Sending…" : "Send"}
+                  </button>
+                </form>
+              )}
+
+              {!addingDetail && (
+                <button
+                  type="button"
+                  onClick={() => setAddingDetail(true)}
+                  className="mt-3 text-xs font-medium text-muted-foreground underline-offset-2 hover:text-givit-ember hover:underline"
+                >
+                  + Add a note instead
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

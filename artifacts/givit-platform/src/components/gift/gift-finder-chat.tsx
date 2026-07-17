@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { AlertTriangle, ExternalLink, Send, Sparkles, Star, ThumbsDown, ThumbsUp, Wand2 } from "lucide-react";
+import { AlertTriangle, ExternalLink, Send, Sparkles, Star, ThumbsDown, ThumbsUp, Wand2, UserRound } from "lucide-react";
 import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { recommendGifts, EMPTY_CONTEXT, type GiftRecommendResult, type ParsedContext } from "@/lib/gift-recommend";
@@ -8,6 +8,8 @@ import { personalizeChatResponse } from "@/lib/ai/gift-chat-personalize";
 import { readLearningProfile, applyFeedback as applyLearningFeedback } from "@/lib/gift-learning";
 import { productPhotoFallback } from "@/lib/product-photo";
 import { logError, trackUserEvent } from "@/lib/monitoring";
+import { useAuth } from "@/lib/auth/use-auth";
+import { getGiftRecipients } from "@/lib/supabase/db";
 
 type GiftResult = GiftRecommendResult;
 
@@ -49,6 +51,29 @@ const STYLES = ["Practical", "Sentimental", "Unique", "Luxury", "Cozy", "Funny",
 
 function formatMoneyLocal(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}
+
+type SavedRecipient = {
+  id: string;
+  name: string;
+  relationship?: string | null;
+  interests?: string[] | null;
+  avoid_terms?: string[] | null;
+  default_budget_cents?: number | null;
+  notes?: string | null;
+};
+
+// Turns a saved AutoGift recipient profile into the same free-text shape
+// the chat already knows how to parse — this is the "memory layer": the
+// interests/avoid-list/budget were captured once in AutoGift and now drive
+// a Givit AI query with zero retyping.
+function buildRecipientPrompt(r: SavedRecipient) {
+  const parts = [`Gift for ${r.name}${r.relationship ? ` (${r.relationship})` : ""}`];
+  if (r.default_budget_cents) parts.push(`budget ${formatMoneyLocal(r.default_budget_cents)}`);
+  if (r.interests?.length) parts.push(`loves ${r.interests.join(", ")}`);
+  if (r.avoid_terms?.length) parts.push(`avoid ${r.avoid_terms.join(", ")}`);
+  if (r.notes?.trim()) parts.push(r.notes.trim());
+  return parts.join(", ");
 }
 
 function buildQuestionnairePrompt(form: Questionnaire) {
@@ -148,11 +173,22 @@ function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index
 }
 
 export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {}) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
   const [form, setForm] = useState<Questionnaire>({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
+  // Saved AutoGift recipient profiles double as one-tap starting points here
+  // — their interests/avoid-list/budget were already captured once, so
+  // reusing them avoids making the shopper retype what Givit already knows.
+  const [savedRecipients, setSavedRecipients] = useState<SavedRecipient[]>([]);
+  useEffect(() => {
+    if (!user) { setSavedRecipients([]); return; }
+    let mounted = true;
+    getGiftRecipients(user.id).then((rows) => { if (mounted) setSavedRecipients(rows as SavedRecipient[]); });
+    return () => { mounted = false; };
+  }, [user]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // Accumulates recipient/occasion/budget/interests across turns so
@@ -324,6 +360,25 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       </aside>
 
       <div>
+        {messages.length === 1 && savedRecipients.length > 0 && (
+          <div className="mb-4">
+            <p className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">Shop for someone you've saved</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {savedRecipients.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => sendMessage(buildRecipientPrompt(r))}
+                  title={r.interests?.length ? `Loves ${r.interests.join(", ")}` : undefined}
+                  className="flex items-center gap-1.5 rounded-full border border-givit-ember/30 bg-givit-ember/5 px-4 py-2 text-xs font-semibold text-givit-ember transition-colors hover:bg-givit-ember/10"
+                >
+                  <UserRound className="h-3.5 w-3.5" /> {r.name}{r.relationship ? ` (${r.relationship})` : ""}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {messages.length === 1 && (
           <div className="mb-4 flex flex-wrap justify-center gap-2">
             {QUICK_PROMPTS.map((qp) => (

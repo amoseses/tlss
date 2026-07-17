@@ -166,31 +166,35 @@ export default function ProductsPage() {
         ) : null}
       </Breadcrumbs>
 
-      <section className="relative mb-6 overflow-hidden rounded-lg bg-black p-6 text-white shadow-xl md:p-8">
-        <div className="pointer-events-none absolute -right-10 -top-20 h-72 w-72 rounded-full bg-givit-coral/25 blur-3xl" />
-        <div className="pointer-events-none absolute -left-10 bottom-0 h-64 w-64 rounded-full bg-givit-ember/20 blur-3xl" />
-        <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
+      <section className="relative mb-6 overflow-hidden rounded-3xl bg-black p-8 text-white shadow-xl md:p-12">
+        <div className="pointer-events-none absolute -right-16 -top-24 h-80 w-80 rounded-full bg-givit-coral/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-16 -bottom-10 h-72 w-72 rounded-full bg-givit-ember/20 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+        <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-center">
           <div>
-            <h1 className="font-serif text-3xl font-bold md:text-5xl">
+            <p className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-givit-coral">
+              <Sparkles className="h-3 w-3" /> Editorially curated
+            </p>
+            <h1 className="mt-4 font-serif text-4xl font-bold leading-[1.05] md:text-6xl">
               Marketplace
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70 md:text-base">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60 md:text-base">
               Search by recipient, occasion, budget, or category.
             </p>
-            <form action="/products" className="mt-6 flex max-w-2xl overflow-hidden rounded-md bg-card text-givit-ink shadow-xl">
+            <form action="/products" className="mt-7 flex max-w-2xl overflow-hidden rounded-full bg-card text-givit-ink shadow-xl">
               <input
                 type="search"
                 name="q"
                 defaultValue={q}
                 placeholder="Search pens, gamers, teachers, coffee, travel..."
-                className="min-w-0 flex-1 px-5 py-3 text-sm outline-none"
+                className="min-w-0 flex-1 px-6 py-3.5 text-sm outline-none"
               />
-              <Button type="submit" className="m-1 rounded-md bg-givit-ember px-5 text-white hover:bg-givit-ember-hover">
+              <Button type="submit" className="m-1.5 rounded-full bg-givit-ember px-6 text-white hover:bg-givit-ember-hover">
                 <Search className="h-4 w-4" /> Search
               </Button>
             </form>
           </div>
-          <div className="rounded-lg border border-white/10 bg-white/10 p-5 backdrop-blur">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
             <div className="flex items-center gap-2 text-sm font-semibold text-givit-coral">
               <Bookmark className="h-4 w-4" /> Your wishlist
             </div>
@@ -201,10 +205,10 @@ export default function ProductsPage() {
         </div>
       </section>
 
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1 lg:hidden">
+      <div className="mb-6 flex snap-x gap-2 overflow-x-auto pb-1">
         <Link
           href="/products"
-          className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors ${cnPill(!categorySlug)}`}
+          className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${cnPill(!categorySlug)}`}
         >
           <LayoutGrid className="h-3.5 w-3.5" /> All
         </Link>
@@ -214,7 +218,7 @@ export default function ProductsPage() {
             <Link
               key={c.id}
               href={`/products?category=${encodeURIComponent(c.slug)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors ${cnPill(categorySlug === c.slug)}`}
+              className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${cnPill(categorySlug === c.slug)}`}
             >
               <Icon className="h-3.5 w-3.5" /> {c.name}
             </Link>
@@ -222,37 +226,30 @@ export default function ProductsPage() {
         })}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
+      <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
-          <div className="givit-section sticky top-36 space-y-6">
-            <div>
-              <h2 className="flex items-center gap-2 text-sm font-bold text-givit-ink">
-                <Compass className="h-4 w-4 text-givit-ember" /> Departments
-              </h2>
-              <ul className="mt-3 space-y-1">
-                <li>
-                  <Link
-                    href="/products"
-                    className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${cnPill(!categorySlug)}`}
-                  >
-                    <LayoutGrid className="h-4 w-4 shrink-0" /> All categories
-                  </Link>
-                </li>
-                {categories.map((c) => {
-                  const Icon = CATEGORY_ICONS[c.slug] ?? LayoutGrid;
-                  return (
-                    <li key={c.id}>
-                      <Link
-                        href={`/products?category=${encodeURIComponent(c.slug)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${cnPill(categorySlug === c.slug)}`}
-                      >
-                        <Icon className="h-4 w-4 shrink-0" /> {c.name}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+          <div className="sticky top-40 space-y-1">
+            <h2 className="mb-2 flex items-center gap-2 px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <Compass className="h-3.5 w-3.5" /> Departments
+            </h2>
+            <Link
+              href="/products"
+              className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${cnPill(!categorySlug)}`}
+            >
+              <LayoutGrid className="h-4 w-4 shrink-0" /> All categories
+            </Link>
+            {categories.map((c) => {
+              const Icon = CATEGORY_ICONS[c.slug] ?? LayoutGrid;
+              return (
+                <Link
+                  key={c.id}
+                  href={`/products?category=${encodeURIComponent(c.slug)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                  className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${cnPill(categorySlug === c.slug)}`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" /> {c.name}
+                </Link>
+              );
+            })}
           </div>
         </aside>
 
@@ -284,7 +281,7 @@ export default function ProductsPage() {
           )}
 
           <div ref={resultsRef} className="scroll-mt-32">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div className="sticky top-40 z-10 mb-3 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-background/85 px-1 py-2 text-sm backdrop-blur-md">
             <p>
               <span className="font-semibold text-givit-ink">{sorted.length} ranked gift ideas</span>
               {q ? <span className="text-muted-foreground"> for "{q}"</span> : null}
