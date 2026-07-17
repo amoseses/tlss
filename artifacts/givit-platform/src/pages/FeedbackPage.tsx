@@ -26,7 +26,7 @@ export default async function FeedbackPage() {
           <CardDescription>
             {user
               ? `We’ll reply to ${email}.`
-              : "Sign in optional — leave your email so we can respond."}
+              : "Sign in optional, leave your email so we can respond."}
           </CardDescription>
         </CardHeader>
         <CardContent>

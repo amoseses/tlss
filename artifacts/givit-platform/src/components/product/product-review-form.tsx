@@ -32,7 +32,7 @@ export function ProductReviewForm({ productId, productSlug }: Props) {
           title,
           body,
         });
-        toast.success("Thanks — your review was saved.");
+        toast.success("Thanks, your review was saved.");
         (e.target as HTMLFormElement).reset();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Could not submit review");
@@ -53,7 +53,7 @@ export function ProductReviewForm({ productId, productSlug }: Props) {
           >
             {[5, 4, 3, 2, 1].map((n) => (
               <option key={n} value={n}>
-                {n} — {n === 5 ? "Excellent" : n === 1 ? "Poor" : ""}
+                {n} {n === 5 ? "(Excellent)" : n === 1 ? "(Poor)" : ""}
               </option>
             ))}
           </select>
@@ -71,7 +71,7 @@ export function ProductReviewForm({ productId, productSlug }: Props) {
         {pending ? "Submitting…" : "Submit review"}
       </Button>
       <p className="text-muted-foreground text-xs">
-        One review per product — submitting again updates your existing review.
+        One review per product; submitting again updates your existing review.
       </p>
     </form>
   );

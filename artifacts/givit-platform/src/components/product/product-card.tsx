@@ -46,9 +46,14 @@ export function ProductCard({
   const blurb = marketplaceProduct.why_we_picked_it || (!compact ? marketplaceProduct.ai_summary : undefined);
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/30 hover:shadow-xl hover:shadow-black/10">
-      <Link href={`/products/${product.slug}`} className="flex flex-1 flex-col">
-        <div className={featured ? "relative aspect-[4/3] w-full overflow-hidden bg-givit-sand" : "relative aspect-square w-full overflow-hidden bg-givit-sand"}>
+    // Below `sm`, a full vertical card (tall image, then text, then a
+    // full-width button) reads as cramped in a narrow column — this switches
+    // to a horizontal row (centered image on the left, content + the
+    // wishlist action beside it) at mobile widths, and reverts to the
+    // regular vertical card from `sm` up.
+    <article className="group flex items-stretch gap-3 overflow-hidden rounded-2xl border border-border/50 bg-card p-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/30 hover:shadow-xl hover:shadow-black/10 sm:flex-col sm:gap-0 sm:p-0">
+      <Link href={`/products/${product.slug}`} className="flex flex-1 items-center gap-3 sm:flex-col sm:items-stretch sm:gap-0">
+        <div className={`relative aspect-square w-24 shrink-0 self-center overflow-hidden rounded-xl bg-givit-sand sm:w-full sm:self-auto sm:rounded-none ${featured ? "sm:aspect-[4/3]" : "sm:aspect-square"}`}>
           <img
             src={imageSrc}
             alt={product.name}
@@ -58,13 +63,13 @@ export function ProductCard({
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           {withinTop10 && (
-            <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-givit-ink/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm">
-              <Sparkles className="h-2.5 w-2.5 text-givit-coral" />
+            <div className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-givit-ink/90 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
+              <Sparkles className="h-2 w-2 text-givit-coral sm:h-2.5 sm:w-2.5" />
               <span className="line-clamp-1">{rankingLabel}</span>
             </div>
           )}
           {salePrice ? (
-            <div className="absolute right-3 top-3 rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+            <div className="absolute right-1.5 top-1.5 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm sm:right-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
               Deal
             </div>
           ) : null}
@@ -77,12 +82,12 @@ export function ProductCard({
                 e.stopPropagation();
                 window.open(marketplaceProduct.video_url!, "_blank", "noopener,noreferrer");
               }}
-              className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white shadow-sm transition hover:scale-110 hover:bg-black/85"
+              className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow-sm transition hover:scale-110 hover:bg-black/85 sm:bottom-3 sm:right-3 sm:h-8 sm:w-8"
             >
-              <Play className="h-3.5 w-3.5 fill-current" />
+              <Play className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" />
             </button>
           )}
-          <div className="absolute inset-x-0 bottom-0 translate-y-full transition-transform duration-200 group-hover:translate-y-0">
+          <div className="absolute inset-x-0 bottom-0 hidden translate-y-full transition-transform duration-200 group-hover:translate-y-0 sm:block">
             <div className="flex items-center justify-center gap-1.5 bg-givit-ember/90 py-2 text-white backdrop-blur-sm">
               <ExternalLink className="h-3.5 w-3.5" />
               <span className="text-xs font-semibold">View product</span>
@@ -90,7 +95,7 @@ export function ProductCard({
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col gap-1.5 p-3">
+        <div className="flex flex-1 flex-col gap-1 sm:gap-1.5 sm:p-3">
           {marketplaceProduct.brand && (
             <p className="text-[10px] font-bold uppercase tracking-widest text-givit-ember/80">{marketplaceProduct.brand}</p>
           )}
@@ -100,7 +105,7 @@ export function ProductCard({
           </p>
 
           {blurb && (
-            <p className="line-clamp-2 text-left text-xs italic leading-snug text-muted-foreground">
+            <p className="line-clamp-2 text-left text-xs italic leading-snug text-muted-foreground sm:line-clamp-2">
               "{blurb}"
             </p>
           )}
@@ -116,7 +121,7 @@ export function ProductCard({
         </div>
       </Link>
 
-      <div className="px-3 pb-3">
+      <div className="flex shrink-0 items-center sm:px-3 sm:pb-3 sm:pt-0">
         <WishlistButton
           compact
           item={{

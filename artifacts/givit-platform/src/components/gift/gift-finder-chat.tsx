@@ -3,6 +3,7 @@ import { AlertTriangle, ExternalLink, Send, Sparkles, Star, ThumbsDown, ThumbsUp
 import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { recommendGifts, EMPTY_CONTEXT, type GiftRecommendResult, type ParsedContext } from "@/lib/gift-recommend";
+import { fetchAllProducts, getAllMarketplaceProducts, type MarketplaceProduct } from "@/lib/data/data-layer";
 import { personalizeChatResponse } from "@/lib/ai/gift-chat-personalize";
 import { readLearningProfile, applyFeedback as applyLearningFeedback } from "@/lib/gift-learning";
 import { productPhotoFallback } from "@/lib/product-photo";
@@ -31,7 +32,7 @@ type Questionnaire = {
 const GREETING: Message = {
   id: "greeting",
   role: "assistant",
-  content: "Hey! I'm Givit — your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll suggest thoughtful picks with a reason for each one.",
+  content: "Hey! I'm Givit, your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll suggest thoughtful picks with a reason for each one.",
 };
 
 const QUICK_PROMPTS = [
@@ -161,6 +162,18 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   // Ids already shown, so "Not yet" can ask for a genuinely different set
   // instead of just acknowledging and stopping.
   const shownIdsRef = useRef<Set<string>>(new Set());
+  // Starts with the static seed catalog (available instantly, no network
+  // wait) and upgrades in the background to the Supabase-merged catalog, so
+  // admin-added products become real, recommendable candidates instead of
+  // items that only exist in the admin dashboard. A ref (not state) because
+  // sendMessage just needs the latest value, not a re-render when it lands.
+  const catalogRef = useRef<MarketplaceProduct[]>(getAllMarketplaceProducts());
+
+  useEffect(() => {
+    let mounted = true;
+    fetchAllProducts().then((products) => { if (mounted) catalogRef.current = products; });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     // block: "nearest" keeps this scoped to the chat panel's own scroll
@@ -213,7 +226,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     try {
       await new Promise((resolve) => setTimeout(resolve, 250));
       const profile = await readLearningProfile();
-      const recommendOptions = { priorContext: contextRef.current, excludeIds };
+      const recommendOptions = { priorContext: contextRef.current, excludeIds, catalog: catalogRef.current };
       // Score a wider pool (20) than we display (5): the deterministic
       // scorer is a decent first pass, but capping the AI to only the same
       // 5 it would've shown anyway means it can only reword them, never
@@ -250,7 +263,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     if (satisfied) {
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: "assistant", content: "Great — I saved those positive signals. ✅" },
+        { id: crypto.randomUUID(), role: "assistant", content: "Great, I saved those positive signals. ✅" },
       ]);
       return;
     }
@@ -261,7 +274,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     } else {
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: "assistant", content: "Got it — tell me a bit more about them (interests, budget, or style) and I'll try a different set." },
+        { id: crypto.randomUUID(), role: "assistant", content: "Got it, tell me a bit more about them (interests, budget, or style) and I'll try a different set." },
       ]);
     }
   }

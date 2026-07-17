@@ -54,6 +54,9 @@ export type Product = {
   affiliate_url?: string | null;
   /** YouTube link shown as a "Watch video" redirect on the product card, when set. */
   video_url?: string | null;
+  /** Manual override for marketplace display order, set from the admin Rankings tab. */
+  rank?: number | null;
+  category_rank?: number | null;
   created_at: string;
   updated_at: string;
 };

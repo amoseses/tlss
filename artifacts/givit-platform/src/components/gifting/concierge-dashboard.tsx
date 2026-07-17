@@ -198,7 +198,7 @@ function ConciergeSetupWizard({ onClose, enabled, paymentReady, stripePublishabl
           {step === 1 ? (
             <div className="space-y-5">
               <h3 className="font-serif text-2xl font-bold">Important dates and people</h3>
-              <p className="text-sm text-muted-foreground">Add as many people as you like — just names and dates. Details come later.</p>
+              <p className="text-sm text-muted-foreground">Add as many people as you like, just names and dates. Details come later.</p>
               <ConciergeRecipientFields compact />
             </div>
           ) : null}

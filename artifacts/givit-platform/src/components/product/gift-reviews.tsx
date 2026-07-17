@@ -33,7 +33,7 @@ const TITLES = [
   "Better in person than the photos",
 ];
 const BODIES = [
-  "Wrapped beautifully and arrived on time. The recipient lit up when they opened it — already getting daily use.",
+  "Wrapped beautifully and arrived on time. The recipient lit up when they opened it, already getting daily use.",
   "I was nervous about picking something they didn't already have, but this was a hit. Quality feels well above the price.",
   "Bought this through Givit's recommendation and it matched their interests perfectly. Would gift again.",
   "Solid, practical gift that doesn't feel boring. They mentioned it again a week later, which never happens.",

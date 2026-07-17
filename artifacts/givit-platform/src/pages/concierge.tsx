@@ -531,7 +531,7 @@ export default function ConciergePage() {
             <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-16 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10 text-3xl">👥</div>
               <p className="mt-4 font-serif text-xl font-bold text-givit-ink">No recipients yet</p>
-              <p className="mt-2 max-w-xs text-sm text-muted-foreground">Add the people you regularly gift to — with their birthdays, anniversaries, and other key dates.</p>
+              <p className="mt-2 max-w-xs text-sm text-muted-foreground">Add the people you regularly gift to, with their birthdays, anniversaries, and other key dates.</p>
               <Button onClick={() => setShowModal(true)} className="mt-5 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
                 <Users className="h-4 w-4" /> Add your first person
               </Button>

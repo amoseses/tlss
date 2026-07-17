@@ -33,7 +33,7 @@ export async function callGeminiJSON(
 ): Promise<any> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
   if (!apiKey) {
-    throw new Error("Gemini API key is missing — set VITE_GEMINI_API_KEY and try again.");
+    throw new Error("Gemini API key is missing. Set VITE_GEMINI_API_KEY and try again.");
   }
 
   const model = opts.model ?? DEFAULT_MODEL;

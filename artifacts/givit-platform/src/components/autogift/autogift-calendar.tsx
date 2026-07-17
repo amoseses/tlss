@@ -73,7 +73,7 @@ export function AutoGiftCalendar({ recipients }: { recipients: Recipient[] }) {
           return (
             <div
               key={i}
-              title={dayOccasions?.map((o) => `${o.recipient} — ${o.label}`).join(", ")}
+              title={dayOccasions?.map((o) => `${o.recipient}: ${o.label}`).join(", ")}
               className={`relative flex aspect-square items-center justify-center rounded-lg text-xs transition ${
                 !day
                   ? ""

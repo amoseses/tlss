@@ -228,7 +228,7 @@ function BoardComments({ comments, onSubmit, canComment }: { comments: any[]; on
     <div className="mt-6 rounded-xl border border-border bg-card p-4">
       <h3 className="mb-3 text-sm font-bold text-givit-ink">Comments {comments.length > 0 && `(${comments.length})`}</h3>
       {comments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No comments yet — be the first to say something.</p>
+        <p className="text-sm text-muted-foreground">No comments yet, be the first to say something.</p>
       ) : (
         <div className="mb-4 space-y-3">
           {comments.map((c) => (
@@ -530,7 +530,7 @@ export default function BoardsPage() {
         <div>
           <h1 className="font-serif text-3xl font-bold text-givit-ink">Gift boards</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {user ? "Browse public boards or manage your own" : "Browse public gift boards — sign in to start your own"}
+            {user ? "Browse public boards or manage your own" : "Browse public gift boards, sign in to start your own"}
           </p>
         </div>
         {user && (

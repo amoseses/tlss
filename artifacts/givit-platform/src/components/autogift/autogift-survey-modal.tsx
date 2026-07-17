@@ -14,10 +14,10 @@ const INTEREST_OPTIONS = [
 ];
 
 const STYLE_OPTIONS = [
-  { value: "practical", label: "Practical — something they actually need" },
-  { value: "surprise", label: "Surprise — something fun and unexpected" },
-  { value: "sentimental", label: "Sentimental — thoughtful and personal" },
-  { value: "experience", label: "Experience — an activity or outing" },
+  { value: "practical", label: "Practical: something they actually need" },
+  { value: "surprise", label: "Surprise: something fun and unexpected" },
+  { value: "sentimental", label: "Sentimental: thoughtful and personal" },
+  { value: "experience", label: "Experience: an activity or outing" },
 ];
 
 export function GiftSurveyModal({ 
@@ -399,7 +399,7 @@ export function GiftSurveyModal({
                   disabled={!address.line1 || !address.city || !address.state || !address.zip || placingOrder}
                   className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"
                 >
-                  <Sparkles className="h-4 w-4" /> {placingOrder ? "Sending to admin…" : `Approve & send to admin — $${(grandTotal / 100).toFixed(2)}`}
+                  <Sparkles className="h-4 w-4" /> {placingOrder ? "Sending to admin…" : `Approve & send to admin: $${(grandTotal / 100).toFixed(2)}`}
                 </Button>
               </div>
             </div>

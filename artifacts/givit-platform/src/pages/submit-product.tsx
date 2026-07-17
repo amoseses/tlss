@@ -74,7 +74,7 @@ export default function SubmitProductPage() {
 
   const previewName = name.trim() || aiExtracted?.name || (itemType === "experience" ? "Your experience name" : "Your product name");
   const previewBrand = brand.trim() || aiExtracted?.brand || (itemType === "experience" ? "Local provider" : "Brand");
-  const previewPrice = price.trim() ? `$${Number.parseFloat(price).toFixed(2)}` : aiExtracted ? `$${Number.parseFloat(aiExtracted.price).toFixed(2)}` : "$—";
+  const previewPrice = price.trim() ? `$${Number.parseFloat(price).toFixed(2)}` : aiExtracted ? `$${Number.parseFloat(aiExtracted.price).toFixed(2)}` : "$0.00";
   const previewImage = debouncedUrl ? bestProductImageUrl(debouncedUrl) : null;
   const previewDescription = description.trim() || (aiExtracted ? `${itemType === "experience" ? "Experience" : "Gift idea"} sourced from ${aiExtracted.brand}. Admins can edit before approval.` : "");
 
@@ -158,7 +158,7 @@ export default function SubmitProductPage() {
 
       {!user && (
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-givit-ember/20 bg-givit-ember/5 px-4 py-3">
-          <p className="text-sm text-foreground">Sign in to submit a product — you can fill out the form and preview it first.</p>
+          <p className="text-sm text-foreground">Sign in to submit a product. You can fill out the form and preview it first.</p>
           <Button asChild size="sm" className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
             <Link href="/login?next=/submit-product">Log in</Link>
           </Button>
@@ -210,7 +210,7 @@ export default function SubmitProductPage() {
                 <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
-                    This link looks like it might already be in Givit — <strong>{duplicate.name}</strong> ({duplicate.source === "catalog" ? "in the marketplace" : duplicate.source === "approved" ? "already approved" : "pending review from someone else"}). You can still submit if this is genuinely different.
+                    This link looks like it might already be in Givit: <strong>{duplicate.name}</strong> ({duplicate.source === "catalog" ? "in the marketplace" : duplicate.source === "approved" ? "already approved" : "pending review from someone else"}). You can still submit if this is genuinely different.
                   </span>
                 </div>
               )}

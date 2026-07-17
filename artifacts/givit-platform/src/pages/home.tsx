@@ -41,12 +41,12 @@ export default function HomePage() {
         <div className="container relative py-14 md:py-20 lg:py-24">
           <div className="slide-up mx-auto max-w-2xl text-center" style={{ animationDelay: "0ms" }}>
             <h1 className="font-serif text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl">
-              Find the perfect gift in seconds —{" "}
+              Find the perfect gift in seconds,{" "}
               <span className="italic text-givit-coral">powered by AI.</span>
             </h1>
 
             <p className="mt-5 text-base leading-7 text-white/75">
-              Tell Givit who you're shopping for, the occasion, and your budget. We handle the rest — from curated picks to doorstep delivery.
+              Tell Givit who you're shopping for, the occasion, and your budget. We handle the rest, from curated picks to doorstep delivery.
             </p>
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -83,7 +83,7 @@ export default function HomePage() {
                 </p>
                 <h2 className="mt-3 font-serif text-2xl font-bold text-foreground md:text-3xl">Describe the person, not the product.</h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Givit AI reads what actually matters — their interests, quirks, and any notes you give it — and picks real gifts with a specific reason for each one.
+                  Givit AI reads what actually matters (their interests, quirks, and any notes you give it) and picks real gifts with a specific reason for each one.
                 </p>
               </div>
               <form onSubmit={(e) => { e.preventDefault(); goToGivitAI(); }} className="flex w-full flex-col gap-3 lg:w-[380px]">
@@ -123,7 +123,7 @@ export default function HomePage() {
             {[
               { icon: Brain, title: "Tell us who it's for", desc: "Recipient, occasion, budget, and interests. Takes 30 seconds." },
               { icon: Bell, title: "Get notified early", desc: "Reminders 5–6 weeks before every important date." },
-              { icon: PackageCheck, title: "Approve once, done", desc: "Pick a gift, approve it — we order, card-write, and ship." },
+              { icon: PackageCheck, title: "Approve once, done", desc: "Pick a gift, approve it, and we order, card-write, and ship." },
             ].map((item) => (
               <div key={item.title} className="slide-up flex gap-4 opacity-0">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card shadow-sm transition-transform hover:scale-110">

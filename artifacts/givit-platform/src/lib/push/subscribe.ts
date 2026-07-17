@@ -55,7 +55,7 @@ export async function unsubscribeFromPush(): Promise<{ error?: string }> {
 
 export async function sendTestPush(userId: string, title: string, body: string): Promise<{ error?: string }> {
   const subscriptions = await getMyPushSubscriptions(userId);
-  if (subscriptions.length === 0) return { error: "No push subscription found — enable notifications first." };
+  if (subscriptions.length === 0) return { error: "No push subscription found. Enable notifications first." };
 
   const results = await Promise.all(
     subscriptions.map((sub) =>

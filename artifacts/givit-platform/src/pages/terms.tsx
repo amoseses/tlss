@@ -16,7 +16,7 @@ export default function TermsPage() {
         </section>
         <section>
           <h2 className="font-serif text-xl font-bold text-givit-ink">No warranties</h2>
-          <p className="mt-2 text-sm leading-7 text-muted-foreground">Product information, prices, and availability are sourced from retailers and may change. GIVIT provides gift recommendations as suggestions only — we cannot guarantee any particular outcome from a gift.</p>
+          <p className="mt-2 text-sm leading-7 text-muted-foreground">Product information, prices, and availability are sourced from retailers and may change. GIVIT provides gift recommendations as suggestions only; we cannot guarantee any particular outcome from a gift.</p>
         </section>
         <section>
           <h2 className="font-serif text-xl font-bold text-givit-ink">Accounts</h2>

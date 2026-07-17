@@ -12,7 +12,7 @@ export default function PrivacyPage() {
         </section>
         <section>
           <h2 className="font-serif text-xl font-bold text-givit-ink">No brand deals</h2>
-          <p className="mt-2 text-sm leading-7 text-muted-foreground">GIVIT's rankings and AI recommendations are editorially independent. We do not accept payment from brands or retailers to promote products. When we include affiliate links, we disclose them clearly — any commission we earn never influences which products we recommend.</p>
+          <p className="mt-2 text-sm leading-7 text-muted-foreground">GIVIT's rankings and AI recommendations are editorially independent. We do not accept payment from brands or retailers to promote products. When we include affiliate links, we disclose them clearly. Any commission we earn never influences which products we recommend.</p>
         </section>
         <section>
           <h2 className="font-serif text-xl font-bold text-givit-ink">Cookies and local storage</h2>

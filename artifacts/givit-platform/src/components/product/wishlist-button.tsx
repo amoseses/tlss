@@ -119,7 +119,7 @@ export function WishlistSharePanel() {
     };
   }, []);
 
-  const body = items.map((item, index) => `${index + 1}. ${item.name} — ${item.price ?? "Saved gift"} — ${item.href}`).join("\n");
+  const body = items.map((item, index) => `${index + 1}. ${item.name} (${item.price ?? "Saved gift"}): ${item.href}`).join("\n");
 
   return (
     <div className="rounded-2xl border border-givit-ember/20 bg-givit-sand/50 p-4">

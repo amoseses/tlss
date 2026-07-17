@@ -281,7 +281,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
               </div>
               <div className="flex gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span>We only keep your card type and last 4 digits on file — never the full card number. You'll approve every charge before it happens.</span>
+                <span>We only keep your card type and last 4 digits on file, never the full card number. You'll approve every charge before it happens.</span>
               </div>
             </div>
           )}
@@ -390,7 +390,7 @@ function detectCardBrand(value: string) {
 
 function occasionDateHelp(label: string) {
   const lower = label.toLowerCase();
-  if (lower.includes("birthday")) return "Date of birth — AI calculates age each year";
+  if (lower.includes("birthday")) return "Date of birth: AI calculates age each year";
   if (lower.includes("father")) return "Year they became a father / how many years a father";
   if (lower.includes("mother")) return "Year they became a mother / how many years a mother";
   if (lower.includes("anniversary")) return "Anniversary year and relationship context";

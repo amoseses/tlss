@@ -48,7 +48,7 @@ export function BetaFeedbackWidget() {
       setSent(true);
       setMessage("");
     } catch {
-      setError("Couldn't send that — try again in a moment.");
+      setError("Couldn't send that, try again in a moment.");
     } finally {
       setSending(false);
     }
@@ -77,19 +77,19 @@ export function BetaFeedbackWidget() {
           {sent ? (
             <div className="flex flex-col items-center gap-2 px-5 py-8 text-center">
               <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-              <p className="text-sm font-medium text-givit-ink">Got it — thank you!</p>
+              <p className="text-sm font-medium text-givit-ink">Got it, thank you!</p>
               <button type="button" onClick={() => setSent(false)} className="text-xs font-semibold text-givit-ember hover:underline">Leave another note</button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-3 p-4">
-              <p className="text-xs leading-5 text-muted-foreground">Notice something while you're testing? Drop it here — no need to sign in.</p>
+              <p className="text-xs leading-5 text-muted-foreground">Notice something while you're testing? Drop it here, no need to sign in.</p>
               <textarea
                 autoFocus
                 required
                 rows={4}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="What's on your mind — a bug, something confusing, an idea..."
+                placeholder="What's on your mind: a bug, something confusing, an idea..."
                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
               <input

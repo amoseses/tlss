@@ -548,6 +548,12 @@ ALTER TABLE product_submissions ADD COLUMN IF NOT EXISTS ai_summary TEXT;
 ALTER TABLE product_submissions ADD COLUMN IF NOT EXISTS scraped_metadata JSONB DEFAULT '{}'::jsonb;
 -- Optional YouTube link shown as a "Watch video" redirect on the product card.
 ALTER TABLE products ADD COLUMN IF NOT EXISTS video_url TEXT;
+-- Manual override for marketplace display order, editable from the admin
+-- Rankings tab. Without these columns, saving a rank edit there fails
+-- (PostgREST rejects unknown columns), so the admin UI and the live
+-- catalog silently drift apart.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS rank INTEGER;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS category_rank INTEGER;
 
 -- Product submissions pending
 CREATE OR REPLACE VIEW analytics_pending_submissions AS

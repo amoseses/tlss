@@ -14,7 +14,7 @@ type Props = {
 
 export function ProductGrid({ products, ratings, compact = false, rankContext }: Props) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
       {products.map((p, index) => {
         const s = ratings[p.id];
         const avg = s?.avg_rating != null ? Number.parseFloat(String(s.avg_rating)) : null;

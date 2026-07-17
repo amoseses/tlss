@@ -401,7 +401,7 @@ function scoreProduct(
 function generateMatchReason(product: MarketplaceProduct, tags: string[], budget: number | null, ctx: ParsedContext) {
   const matched = product.interests.filter((interest) => tags.includes(interest));
   if (ctx.recipient && matched.length > 0) {
-    return `${ctx.recipient.charAt(0).toUpperCase() + ctx.recipient.slice(1)} loves ${matched.slice(0, 2).join(" and ")} — ${product.why_we_picked_it.toLowerCase()}`;
+    return `${ctx.recipient.charAt(0).toUpperCase() + ctx.recipient.slice(1)} loves ${matched.slice(0, 2).join(" and ")}: ${product.why_we_picked_it.toLowerCase()}`;
   }
   if (matched.length > 0) return `Why this gift: matched on ${matched.slice(0, 2).join(" + ")}. ${product.why_we_picked_it}`;
   if (budget && product.price_cents <= budget * 100) return `Why this gift: fits your $${budget} budget and ${product.why_we_picked_it.toLowerCase()}`;
@@ -412,7 +412,7 @@ function generateAvoidanceWarning(product: MarketplaceProduct, avoidTerms: strin
   const text = productTokens(product);
   const matched = avoidTerms.find((term) => text.includes(term));
   if (!matched) return null;
-  return `Heads up — this may overlap with "${matched}" on your avoid list.`;
+  return `Heads up, this may overlap with "${matched}" on your avoid list.`;
 }
 
 function buildFollowUp(ctx: ParsedContext) {
@@ -422,9 +422,9 @@ function buildFollowUp(ctx: ParsedContext) {
   }
   if (missing.includes("recipient")) return "Who are you shopping for? Tell me a bit about them.";
   if (missing.includes("budget")) return "What's your budget? Even a rough range helps me narrow things down.";
-  if (missing.includes("interests")) return "What do they love — hobbies, style, or things they mention often?";
+  if (missing.includes("interests")) return "What do they love? Hobbies, style, or things they mention often?";
   if (missing.includes("occasion")) return "What's the occasion? Birthday, thank-you, holiday, or something else?";
-  return "Tell me a little more — who it's for, the occasion, budget, and a few interests.";
+  return "Tell me a little more: who it's for, the occasion, budget, and a few interests.";
 }
 
 function buildResultsMessage(ctx: ParsedContext, count: number, usedLearning: boolean) {
@@ -461,7 +461,7 @@ export function recommendGifts(
   query: string,
   learningProfile: LearningProfile = {},
   resultLimit = 5,
-  options: { priorContext?: ParsedContext; excludeIds?: string[] } = {},
+  options: { priorContext?: ParsedContext; excludeIds?: string[]; catalog?: MarketplaceProduct[] } = {},
 ): GiftRecommendResponse {
   const priorContext = options.priorContext ?? EMPTY_CONTEXT;
   const excludeIds = new Set(options.excludeIds ?? []);
@@ -472,7 +472,7 @@ export function recommendGifts(
 
   if (isGreeting(trimmed)) {
     return {
-      message: "Hey! I'm Givit — your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll find thoughtful picks with a reason for each one.",
+      message: "Hey! I'm Givit, your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll find thoughtful picks with a reason for each one.",
       results: [],
       tags: [],
       budget: priorContext.budget,
@@ -483,7 +483,7 @@ export function recommendGifts(
 
   if (isHelpQuery(trimmed)) {
     return {
-      message: "I help you find personalized gifts through conversation. Share who it's for, the occasion, budget, interests, and anything to avoid — I'll rank curated products and explain why each fits.",
+      message: "I help you find personalized gifts through conversation. Share who it's for, the occasion, budget, interests, and anything to avoid, and I'll rank curated products and explain why each fits.",
       results: [],
       tags: [],
       budget: priorContext.budget,
@@ -517,7 +517,12 @@ export function recommendGifts(
     Object.keys(learningProfile.tagWeights ?? {}).length,
   );
 
-  const results = getAllMarketplaceProducts()
+  // Defaults to the static seed catalog, but callers should pass in the
+  // Supabase-merged catalog (see fetchAllProducts in data-layer.ts) so
+  // admin-added products are real, recommendable candidates too — not just
+  // items sitting in the admin dashboard.
+  const catalog = options.catalog ?? getAllMarketplaceProducts();
+  const results = catalog
     .filter((product) => !excludeIds.has(product.id))
     .map((product) => ({ product, score: scoreProduct(product, trimmed, tags, budget, learningProfile, avoidTerms) }))
     .filter(({ score }) => score > 1.25 || tags.length === 0)

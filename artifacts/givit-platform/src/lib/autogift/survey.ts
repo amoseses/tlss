@@ -198,7 +198,7 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
       price: 5000,
       imageUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=600&q=80",
       productUrl: "https://www.airbnb.com/experiences",
-      reason: "Credit toward a local cooking class, pottery session, or wine tasting — arranged by our concierge.",
+      reason: "Credit toward a local cooking class, pottery session, or wine tasting, arranged by our concierge.",
       category: "activity",
       fulfillmentNotes: "Confirm preferred date windows, neighborhood, accessibility, and activity type.",
       rating: 88,

@@ -180,12 +180,12 @@ export default function AdminPage() {
           affiliate_url: extracted.url,
           retailer: extracted.brand,
           brand: extracted.brand,
-          gift_match_score: 82,
+          gift_match_score: extracted.giftMatchScore,
           interests: [extracted.category, "giftable", "curated"],
           occasions: ["birthday", "holiday"],
           recipients: ["friend", "family"],
           ai_summary: extracted.description || `Admin-imported ${extracted.category} gift.`,
-          why_we_picked_it: "Added via admin link import — curated for the Givit marketplace.",
+          why_we_picked_it: "Added via admin link import, curated for the Givit marketplace.",
           images: extracted.imageUrl ? [{ storage_path: extracted.imageUrl, sort_order: 0 }] : [],
           metadata: { category: extracted.category, source: "admin_bulk_import", importedAt: new Date().toISOString() },
         });
@@ -239,7 +239,18 @@ export default function AdminPage() {
 
   async function handleSaveProduct() {
     if (!editingProduct) return;
-    await upsertProduct(editingProduct);
+    // is_approved defaults to false in the schema (real seller submissions
+    // need review) — but there's no separate approval step for products an
+    // admin edits directly here, so without this a product could show
+    // "Published" in this table yet never actually appear on the live
+    // marketplace, which reads as the admin panel and Supabase being out
+    // of sync when really it's just a stuck is_approved flag.
+    const { error } = await upsertProduct({ ...editingProduct, is_approved: true });
+    if (error) {
+      console.error("Failed to save product:", error);
+      alert("Couldn't save that product. Check the console for details.");
+      return;
+    }
     setShowEditModal(false);
     setEditingProduct(null);
     loadData();
@@ -335,8 +346,8 @@ export default function AdminPage() {
                         {product.is_published ? "Published" : "Draft"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{product.gift_match_score ?? "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">#{product.rank ?? product.category_rank ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{product.gift_match_score ?? "-"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">#{product.rank ?? product.category_rank ?? "-"}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
                         <button
@@ -406,7 +417,7 @@ export default function AdminPage() {
                 <h2 className="font-semibold text-givit-ink">Upload spreadsheet</h2>
               </div>
               <p className="text-sm text-muted-foreground">
-                A <code className="rounded bg-muted px-1 py-0.5 text-xs">product_url</code> column is all you need — Givit AI reads each page and fills in name, brand, category, and price. Add <code className="rounded bg-muted px-1 py-0.5 text-xs">name</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">brand</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">price</code>, or <code className="rounded bg-muted px-1 py-0.5 text-xs">category</code> columns to override the AI for specific rows.
+                A <code className="rounded bg-muted px-1 py-0.5 text-xs">product_url</code> column is all you need: Givit AI reads each page and fills in name, brand, category, and price. Add <code className="rounded bg-muted px-1 py-0.5 text-xs">name</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">brand</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">price</code>, or <code className="rounded bg-muted px-1 py-0.5 text-xs">category</code> columns to override the AI for specific rows.
               </p>
               <div className="rounded-lg border-2 border-dashed border-border/60 p-6 text-center">
                 <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
@@ -428,7 +439,7 @@ export default function AdminPage() {
                 <Plus className="h-4 w-4 text-givit-ember" />
                 <h2 className="font-semibold text-givit-ink">Add product URLs manually</h2>
               </div>
-              <p className="text-sm text-muted-foreground">Paste a product page URL — AI will scrape it and extract details.</p>
+              <p className="text-sm text-muted-foreground">Paste a product page URL, and AI will scrape it and extract details.</p>
               <div className="flex gap-2">
                 <input
                   value={urlInput}
@@ -708,7 +719,7 @@ export default function AdminPage() {
                           ) : (
                             <span className="font-medium text-foreground">{item.productName}</span>
                           )}
-                          {" "}(${(item.price / 100).toFixed(2)}){item.notes ? ` — ${item.notes}` : ""}
+                          {" "}(${(item.price / 100).toFixed(2)}){item.notes ? ` · ${item.notes}` : ""}
                         </li>
                       ))}
                     </ul>
@@ -782,8 +793,8 @@ export default function AdminPage() {
             <tbody className="divide-y divide-border/50">
               {allProfiles.map((profile: any) => (
                 <tr key={profile.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 font-medium text-foreground">{profile.full_name || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{profile.email || "—"}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{profile.full_name || "-"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{profile.email || "-"}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       profile.role === "admin" ? "bg-givit-ember/10 text-givit-ember" :

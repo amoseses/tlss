@@ -134,7 +134,7 @@ export function extractProductFromUrl(url: string, hints?: Partial<ImportedProdu
  * secret key); the normalization pass itself runs client-side via Gemini
  * using the browser-exposed Vite Gemini key.
  */
-export async function extractProductWithAI(url: string, hints?: Partial<ImportedProductRow>): Promise<Omit<ImportedProductRow, "status"> & { aiPowered: boolean }> {
+export async function extractProductWithAI(url: string, hints?: Partial<ImportedProductRow>): Promise<Omit<ImportedProductRow, "status"> & { aiPowered: boolean; giftMatchScore: number }> {
   const fallback = extractProductFromUrl(url, hints);
   try {
     const metaRes = await fetch(`/api/metadata?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(8000) });
@@ -144,7 +144,9 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
       `You turn a raw product or experience page into a clean marketplace listing for a gift shop called Givit. ` +
       `Use only the page metadata given to you — never invent specifics you weren't told (no fake prices/reviews). ` +
       `If the price isn't in the metadata, make a reasonable estimate based on the category and note it's estimated. ` +
-      `Categories must be exactly one of: ${EXTRACT_CATEGORIES.join(", ")}. Return strict JSON only, matching the requested shape, with no markdown code fences.`;
+      `Categories must be exactly one of: ${EXTRACT_CATEGORIES.join(", ")}. ` +
+      `Also rate how strong a gift this item is on a 60-97 scale (giftMatchScore): weigh broad appeal, giftability (not too personal/perishable/sizing-dependent unless clearly a known crowd-pleaser), and perceived quality for the price. Score honestly — most reasonable products land 75-90, reserve 90+ for genuinely exceptional gifts and under 75 for niche or risky picks. ` +
+      `Return strict JSON only, matching the requested shape, with no markdown code fences.`;
 
     const user = JSON.stringify({
       url,
@@ -157,6 +159,7 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
         priceUsd: "number, best estimate if not in metadata",
         priceIsEstimate: "boolean",
         description: "string, 1-2 sentences, warm gift-shop tone, no filler",
+        giftMatchScore: "integer 60-97",
       },
     });
 
@@ -170,6 +173,9 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
 
     const category = EXTRACT_CATEGORIES.includes(ai?.category) ? ai.category : fallback.category;
     const priceUsd = typeof ai?.priceUsd === "number" && ai.priceUsd > 0 ? ai.priceUsd.toFixed(2) : fallback.price;
+    const giftMatchScore = typeof ai?.giftMatchScore === "number"
+      ? Math.min(97, Math.max(60, Math.round(ai.giftMatchScore)))
+      : 80;
 
     return {
       url: normalizeProductUrl(url),
@@ -182,9 +188,10 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
       // Microlink URL from the AI response.
       imageUrl: hints?.imageUrl || fallback.imageUrl,
       aiPowered: true,
+      giftMatchScore,
     };
   } catch {
-    return { ...fallback, aiPowered: false };
+    return { ...fallback, aiPowered: false, giftMatchScore: 80 };
   }
 }
 
@@ -214,7 +221,7 @@ export function saveImportedProduct(row: ImportedProductRow) {
     priceCents,
     affiliateUrl: normalizeProductUrl(extracted.url),
     summary: row.description || `Admin-imported ${extracted.category} gift sourced from ${extracted.brand}.`,
-    why: "Added via admin spreadsheet import — curated for the Givit marketplace.",
+    why: "Added via admin spreadsheet import, curated for the Givit marketplace.",
     interests: extracted.category.split(/\s+/).concat(["giftable", "curated"]),
     importedAt: new Date().toISOString(),
     imageUrl: bestProductImageUrl(extracted.url, row.imageUrl),

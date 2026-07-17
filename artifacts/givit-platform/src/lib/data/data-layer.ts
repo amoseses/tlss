@@ -12,12 +12,17 @@ import { getAllMarketplaceProducts, getMarketplaceProductBySlug, MARKETPLACE_CAT
 
 const categoryBySlug = new Map(MARKETPLACE_CATEGORIES.map((c) => [c.slug, c]));
 
-function dbProductToMarketplaceProduct(p: any, rank: number): MarketplaceProduct {
+function dbProductToMarketplaceProduct(p: any, fallbackRank: number): MarketplaceProduct {
   const categorySlug = p.metadata?.category as string | undefined;
   const category = (categorySlug && categoryBySlug.get(categorySlug)) || null;
   const images = Array.isArray(p.images) && p.images.length > 0
     ? p.images.map((img: any, i: number) => ({ id: `${p.id}-image-${i}`, product_id: p.id, storage_path: img.storage_path ?? img, sort_order: img.sort_order ?? i }))
     : [];
+  // Respect a manual rank set from the admin Rankings tab when present —
+  // otherwise fall back to insertion order so newly-imported products
+  // without an explicit override still get a stable (if low-priority) slot.
+  const rank = typeof p.rank === "number" ? p.rank : fallbackRank;
+  const categoryRank = typeof p.category_rank === "number" ? p.category_rank : fallbackRank;
 
   return {
     id: p.id,
@@ -40,7 +45,7 @@ function dbProductToMarketplaceProduct(p: any, rank: number): MarketplaceProduct
     brand: p.brand ?? "",
     price_range: p.price_cents < 3000 ? "Under $30" : p.price_cents < 10000 ? "$30-$100" : "$100+",
     rank,
-    category_rank: rank,
+    category_rank: categoryRank,
     gift_match_score: p.gift_match_score ?? 82,
     tested_badge: "Admin added",
     interests: p.interests ?? [],

@@ -78,7 +78,7 @@ export default function LandingPage() {
           <Sparkles className="h-3.5 w-3.5" /> AI-powered gifting
         </p>
         <h1 className="mt-4 font-serif text-4xl font-bold leading-tight md:text-6xl">
-          Never send a generic gift again.
+          Never send a bad gift again.
         </h1>
         <p className="mt-5 min-h-[3.5rem] text-lg text-white/70 md:min-h-[2.5rem]">
           Find something great for{" "}
