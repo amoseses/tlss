@@ -63,7 +63,7 @@ export function ProductCard({
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           {withinTop10 && (
-            <div className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-givit-ink/90 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
+            <div className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-black/85 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
               <Sparkles className="h-2 w-2 text-givit-coral sm:h-2.5 sm:w-2.5" />
               <span className="line-clamp-1">{rankingLabel}</span>
             </div>
