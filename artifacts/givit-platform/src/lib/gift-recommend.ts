@@ -194,6 +194,7 @@ export type GiftRecommendResult = {
   rank_label?: string;
   learning_tags?: string[];
   gift_score?: GiftScore;
+  category_slug?: string | null;
 };
 
 export type GiftRecommendResponse = {
@@ -398,6 +399,43 @@ function scoreProduct(
   );
 }
 
+// A plain top-N-by-score slice tends to return near-duplicates (e.g. five
+// different kitchen gadgets for "mom who loves cooking") whenever several
+// items in the same category happen to score similarly — it reads as
+// generic and repetitive even when each individual pick is reasonable.
+// This greedily caps how many results can come from one category, then
+// backfills from the leftover ranking if the pool wasn't diverse enough to
+// fill every slot, so variety is never bought at the cost of a short list.
+function selectDiverseTopN(
+  scored: { product: MarketplaceProduct; score: number }[],
+  limit: number,
+): { product: MarketplaceProduct; score: number }[] {
+  const sorted = [...scored].sort((a, b) => b.score - a.score || a.product.rank - b.product.rank);
+  const MAX_PER_CATEGORY = 2;
+  const picked: typeof sorted = [];
+  const categoryCounts = new Map<string, number>();
+
+  for (const entry of sorted) {
+    if (picked.length >= limit) break;
+    const category = entry.product.category?.slug ?? "uncategorized";
+    const count = categoryCounts.get(category) ?? 0;
+    if (count >= MAX_PER_CATEGORY) continue;
+    picked.push(entry);
+    categoryCounts.set(category, count + 1);
+  }
+
+  if (picked.length < limit) {
+    const pickedIds = new Set(picked.map((entry) => entry.product.id));
+    for (const entry of sorted) {
+      if (picked.length >= limit) break;
+      if (pickedIds.has(entry.product.id)) continue;
+      picked.push(entry);
+    }
+  }
+
+  return picked;
+}
+
 function generateMatchReason(product: MarketplaceProduct, tags: string[], budget: number | null, ctx: ParsedContext) {
   const matched = product.interests.filter((interest) => tags.includes(interest));
   if (ctx.recipient && matched.length > 0) {
@@ -522,12 +560,11 @@ export function recommendGifts(
   // admin-added products are real, recommendable candidates too — not just
   // items sitting in the admin dashboard.
   const catalog = options.catalog ?? getAllMarketplaceProducts();
-  const results = catalog
+  const scoredCandidates = catalog
     .filter((product) => !excludeIds.has(product.id))
     .map((product) => ({ product, score: scoreProduct(product, trimmed, tags, budget, learningProfile, avoidTerms) }))
-    .filter(({ score }) => score > 1.25 || tags.length === 0)
-    .sort((a, b) => b.score - a.score || a.product.rank - b.product.rank)
-    .slice(0, resultLimit)
+    .filter(({ score }) => score > 1.25 || tags.length === 0);
+  const results = selectDiverseTopN(scoredCandidates, resultLimit)
     .map(({ product }, index) => {
       const rating = MARKETPLACE_RATINGS.get(product.id);
       const factors = giftScoreFactors(product, tags, budget, learningProfile, avoidTerms);
@@ -538,7 +575,7 @@ export function recommendGifts(
         price_cents: product.price_cents,
         sale_price_cents: product.sale_price_cents ?? null,
         description: product.ai_summary,
-        image_url: resolveProductImageSrc(product.id, product.images),
+        image_url: resolveProductImageSrc(product.id, product.images, product.category?.slug),
         avg_rating: rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) : null,
         review_count: rating?.review_count ?? 0,
         match_reason: generateMatchReason(product, tags, budget, ctx),
@@ -547,6 +584,7 @@ export function recommendGifts(
         rank_label: `#${index + 1} pick`,
         learning_tags: [...product.interests, ...product.recipients, ...product.occasions].slice(0, 8),
         gift_score: { total: totalGiftScore(factors), factors },
+        category_slug: product.category?.slug ?? null,
       };
     });
 

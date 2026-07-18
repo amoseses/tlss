@@ -107,21 +107,21 @@ function TypingIndicator() {
 }
 
 function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index: number; onItemFeedback: (result: GiftResult, liked: boolean) => void }) {
-  const [imageSrc, setImageSrc] = useState(result.image_url || productPhotoFallback(result.slug));
-  const score = result.gift_score?.total ?? 90;
+  const [imageSrc, setImageSrc] = useState(result.image_url || productPhotoFallback(result.slug, result.category_slug));
+  // Tapping Like/Not this used to give zero visual confirmation — the
+  // buttons looked identical before and after a click, so users couldn't
+  // tell their feedback registered. This tracks it locally per card.
+  const [feedback, setFeedback] = useState<"liked" | "disliked" | null>(null);
   const displayPrice = result.sale_price_cents ?? result.price_cents;
 
   return (
     <div className="slide-up givit-panel overflow-hidden transition-transform duration-200 hover:-translate-y-0.5" style={{ animationDelay: `${index * 60}ms`, opacity: 0 }}>
       <div className="relative aspect-[4/3] overflow-hidden bg-givit-sand">
         {result.image_url ? (
-          <img src={imageSrc} alt={result.name} className="h-full w-full object-cover" onError={() => setImageSrc(productPhotoFallback(result.slug))} />
+          <img src={imageSrc} alt={result.name} className="h-full w-full object-cover" onError={() => setImageSrc(productPhotoFallback(result.slug, result.category_slug))} />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center"><span className="text-4xl">🎁</span></div>
         )}
-        <div className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-givit-ember shadow-sm">
-          Product Quality Score: {score}/100
-        </div>
         {result.sale_price_cents ? (
           <div className="absolute right-2 top-2 rounded-full bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white shadow-sm">Sale</div>
         ) : null}
@@ -159,10 +159,29 @@ function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index
             <ExternalLink className="h-3.5 w-3.5" /> View product
           </Link>
           <WishlistButton compact item={{ slug: result.slug, name: result.name, href: `/products/${result.slug}`, image: imageSrc, price: formatMoneyLocal(displayPrice) }} />
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => onItemFeedback(result, true)} className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-emerald-200 px-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"><ThumbsUp className="h-3.5 w-3.5" /> Like item</button>
-            <button type="button" onClick={() => onItemFeedback(result, false)} className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-rose-200 px-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"><ThumbsDown className="h-3.5 w-3.5" /> Not this</button>
-          </div>
+          {feedback ? (
+            <div className={`flex h-8 items-center justify-center gap-1.5 rounded-full text-xs font-semibold ${feedback === "liked" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+              {feedback === "liked" ? <ThumbsUp className="h-3.5 w-3.5 fill-current" /> : <ThumbsDown className="h-3.5 w-3.5 fill-current" />}
+              {feedback === "liked" ? "Noted — more like this" : "Noted — less like this"}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => { setFeedback("liked"); onItemFeedback(result, true); }}
+                className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-emerald-200 px-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+              >
+                <ThumbsUp className="h-3.5 w-3.5" /> Like item
+              </button>
+              <button
+                type="button"
+                onClick={() => { setFeedback("disliked"); onItemFeedback(result, false); }}
+                className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-rose-200 px-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+              >
+                <ThumbsDown className="h-3.5 w-3.5" /> Not this
+              </button>
+            </div>
+          )}
           <Link href="/concierge" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-givit-ember/30 px-3 text-xs font-semibold text-givit-ember transition hover:bg-givit-ember/10">
             Build full bundle
           </Link>
@@ -272,19 +291,24 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       const widePool = recommendGifts(trimmed, profile, 20, recommendOptions);
       const data = recommendGifts(trimmed, profile, 5, recommendOptions);
       contextRef.current = data.context;
-      (data.results ?? []).forEach((r) => shownIdsRef.current.add(r.id));
-      trackUserEvent("ai_recommendation_generated", { queryLength: trimmed.length, resultCount: data.results?.length ?? 0, tags: data.tags });
-      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: data.message ?? "", results: data.results ?? [], loading: false } : m)));
+
+      // Personalize before ever rendering results, not after — showing the
+      // plain deterministic set and then silently swapping it a moment
+      // later (once the AI call resolves) reads as the AI generating
+      // products twice for one request. personalizeChatResponse already
+      // falls back to `data` on timeout/failure, so this can't hang.
+      const final = widePool.results && widePool.results.length > 0
+        ? await personalizeChatResponse(trimmed, data, widePool.results).catch((error) => {
+            logError(error, "GiftFinderChat.personalizeChatResponse", { query: trimmed });
+            return data;
+          })
+        : data;
+
+      (final.results ?? []).forEach((r) => shownIdsRef.current.add(r.id));
+      trackUserEvent("ai_recommendation_generated", { queryLength: trimmed.length, resultCount: final.results?.length ?? 0, tags: final.tags });
+      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: final.message ?? "", results: final.results ?? [], loading: false } : m)));
       setLoading(false);
       focusInput();
-
-      if (widePool.results && widePool.results.length > 0) {
-        personalizeChatResponse(trimmed, data, widePool.results)
-          .then((enhanced) => {
-            setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: enhanced.message ?? m.content, results: enhanced.results ?? m.results } : m)));
-          })
-          .catch((error) => logError(error, "GiftFinderChat.personalizeChatResponse", { query: trimmed }));
-      }
     } catch (error) {
       logError(error, "GiftFinderChat.sendMessage", { query: trimmed });
       setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, loading: false, content: "I hit a snag while ranking gifts. Try again with recipient, occasion, budget, interests, and avoid-list details." } : m)));

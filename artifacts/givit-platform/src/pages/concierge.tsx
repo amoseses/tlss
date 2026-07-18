@@ -9,9 +9,18 @@ import { createNotification, getGiftRecipients, saveGiftOccasion, saveGiftRecipi
 import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
 import { GiftSurveyModal } from "@/components/autogift/autogift-survey-modal";
 import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
+import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 
 type Occasion = { label: string; date: string };
-type Recipient = { id: string; name: string; relationship: string; occasions: Occasion[] };
+type Recipient = {
+  id: string;
+  name: string;
+  relationship: string;
+  occasions: Occasion[];
+  interests?: string[];
+  avoidTerms?: string[];
+  budgetCents?: number | null;
+};
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
@@ -83,9 +92,10 @@ function generateNotifications(recipients: Recipient[]): Notification[] {
 }
 
 function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]) => void; onClose: () => void }) {
-  type PersonForm = { name: string; relationship: string; occasions: Occasion[] };
-  const emptyPerson = (): PersonForm => ({ name: "", relationship: "", occasions: [{ label: "Birthday", date: "" }] });
+  type PersonForm = { name: string; relationship: string; occasions: Occasion[]; aboutText: string };
+  const emptyPerson = (): PersonForm => ({ name: "", relationship: "", occasions: [{ label: "Birthday", date: "" }], aboutText: "" });
   const [people, setPeople] = useState<PersonForm[]>([emptyPerson()]);
+  const [saving, setSaving] = useState(false);
 
   // Dates are added in the occasions section below so this dialog only asks once.
 
@@ -119,17 +129,29 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
     }));
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const valid = people.filter((p) => p.name.trim());
     if (valid.length === 0) return;
-    onAdd(valid.map((p) => ({
-      id: crypto.randomUUID(),
-      name: p.name.trim(),
-      relationship: p.relationship,
-      occasions: p.occasions.filter((o) => o.date),
-    })));
-    onClose();
+    setSaving(true);
+    try {
+      const built = await Promise.all(valid.map(async (p) => {
+        const extracted = await extractRecipientProfile(p.aboutText);
+        return {
+          id: crypto.randomUUID(),
+          name: p.name.trim(),
+          relationship: p.relationship,
+          occasions: p.occasions.filter((o) => o.date),
+          interests: extracted.interests,
+          avoidTerms: extracted.avoidTerms,
+          budgetCents: extracted.budgetCents,
+        } satisfies Recipient;
+      }));
+      onAdd(built);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -184,6 +206,19 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
                   </div>
                 ))}
               </div>
+              <div className="grid gap-1.5">
+                <label className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Sparkles className="h-3.5 w-3.5 text-givit-ember" /> Tell us about them (optional)
+                </label>
+                <textarea
+                  value={person.aboutText}
+                  onChange={(e) => updatePerson(personIndex, "aboutText", e.target.value)}
+                  rows={2}
+                  placeholder="e.g. Loves gardening, homemade food, and traveling. Already has lots of kitchen gadgets."
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
+                <p className="text-xs text-muted-foreground">Givit AI reads this and fills in interests and things to avoid automatically.</p>
+              </div>
             </div>
           ))}
 
@@ -192,8 +227,10 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
           </button>
 
           <div className="flex gap-2 pt-2">
-            <Button type="button" variant="outline" className="flex-1 rounded-md" onClick={onClose}>Cancel</Button>
-            <Button type="submit" className="flex-1 rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Save {people.filter((p) => p.name.trim()).length || ""} recipient{people.filter((p) => p.name.trim()).length !== 1 ? "s" : ""}</Button>
+            <Button type="button" variant="outline" className="flex-1 rounded-md" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button type="submit" disabled={saving} className="flex-1 rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover disabled:opacity-60">
+              {saving ? "Saving…" : `Save ${people.filter((p) => p.name.trim()).length || ""} recipient${people.filter((p) => p.name.trim()).length !== 1 ? "s" : ""}`}
+            </Button>
           </div>
         </form>
       </div>
@@ -235,6 +272,14 @@ function RecipientCard({ recipient, onDelete }: { recipient: Recipient; onDelete
               <span className="font-medium text-foreground">{occ.label}</span>
               <span className="text-muted-foreground">{new Date(occ.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
             </div>
+          ))}
+        </div>
+      )}
+
+      {recipient.interests && recipient.interests.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {recipient.interests.slice(0, 5).map((interest) => (
+            <span key={interest} className="rounded-full bg-givit-sand px-2 py-0.5 text-[11px] font-medium text-givit-ink">{interest}</span>
           ))}
         </div>
       )}
@@ -292,6 +337,9 @@ export default function ConciergePage() {
               name: row.name,
               relationship: row.relationship || "",
               occasions: (row.gift_occasions ?? []).map((occ: any) => ({ label: occ.occasion, date: occ.occasion_date })),
+              interests: row.interests ?? [],
+              avoidTerms: row.avoid_terms ?? [],
+              budgetCents: row.default_budget_cents ?? null,
             })) as Recipient[];
             setRecipients(mapped);
             setNotifications(generateNotifications(mapped));
@@ -340,6 +388,9 @@ export default function ConciergePage() {
         name: recipient.name,
         relationship: recipient.relationship || null,
         automation_enabled: true,
+        interests: recipient.interests?.length ? recipient.interests : undefined,
+        avoid_terms: recipient.avoidTerms?.length ? recipient.avoidTerms : undefined,
+        default_budget_cents: recipient.budgetCents ?? undefined,
       });
       const recipientId = data?.id ?? recipient.id;
       for (const occasion of recipient.occasions.filter((item) => item.date)) {
@@ -428,6 +479,9 @@ export default function ConciergePage() {
             <button onClick={() => setShowOnboarding(true)} className="mt-1 text-xs font-semibold text-white/50 underline-offset-4 hover:text-white/80 hover:underline">
               Just want a quick look first? Take the 60-second tour →
             </button>
+            <a href="tel:2673785600" className="text-xs text-white/40 underline-offset-4 hover:text-white/70 hover:underline">
+              Prefer to talk it through? Book a consultation call
+            </a>
           </div>
         </div>
       </PageShell>

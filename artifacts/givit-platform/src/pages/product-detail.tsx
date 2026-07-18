@@ -65,7 +65,7 @@ export default function ProductDetailPage() {
   const avg = stats?.avg_rating != null ? Number.parseFloat(String(stats.avg_rating)) : 4.8;
   const reviewCount = stats?.review_count ?? 0;
   const images = [...product.images].sort((a, b) => a.sort_order - b.sort_order);
-  const mainSrc = resolveProductImageSrc(product.id, images);
+  const mainSrc = resolveProductImageSrc(product.id, images, product.category?.slug);
   const displayPrice = product.sale_price_cents ? formatMoney(product.sale_price_cents) : product.price_range ?? formatMoney(product.price_cents);
   const related = getRelatedMarketplaceProducts(product);
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
@@ -92,7 +92,7 @@ export default function ProductDetailPage() {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-givit-sand">
-            <img src={mainSrc} alt={product.name} onError={(event) => { event.currentTarget.src = productPhotoFallback(product.id); }} className="h-full w-full object-cover" />
+            <img src={mainSrc} alt={product.name} onError={(event) => { event.currentTarget.src = productPhotoFallback(product.id, product.category?.slug); }} className="h-full w-full object-cover" />
             {product.tested_badge ? (
               <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold uppercase tracking-wide text-givit-ember shadow-sm">
                 {product.tested_badge}

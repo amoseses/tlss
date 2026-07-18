@@ -43,6 +43,7 @@ export function SiteFooter() {
               <li><Link href="/products?category=home" className="text-white/70 transition-colors hover:text-white">Home Gifts</Link></li>
               <li><Link href="/products?category=experiences" className="text-white/70 transition-colors hover:text-white">Experiences</Link></li>
               <li><Link href="/feedback" className="text-white/70 transition-colors hover:text-white">Contact Us</Link></li>
+              <li><a href="tel:2673785600" className="text-white/70 transition-colors hover:text-white">Book a consultation call</a></li>
             </ul>
           </div>
 

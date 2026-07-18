@@ -29,9 +29,10 @@ export function ProductCard({
   featured = false,
   rankLabel,
 }: Props) {
-  const src = resolveProductImageSrc(product.id, images);
-  const [imageSrc, setImageSrc] = useState(src);
   const marketplaceProduct = product as Product & Partial<MarketplaceProduct>;
+  const categorySlug = marketplaceProduct.category?.slug ?? null;
+  const src = resolveProductImageSrc(product.id, images, categorySlug);
+  const [imageSrc, setImageSrc] = useState(src);
   const salePrice = marketplaceProduct.sale_price_cents;
   const priceLabel = salePrice ? formatMoney(salePrice) : marketplaceProduct.price_range ?? formatMoney(product.price_cents);
   // A "#47 in Tech" badge on a 700-item catalog isn't a credible ranking
@@ -58,7 +59,7 @@ export function ProductCard({
             src={imageSrc}
             alt={product.name}
             loading="lazy"
-            onError={() => setImageSrc(productPhotoFallback(product.id || product.slug))}
+            onError={() => setImageSrc(productPhotoFallback(product.id || product.slug, categorySlug))}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
