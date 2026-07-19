@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowRight, Bell, Plus, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { ArrowRight, Bell, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -155,7 +155,7 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
   );
 }
 
-function PersonProfileCard({ recipient, onDelete }: { recipient: Recipient; onDelete: () => void }) {
+function PersonProfileCard({ recipient, onDelete, onToggleAutomation }: { recipient: Recipient; onDelete: () => void; onToggleAutomation: () => void }) {
   const today = new Date();
   const upcoming = recipient.occasions
     .filter((o) => o.date)
@@ -180,6 +180,32 @@ function PersonProfileCard({ recipient, onDelete }: { recipient: Recipient; onDe
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={onToggleAutomation}
+        className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+          recipient.automationEnabled !== false
+            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+            : "bg-muted text-muted-foreground hover:bg-muted/70"
+        }`}
+      >
+        <span className="flex items-center gap-1.5">
+          <Zap className="h-3.5 w-3.5" />
+          AutoGift {recipient.automationEnabled !== false ? "On" : "Off"}
+        </span>
+        <span
+          className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${
+            recipient.automationEnabled !== false ? "bg-emerald-500" : "bg-border"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${
+              recipient.automationEnabled !== false ? "translate-x-3.5" : "translate-x-0.5"
+            }`}
+          />
+        </span>
+      </button>
 
       {recipient.interests && recipient.interests.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
@@ -233,7 +259,7 @@ function PersonProfileCard({ recipient, onDelete }: { recipient: Recipient; onDe
 
 export default function PeoplePage() {
   const { user, loading } = useAuth();
-  const { recipients, localReady, saveRecipients, deleteRecipient } = useRecipients(user);
+  const { recipients, localReady, saveRecipients, deleteRecipient, toggleAutomation } = useRecipients(user);
   const [showModal, setShowModal] = useState(false);
 
   if (loading && !localReady) {
@@ -302,7 +328,12 @@ export default function PeoplePage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {recipients.map((r) => (
-            <PersonProfileCard key={r.id} recipient={r} onDelete={() => void deleteRecipient(r.id)} />
+            <PersonProfileCard
+              key={r.id}
+              recipient={r}
+              onDelete={() => void deleteRecipient(r.id)}
+              onToggleAutomation={() => void toggleAutomation(r.id, r.automationEnabled === false)}
+            />
           ))}
           <button
             type="button"

@@ -54,9 +54,9 @@ export function RecentMemoryFeed() {
         <Brain className="h-4 w-4 text-givit-ember" />
         <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">What Givit remembers</h2>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="stagger-children grid gap-4 sm:grid-cols-2">
         {entries.map((entry) => (
-          <div key={entry.id} className="flex items-start gap-3 rounded-2xl border border-border/60 bg-card p-4">
+          <div key={entry.id} className="slide-up flex items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 opacity-0">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
               {entry.name[0]?.toUpperCase()}
             </div>

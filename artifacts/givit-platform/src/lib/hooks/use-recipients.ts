@@ -12,6 +12,7 @@ export type Recipient = {
   avoidTerms?: string[];
   budgetCents?: number | null;
   notes?: string | null;
+  automationEnabled?: boolean;
 };
 
 const NOTIFICATION_KEY = "givit-notifications";
@@ -102,6 +103,7 @@ export function useRecipients(user: User | null | undefined) {
               avoidTerms: row.avoid_terms ?? [],
               budgetCents: row.default_budget_cents ?? null,
               notes: row.notes ?? null,
+              automationEnabled: row.automation_enabled ?? true,
             })) as Recipient[];
             setRecipients(mapped);
             setNotifications(generateNotifications(mapped));
@@ -138,7 +140,7 @@ export function useRecipients(user: User | null | undefined) {
         user_id: user.id,
         name: recipient.name,
         relationship: recipient.relationship || null,
-        automation_enabled: true,
+        automation_enabled: recipient.automationEnabled ?? true,
         interests: recipient.interests?.length ? recipient.interests : undefined,
         avoid_terms: recipient.avoidTerms?.length ? recipient.avoidTerms : undefined,
         default_budget_cents: recipient.budgetCents ?? undefined,
@@ -190,6 +192,18 @@ export function useRecipients(user: User | null | undefined) {
     }
   }
 
+  async function toggleAutomation(id: string, enabled: boolean) {
+    const recipient = recipients.find((r) => r.id === id);
+    if (!recipient) return;
+    setRecipients((prev) => prev.map((r) => (r.id === id ? { ...r, automationEnabled: enabled } : r)));
+    if (!user) return;
+    const { error } = await saveGiftRecipient({ id, user_id: user.id, name: recipient.name, automation_enabled: enabled });
+    if (error) {
+      console.error("Failed to update AutoGift status:", error);
+      setRecipients((prev) => prev.map((r) => (r.id === id ? { ...r, automationEnabled: !enabled } : r)));
+    }
+  }
+
   function dismissNotification(id: string) {
     const updated = notifications.map((n) => (n.id === id ? { ...n, dismissed: true } : n));
     setNotifications(updated);
@@ -203,6 +217,7 @@ export function useRecipients(user: User | null | undefined) {
     localReady,
     saveRecipients,
     deleteRecipient,
+    toggleAutomation,
     dismissNotification,
   };
 }

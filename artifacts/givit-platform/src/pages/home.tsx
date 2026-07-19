@@ -1,11 +1,21 @@
 import { Link } from "wouter";
-import { ArrowRight, Bell, PackageCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Bell, Gift, Heart, PackageCheck, Sparkles, UserRound } from "lucide-react";
 
 import { PeopleDashboard } from "@/components/personalization/people-dashboard";
 import { RecentMemoryFeed } from "@/components/personalization/recent-memory-feed";
 import { RecentlyViewedRail } from "@/components/personalization/recently-viewed";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
+
+// Same ambient-motion pattern as the landing splash — kept low-opacity and
+// pointer-events-none so it reads as atmosphere, not clutter, and never
+// intercepts a click.
+const FLOATING_ICONS = [
+  { Icon: Heart, className: "left-[10%] top-[20%] h-6 w-6 text-givit-coral/25", duration: "8s", delay: "0s" },
+  { Icon: UserRound, className: "right-[12%] top-[16%] h-6 w-6 text-givit-ember/25", duration: "7s", delay: "0.5s" },
+  { Icon: Sparkles, className: "left-[16%] bottom-[24%] h-5 w-5 text-givit-coral/20", duration: "6.5s", delay: "1s" },
+  { Icon: Gift, className: "right-[16%] bottom-[20%] h-6 w-6 text-givit-ember/20", duration: "9s", delay: "0.3s" },
+];
 
 export default function HomePage() {
   return (
@@ -14,6 +24,13 @@ export default function HomePage() {
       <section className="relative overflow-hidden bg-black">
         <div className="pointer-events-none absolute -top-32 right-0 h-[600px] w-[600px] rounded-full bg-givit-ember/25 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-givit-coral/20 blur-3xl" />
+        {FLOATING_ICONS.map(({ Icon, className, duration, delay }, i) => (
+          <Icon
+            key={i}
+            className={`animate-particle pointer-events-none absolute hidden sm:block ${className}`}
+            style={{ animationDuration: duration, animationDelay: delay }}
+          />
+        ))}
 
         <div className="container relative py-16 md:py-24">
           <div className="slide-up mx-auto max-w-xl text-center" style={{ animationDelay: "0ms" }}>
@@ -28,7 +45,7 @@ export default function HomePage() {
             </p>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-              <Button asChild className="h-12 rounded-full bg-white px-6 text-sm font-bold text-givit-ink hover:bg-white/90">
+              <Button asChild className="h-12 rounded-full bg-white px-6 text-sm font-bold text-black hover:bg-white/90">
                 <Link href="/people">
                   Create Your First Relationship <ArrowRight className="h-4 w-4" />
                 </Link>

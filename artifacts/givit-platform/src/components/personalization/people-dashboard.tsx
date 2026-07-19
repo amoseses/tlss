@@ -44,7 +44,7 @@ function PersonCard({ person }: { person: Person }) {
     <button
       type="button"
       onClick={() => navigate(`/gift?q=${encodeURIComponent(buildShopQuery(person, upcoming))}`)}
-      className="group flex flex-col items-start gap-3 rounded-2xl border border-border/60 bg-card p-5 text-left transition-all hover:-translate-y-0.5 hover:border-givit-ember/30 hover:shadow-lg"
+      className="slide-up group flex flex-col items-start gap-3 rounded-2xl border border-border/60 bg-card p-5 text-left opacity-0 transition-all hover:-translate-y-0.5 hover:border-givit-ember/30 hover:shadow-lg"
     >
       <div className="flex w-full items-center gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full givit-gradient text-base font-bold text-white">
@@ -123,7 +123,7 @@ export function PeopleDashboard() {
           <p className="max-w-sm text-sm text-muted-foreground">Name, relationship, interests, and a budget: about 30 seconds. Givit AI remembers them from then on.</p>
         </Link>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="stagger-children grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {people.map((p) => <PersonCard key={p.id} person={p} />)}
           <Link
             href="/people"
