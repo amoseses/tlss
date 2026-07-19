@@ -614,7 +614,7 @@ export default function ConciergePage() {
           )}
         </div>
 
-        <aside className="space-y-4">
+        <aside id="reminders" className="scroll-mt-40 space-y-4">
           {recipients.length > 0 && <AutoGiftCalendar recipients={recipients} />}
 
           {upcomingAll.length > 0 && (

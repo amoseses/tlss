@@ -7,7 +7,6 @@ import { RecentlyViewedRail } from "@/components/personalization/recently-viewed
 import { ProductCard } from "@/components/product/product-card";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
-import { useAuth } from "@/lib/auth/use-auth";
 import {
   MARKETPLACE_PRODUCTS,
   MARKETPLACE_RATINGS,
@@ -20,7 +19,6 @@ const HOME_AI_PROMPTS = [
 ];
 
 export default function HomePage() {
-  const { user } = useAuth();
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
   const trending = MARKETPLACE_PRODUCTS.filter((p) => ["tech", "gaming", "writing", "home"].includes(p.category?.slug ?? "")).slice(0, 4);
   const [homeAiQuery, setHomeAiQuery] = useState("");
@@ -44,21 +42,34 @@ export default function HomePage() {
               <Sparkles className="h-3.5 w-3.5" /> AI relationship memory
             </p>
             <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-white md:text-5xl">
-              Save someone once. Remember them forever.
+              Never send a bad gift again.
             </h1>
             <p className="mt-4 text-base leading-7 text-white/70">
-              Add the people in your life and what they love. Givit AI turns that into gift ideas, before you have to think of it yourself.
+              The AI that remembers everyone you care about.
             </p>
+
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Button asChild className="h-12 rounded-full bg-white px-6 text-sm font-bold text-givit-ink hover:bg-white/90">
+                <Link href="/concierge">
+                  Create Your First Relationship <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-12 rounded-full border-white/25 bg-white/5 px-6 text-sm font-semibold text-white hover:bg-white/10">
+                <Link href="/gift">
+                  <Sparkles className="h-4 w-4" /> Talk to GIVIT
+                </Link>
+              </Button>
+            </div>
 
             <form
               onSubmit={(e) => { e.preventDefault(); goToGivitAI(); }}
-              className="mx-auto mt-7 flex max-w-lg overflow-hidden rounded-full bg-white text-givit-ink shadow-xl"
+              className="mx-auto mt-6 flex max-w-lg overflow-hidden rounded-full bg-white/10 text-white shadow-xl backdrop-blur-sm"
             >
               <input
                 value={homeAiQuery}
                 onChange={(e) => setHomeAiQuery(e.target.value)}
-                placeholder="e.g. my sister who loves hiking and coffee"
-                className="min-w-0 flex-1 px-5 py-3.5 text-sm outline-none"
+                placeholder="or just ask: my sister who loves hiking and coffee"
+                className="min-w-0 flex-1 bg-transparent px-5 py-3 text-sm text-white placeholder:text-white/50 outline-none"
               />
               <Button type="submit" className="m-1.5 rounded-full givit-gradient px-5 text-sm font-bold text-white shadow-md givit-glow">
                 <Sparkles className="h-4 w-4" /> Ask
@@ -76,16 +87,6 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-
-            {!user && (
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                <Button asChild className="h-11 rounded-full bg-white px-6 text-sm font-bold text-givit-ink hover:bg-white/90">
-                  <Link href="/concierge">
-                    Add your first person <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </section>

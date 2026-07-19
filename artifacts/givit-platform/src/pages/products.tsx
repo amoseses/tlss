@@ -20,6 +20,8 @@ import {
   Cookie,
   Ticket,
   LayoutGrid,
+  UserRound,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +40,9 @@ import {
 } from "@/lib/data/marketplace";
 import { fetchAdminProducts } from "@/lib/data/data-layer";
 import { useSearchParams } from "@/lib/hooks/use-search-params";
+import { useAuth } from "@/lib/auth/use-auth";
+import { getGiftRecipients } from "@/lib/supabase/db";
+import { formatMoney } from "@/lib/format";
 
 const OCCASIONS = [
   "Christmas", "Valentine's Day", "Mother's Day", "Father's Day",
@@ -71,6 +76,13 @@ const TRENDING_TAGS = [
   { label: "Unique experiences", q: "experiences" },
 ];
 
+type ShoppingForPerson = {
+  id: string;
+  name: string;
+  interests: string[];
+  budgetCents: number | null;
+};
+
 export default function ProductsPage() {
   const { get } = useSearchParams();
   const categorySlug = get("category") || undefined;
@@ -79,6 +91,25 @@ export default function ProductsPage() {
   const sortVal = get("sort") || "ranked";
   const minStr = get("min") || "";
   const maxStr = get("max") || "";
+  const forId = get("for") || undefined;
+
+  const { user } = useAuth();
+  const [savedPeople, setSavedPeople] = useState<ShoppingForPerson[]>([]);
+  useEffect(() => {
+    if (!user) { setSavedPeople([]); return; }
+    let mounted = true;
+    getGiftRecipients(user.id).then((rows: any[]) => {
+      if (!mounted) return;
+      setSavedPeople(rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        interests: row.interests ?? [],
+        budgetCents: row.default_budget_cents ?? null,
+      })));
+    });
+    return () => { mounted = false; };
+  }, [user]);
+  const shoppingFor = forId ? savedPeople.find((p) => p.id === forId) : undefined;
 
   const minPrice = Number.parseFloat(minStr);
   const maxPrice = Number.parseFloat(maxStr);
@@ -122,6 +153,27 @@ export default function ProductsPage() {
   else if (sortVal === "popular") sorted.sort((a, b) => b.gift_match_score - a.gift_match_score);
   else sorted.sort((a, b) => a.rank - b.rank);
 
+  // "Shopping for" reorders toward what's actually known about that
+  // person — real interest-overlap + budget fit, not a decorative label —
+  // while keeping the existing sort as the tiebreaker so it still reads
+  // as a ranked list, not a shuffled one.
+  function matchCount(product: MarketplaceProduct, person: ShoppingForPerson) {
+    const interests = new Set(person.interests.map((i) => i.toLowerCase()));
+    return product.interests.filter((i) => interests.has(i.toLowerCase())).length;
+  }
+  if (shoppingFor) {
+    sorted.sort((a, b) => {
+      const matchDiff = matchCount(b, shoppingFor) - matchCount(a, shoppingFor);
+      if (matchDiff !== 0) return matchDiff;
+      if (shoppingFor.budgetCents) {
+        const aFits = a.price_cents <= shoppingFor.budgetCents ? 0 : 1;
+        const bFits = b.price_cents <= shoppingFor.budgetCents ? 0 : 1;
+        if (aFits !== bFits) return aFits - bFits;
+      }
+      return 0;
+    });
+  }
+
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
   const activeCategory = categories.find((c) => c.slug === categorySlug);
 
@@ -142,7 +194,7 @@ export default function ProductsPage() {
   // scroll down. Skip the very first render so landing on /products doesn't
   // yank the page.
   const resultsRef = useRef<HTMLDivElement>(null);
-  const resultsKey = `${categorySlug ?? ""}|${q ?? ""}|${occasion ?? ""}|${sortVal}|${minStr}|${maxStr}`;
+  const resultsKey = `${categorySlug ?? ""}|${q ?? ""}|${occasion ?? ""}|${sortVal}|${minStr}|${maxStr}|${forId ?? ""}`;
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -204,6 +256,37 @@ export default function ProductsPage() {
           </div>
         </div>
       </section>
+
+      {shoppingFor ? (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-givit-ember/25 bg-givit-ember/5 px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
+              {shoppingFor.name[0]?.toUpperCase()}
+            </div>
+            <p className="text-sm text-givit-ink">
+              <span className="font-semibold">Shopping for {shoppingFor.name}</span>
+              {shoppingFor.budgetCents ? <span className="text-muted-foreground"> · budget {formatMoney(shoppingFor.budgetCents)}</span> : null}
+              {shoppingFor.interests.length > 0 ? <span className="text-muted-foreground"> · loves {shoppingFor.interests.slice(0, 3).join(", ")}</span> : null}
+            </p>
+          </div>
+          <Link href={`/products${categorySlug ? `?category=${encodeURIComponent(categorySlug)}` : ""}`} className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
+            <X className="h-3.5 w-3.5" /> Clear
+          </Link>
+        </div>
+      ) : savedPeople.length > 0 && !q && !categorySlug ? (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Shopping for someone?</p>
+          {savedPeople.map((p) => (
+            <Link
+              key={p.id}
+              href={`/products?for=${encodeURIComponent(p.id)}`}
+              className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
+            >
+              <UserRound className="h-3.5 w-3.5" /> {p.name}
+            </Link>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mb-6 flex snap-x gap-2 overflow-x-auto pb-1">
         <Link
@@ -286,6 +369,7 @@ export default function ProductsPage() {
               <span className="font-semibold text-givit-ink">{sorted.length} ranked gift ideas</span>
               {q ? <span className="text-muted-foreground"> for "{q}"</span> : null}
               {activeCategory ? <span className="text-muted-foreground"> in {activeCategory.name}</span> : null}
+              {shoppingFor ? <span className="text-muted-foreground"> · sorted for {shoppingFor.name}'s interests</span> : null}
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <form method="get" className="flex items-center gap-2">

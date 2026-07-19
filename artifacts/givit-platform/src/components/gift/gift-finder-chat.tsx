@@ -76,6 +76,28 @@ function buildRecipientPrompt(r: SavedRecipient) {
   return parts.join(", ");
 }
 
+function escapeRegExp(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// If the shopper just types "gift for Mom" instead of tapping her chip,
+// the AI shouldn't ask the questions it already has answers to — this
+// finds a saved recipient by name in the typed message and silently folds
+// her known interests/avoid-list/budget into what gets sent for scoring,
+// without changing what's shown as the user's own chat bubble.
+function augmentWithSavedRecipient(text: string, recipients: SavedRecipient[]): string {
+  const matched = recipients.find((r) => r.name.trim() && new RegExp(`\\b${escapeRegExp(r.name.trim())}\\b`, "i").test(text));
+  if (!matched) return text;
+
+  const extras: string[] = [];
+  if (matched.relationship) extras.push(matched.relationship);
+  if (matched.interests?.length) extras.push(`loves ${matched.interests.join(", ")}`);
+  if (matched.avoid_terms?.length) extras.push(`avoid ${matched.avoid_terms.join(", ")}`);
+  if (matched.default_budget_cents) extras.push(`budget ${formatMoneyLocal(matched.default_budget_cents)}`);
+  if (extras.length === 0) return text;
+  return `${text} (${extras.join(", ")})`;
+}
+
 function buildQuestionnairePrompt(form: Questionnaire) {
   return [
     `Recipient: ${form.recipient || "not specified"}`,
@@ -282,14 +304,19 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       await new Promise((resolve) => setTimeout(resolve, 250));
       const profile = await readLearningProfile();
       const recommendOptions = { priorContext: contextRef.current, excludeIds, catalog: catalogRef.current };
+      // If the message names someone already saved (typed "gift for Mom"
+      // rather than tapping her chip), fold in what's already known about
+      // her so the AI doesn't ask questions it has the answers to — the
+      // displayed chat bubble still shows exactly what the user typed.
+      const queryForScoring = augmentWithSavedRecipient(trimmed, savedRecipients);
       // Score a wider pool (20) than we display (5): the deterministic
       // scorer is a decent first pass, but capping the AI to only the same
       // 5 it would've shown anyway means it can only reword them, never
       // actually pick something the rule-based ranking under-scored. The
       // display-facing message/result count still comes from a normal
       // 5-result call so copy like "here are 5 ideas" stays accurate.
-      const widePool = recommendGifts(trimmed, profile, 20, recommendOptions);
-      const data = recommendGifts(trimmed, profile, 5, recommendOptions);
+      const widePool = recommendGifts(queryForScoring, profile, 20, recommendOptions);
+      const data = recommendGifts(queryForScoring, profile, 5, recommendOptions);
       contextRef.current = data.context;
 
       // Personalize before ever rendering results, not after — showing the
@@ -298,7 +325,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       // products twice for one request. personalizeChatResponse already
       // falls back to `data` on timeout/failure, so this can't hang.
       const final = widePool.results && widePool.results.length > 0
-        ? await personalizeChatResponse(trimmed, data, widePool.results).catch((error) => {
+        ? await personalizeChatResponse(queryForScoring, data, widePool.results).catch((error) => {
             logError(error, "GiftFinderChat.personalizeChatResponse", { query: trimmed });
             return data;
           })

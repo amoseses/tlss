@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Bell, Sparkles } from "lucide-react";
+import { Bell, LayoutGrid, Sparkles, UserRound } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
 import { HeaderSearch } from "@/components/layout/header-search";
@@ -48,32 +48,34 @@ export function SiteHeader() {
         <div className="border-t border-white/8 bg-white/5">
           <div className="container flex items-center gap-1 overflow-x-auto py-1.5 scrollbar-none">
             <Link
-              href="/products"
+              href="/home"
               className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
             >
-              Marketplace
+              <LayoutGrid className="mr-1 inline h-3 w-3" />
+              Dashboard
+            </Link>
+            <Link
+              href="/concierge"
+              className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
+            >
+              <UserRound className="mr-1 inline h-3 w-3" />
+              People
             </Link>
             <Link
               href="/gift"
               className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-givit-ember transition-colors hover:bg-white/10 hover:text-givit-ember-hover whitespace-nowrap"
             >
               <Sparkles className="mr-1 inline h-3 w-3" />
-              Givit AI
+              AI Assistant
             </Link>
             <Link
-              href="/submit-product"
-              className="shrink-0 ml-1 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
+              href="/products"
+              className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
             >
-              Submit product
+              Marketplace
             </Link>
             <Link
-              href="/boards"
-              className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
-            >
-              Boards
-            </Link>
-            <Link
-              href="/concierge"
+              href="/concierge#reminders"
               className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-givit-coral transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
             >
               <Bell className="mr-1 inline h-3 w-3" />
