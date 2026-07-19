@@ -101,6 +101,12 @@ export async function getGiftRecipients(userId: string) {
   return data ?? [];
 }
 
+export async function deleteGiftRecipient(id: string) {
+  const supabase = getDb();
+  const { error } = await supabase.from("gift_recipients").delete().eq("id", id);
+  return { error };
+}
+
 export async function saveGiftRecipient(recipient: Record<string, unknown>) {
   const supabase = getDb();
   const { data, error } = await supabase.from("gift_recipients").upsert(recipient).select().single();

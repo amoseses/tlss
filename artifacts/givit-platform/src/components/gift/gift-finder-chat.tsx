@@ -9,7 +9,7 @@ import { readLearningProfile, applyFeedback as applyLearningFeedback } from "@/l
 import { productPhotoFallback } from "@/lib/product-photo";
 import { logError, trackUserEvent } from "@/lib/monitoring";
 import { useAuth } from "@/lib/auth/use-auth";
-import { getGiftRecipients } from "@/lib/supabase/db";
+import { getGiftRecipients, saveGiftRecipient } from "@/lib/supabase/db";
 
 type GiftResult = GiftRecommendResult;
 
@@ -81,12 +81,18 @@ function escapeRegExp(text: string) {
 }
 
 // If the shopper just types "gift for Mom" instead of tapping her chip,
-// the AI shouldn't ask the questions it already has answers to — this
-// finds a saved recipient by name in the typed message and silently folds
-// her known interests/avoid-list/budget into what gets sent for scoring,
-// without changing what's shown as the user's own chat bubble.
-function augmentWithSavedRecipient(text: string, recipients: SavedRecipient[]): string {
-  const matched = recipients.find((r) => r.name.trim() && new RegExp(`\\b${escapeRegExp(r.name.trim())}\\b`, "i").test(text));
+// the AI shouldn't ask the questions it already has answers to: this
+// finds a saved recipient by name in the typed message so her known
+// interests/avoid-list/budget can be folded into scoring, and so item
+// feedback later in the conversation can be attributed back to her.
+function findSavedRecipient(text: string, recipients: SavedRecipient[]): SavedRecipient | undefined {
+  return recipients.find((r) => r.name.trim() && new RegExp(`\\b${escapeRegExp(r.name.trim())}\\b`, "i").test(text));
+}
+
+// Silently folds a matched recipient's known interests/avoid-list/budget
+// into what gets sent for scoring, without changing what's shown as the
+// user's own chat bubble.
+function augmentWithSavedRecipient(text: string, matched: SavedRecipient | undefined): string {
   if (!matched) return text;
 
   const extras: string[] = [];
@@ -236,6 +242,10 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   // answering a follow-up question (e.g. "her birthday") doesn't lose what
   // was already said and get asked the same question again.
   const contextRef = useRef<ParsedContext>(EMPTY_CONTEXT);
+  // Whichever saved person the current query was recognized as being for,
+  // so a Like/Not-this on one of her results can be written back to her
+  // profile as real memory, not just an anonymous ranking signal.
+  const activeRecipientRef = useRef<SavedRecipient | undefined>(undefined);
   // Ids already shown, so "Not yet" can ask for a genuinely different set
   // instead of just acknowledging and stopping.
   const shownIdsRef = useRef<Set<string>>(new Set());
@@ -306,9 +316,10 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       const recommendOptions = { priorContext: contextRef.current, excludeIds, catalog: catalogRef.current };
       // If the message names someone already saved (typed "gift for Mom"
       // rather than tapping her chip), fold in what's already known about
-      // her so the AI doesn't ask questions it has the answers to — the
+      // her so the AI doesn't ask questions it has the answers to; the
       // displayed chat bubble still shows exactly what the user typed.
-      const queryForScoring = augmentWithSavedRecipient(trimmed, savedRecipients);
+      activeRecipientRef.current = findSavedRecipient(trimmed, savedRecipients);
+      const queryForScoring = augmentWithSavedRecipient(trimmed, activeRecipientRef.current);
       // Score a wider pool (20) than we display (5): the deterministic
       // scorer is a decent first pass, but capping the AI to only the same
       // 5 it would've shown anyway means it can only reword them, never
@@ -370,7 +381,22 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     void applyLearningFeedback([result], liked);
     trackUserEvent("ai_recommendation_feedback", { scope: "item", liked, slug: result.slug, tags: result.learning_tags ?? result.gift_tags });
     // Item-level thumbs feedback should quietly update ranking signals without adding a new AI chat message.
+    void recordFeedbackAsMemory(result, liked);
+  }
 
+  // The actual "moat" behavior: a Like/Not-this doesn't just nudge a
+  // generic ranking model, it appends to the specific saved person's
+  // profile notes when the AI recognized who this query was for, so her
+  // profile keeps getting more accurate the more she's shopped for.
+  async function recordFeedbackAsMemory(result: GiftResult, liked: boolean) {
+    const recipient = activeRecipientRef.current;
+    if (!user || !recipient) return;
+    const line = `${liked ? "Liked" : "Passed on"}: ${result.name} (${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })})`;
+    const nextNotes = [recipient.notes?.trim(), line].filter(Boolean).join("\n").slice(-2000);
+    const { error } = await saveGiftRecipient({ id: recipient.id, user_id: user.id, name: recipient.name, notes: nextNotes });
+    if (error) { console.error("Failed to record gift feedback on recipient:", error); return; }
+    activeRecipientRef.current = { ...recipient, notes: nextNotes };
+    setSavedRecipients((prev) => prev.map((r) => (r.id === recipient.id ? { ...r, notes: nextNotes } : r)));
   }
 
   return (

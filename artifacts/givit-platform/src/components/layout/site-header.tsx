@@ -2,7 +2,6 @@ import { Link } from "wouter";
 import { Bell, LayoutGrid, Sparkles, UserRound } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
-import { HeaderSearch } from "@/components/layout/header-search";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/lib/auth/use-auth";
 
@@ -41,10 +40,6 @@ export function SiteHeader() {
           </div>
         </div>
 
-        <div className="container pb-2.5 md:pb-3">
-          <HeaderSearch />
-        </div>
-
         <div className="border-t border-white/8 bg-white/5">
           <div className="container flex items-center gap-1 overflow-x-auto py-1.5 scrollbar-none">
             <Link
@@ -55,7 +50,7 @@ export function SiteHeader() {
               Dashboard
             </Link>
             <Link
-              href="/concierge"
+              href="/people"
               className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
             >
               <UserRound className="mr-1 inline h-3 w-3" />
@@ -75,7 +70,7 @@ export function SiteHeader() {
               Marketplace
             </Link>
             <Link
-              href="/concierge#reminders"
+              href="/concierge"
               className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-givit-coral transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
             >
               <Bell className="mr-1 inline h-3 w-3" />

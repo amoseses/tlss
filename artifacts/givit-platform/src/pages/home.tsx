@@ -1,34 +1,13 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { ArrowRight, Bell, PackageCheck, Sparkles } from "lucide-react";
 
 import { PeopleDashboard } from "@/components/personalization/people-dashboard";
+import { RecentMemoryFeed } from "@/components/personalization/recent-memory-feed";
 import { RecentlyViewedRail } from "@/components/personalization/recently-viewed";
-import { ProductCard } from "@/components/product/product-card";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
-import {
-  MARKETPLACE_PRODUCTS,
-  MARKETPLACE_RATINGS,
-} from "@/lib/data/marketplace";
-
-const HOME_AI_PROMPTS = [
-  { label: "For Mom 🌸", prompt: "Gift for my mom, birthday, $50 budget, loves cooking and gardening" },
-  { label: "For Dad 🔧", prompt: "Gift for my dad, under $75, likes tools, coffee, and the outdoors" },
-  { label: "For a friend 🎉", prompt: "Gift for a close friend, just because, $30-$50, likes cozy nights in" },
-];
 
 export default function HomePage() {
-  const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
-  const trending = MARKETPLACE_PRODUCTS.filter((p) => ["tech", "gaming", "writing", "home"].includes(p.category?.slug ?? "")).slice(0, 4);
-  const [homeAiQuery, setHomeAiQuery] = useState("");
-  const [, navigate] = useLocation();
-
-  function goToGivitAI(query?: string) {
-    const q = (query ?? homeAiQuery).trim();
-    navigate(q ? `/gift?q=${encodeURIComponent(q)}` : "/gift");
-  }
-
   return (
     <div className="pb-12">
       {/* Hero — minimal, relationship-first, no product wall */}
@@ -50,7 +29,7 @@ export default function HomePage() {
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
               <Button asChild className="h-12 rounded-full bg-white px-6 text-sm font-bold text-givit-ink hover:bg-white/90">
-                <Link href="/concierge">
+                <Link href="/people">
                   Create Your First Relationship <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -59,33 +38,6 @@ export default function HomePage() {
                   <Sparkles className="h-4 w-4" /> Talk to GIVIT
                 </Link>
               </Button>
-            </div>
-
-            <form
-              onSubmit={(e) => { e.preventDefault(); goToGivitAI(); }}
-              className="mx-auto mt-6 flex max-w-lg overflow-hidden rounded-full bg-white/10 text-white shadow-xl backdrop-blur-sm"
-            >
-              <input
-                value={homeAiQuery}
-                onChange={(e) => setHomeAiQuery(e.target.value)}
-                placeholder="or just ask: my sister who loves hiking and coffee"
-                className="min-w-0 flex-1 bg-transparent px-5 py-3 text-sm text-white placeholder:text-white/50 outline-none"
-              />
-              <Button type="submit" className="m-1.5 rounded-full givit-gradient px-5 text-sm font-bold text-white shadow-md givit-glow">
-                <Sparkles className="h-4 w-4" /> Ask
-              </Button>
-            </form>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {HOME_AI_PROMPTS.map((qp) => (
-                <button
-                  key={qp.label}
-                  type="button"
-                  onClick={() => goToGivitAI(qp.prompt)}
-                  className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:border-white/40 hover:bg-white/10"
-                >
-                  {qp.label}
-                </button>
-              ))}
             </div>
           </div>
         </div>
@@ -117,26 +69,12 @@ export default function HomePage() {
         </section>
       </Reveal>
 
+      {/* What Givit has learned recently — a real, growing memory feed, not a product rail */}
+      <RecentMemoryFeed />
+
       <section className="container py-4">
         <RecentlyViewedRail />
       </section>
-
-      {/* A handful of ideas, not a storefront — full browsing lives in the marketplace */}
-      <Reveal>
-        <section className="container py-8 md:py-12">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border/40 pb-4">
-            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">A few ideas to start</h2>
-            <Link href="/products" className="givit-link text-sm font-medium">Browse the marketplace →</Link>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {trending.map((p) => {
-              const s = ratings[p.id];
-              const avg = s?.avg_rating != null ? Number.parseFloat(String(s.avg_rating)) : null;
-              return <ProductCard key={p.id} product={p} images={p.images} avgRating={avg ?? undefined} reviewCount={s?.review_count ?? 0} compact />;
-            })}
-          </div>
-        </section>
-      </Reveal>
 
       {/* Footer CTA */}
       <Reveal>
@@ -150,7 +88,7 @@ export default function HomePage() {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
-                  <Link href="/concierge"><Bell className="h-4 w-4" /> Add your first person</Link>
+                  <Link href="/people"><Bell className="h-4 w-4" /> Add your first person</Link>
                 </Button>
                 <Button asChild variant="outline" className="rounded-md border-white/20 bg-white/10 text-white transition-transform hover:-translate-y-0.5 hover:bg-white/20">
                   <Link href="/gift"><Sparkles className="h-4 w-4" /> Try Givit AI</Link>

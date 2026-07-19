@@ -110,23 +110,23 @@ export function PeopleDashboard() {
             {people.length > 0 ? `You have ${people.length} ${people.length === 1 ? "person" : "people"} saved` : "Add the people you shop for"}
           </h2>
         </div>
-        {people.length > 0 && <Link href="/concierge" className="givit-link shrink-0 text-sm font-medium">Manage all →</Link>}
+        {people.length > 0 && <Link href="/people" className="givit-link shrink-0 text-sm font-medium">Manage all →</Link>}
       </div>
 
       {people.length === 0 ? (
         <Link
-          href="/concierge"
+          href="/people"
           className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border py-12 text-center transition hover:border-givit-ember/40 hover:bg-givit-sand/40"
         >
           <UserRound className="h-8 w-8 text-givit-ember" />
           <p className="font-semibold text-givit-ink">Add your first person</p>
-          <p className="max-w-sm text-sm text-muted-foreground">Name, relationship, interests, and a budget — about 30 seconds. Givit AI remembers them from then on.</p>
+          <p className="max-w-sm text-sm text-muted-foreground">Name, relationship, interests, and a budget: about 30 seconds. Givit AI remembers them from then on.</p>
         </Link>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {people.map((p) => <PersonCard key={p.id} person={p} />)}
           <Link
-            href="/concierge"
+            href="/people"
             className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border p-5 text-center text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
           >
             <Plus className="h-6 w-6" />

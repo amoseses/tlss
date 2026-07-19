@@ -21,6 +21,7 @@ import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import AuthCallbackPage from "@/pages/auth-callback";
 import ConciergePage from "@/pages/concierge";
+import PeoplePage from "@/pages/people";
 import BoardsPage from "@/pages/boards";
 import FeedbackPage from "@/pages/feedback";
 import BetaTesterSurveyPage from "@/pages/beta-tester-survey";
@@ -54,6 +55,7 @@ function Router() {
           <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/auth-callback" component={AuthCallbackPage} />
           <Route path="/concierge" component={ConciergePage} />
+          <Route path="/people" component={PeoplePage} />
           <Route path="/boards" component={BoardsPage} />
           <Route path="/feedback" component={FeedbackPage} />
           <Route path="/beta-tester-survey" component={BetaTesterSurveyPage} />

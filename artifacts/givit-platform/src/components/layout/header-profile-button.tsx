@@ -69,6 +69,7 @@ export function HeaderProfileButton({ loggedIn, email, displayName, role }: Prop
         ) : (
           <>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/people")}>People</DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/concierge")}>AutoGift</DropdownMenuItem>
           </>
         )}

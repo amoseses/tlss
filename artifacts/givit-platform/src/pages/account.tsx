@@ -296,7 +296,16 @@ export default function AccountPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-4">
+      <div className="mt-6 grid gap-3 sm:grid-cols-5">
+        <Link href="/people" className="givit-panel flex items-center gap-3 p-4 transition hover:border-givit-ember/30">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-givit-ember/10">
+            <User className="h-5 w-5 text-givit-ember" />
+          </div>
+          <div>
+            <p className="font-semibold text-givit-ink">People</p>
+            <p className="text-xs text-muted-foreground">Manage saved people</p>
+          </div>
+        </Link>
         <Link href="/concierge" className="givit-panel flex items-center gap-3 p-4 transition hover:border-givit-ember/30">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Settings className="h-5 w-5 text-givit-ember" />
