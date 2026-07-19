@@ -3,7 +3,7 @@ import { ArrowRight, Bell, Gift, Heart, PackageCheck, Sparkles, UserRound } from
 
 import { PeopleDashboard } from "@/components/personalization/people-dashboard";
 import { RecentMemoryFeed } from "@/components/personalization/recent-memory-feed";
-import { RecentlyViewedRail } from "@/components/personalization/recently-viewed";
+import { RelationshipInsights } from "@/components/personalization/relationship-insights";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 
@@ -89,9 +89,8 @@ export default function HomePage() {
       {/* What Givit has learned recently — a real, growing memory feed, not a product rail */}
       <RecentMemoryFeed />
 
-      <section className="container py-4">
-        <RecentlyViewedRail />
-      </section>
+      {/* Relationship intelligence — what Givit knows and is doing for you, not a product rail */}
+      <RelationshipInsights />
 
       {/* Footer CTA */}
       <Reveal>

@@ -29,16 +29,10 @@ export default function LandingPage() {
   const [, navigate] = useLocation();
   const [promptIndex, setPromptIndex] = useState(0);
 
-  // The splash shows on every visit to "/" — it's not a one-time onboarding
-  // step, it's the front door, with "continue without an account" always
-  // available as an explicit choice. The only auto-skip is for people who
-  // are already signed in, since showing them a sign-in/sign-up screen
-  // wouldn't make sense.
-  useEffect(() => {
-    if (loading) return;
-    if (user) navigate("/home", { replace: true });
-  }, [user, loading, navigate]);
-
+  // "/" is the standing marketing front door, not a one-time onboarding
+  // step or a waypoint to Dashboard — it never auto-navigates, even for
+  // signed-in visitors, so the marketing site works as its own page. Signed-in
+  // visitors get "Go to Dashboard" instead of the signup/login CTAs.
   useEffect(() => {
     const id = setInterval(() => setPromptIndex((i) => (i + 1) % ROTATING_PROMPTS.length), 2600);
     return () => clearInterval(id);
@@ -48,7 +42,7 @@ export default function LandingPage() {
     navigate("/home");
   }
 
-  if (loading || user) return null;
+  if (loading) return null;
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 py-16 text-center text-white">
@@ -89,24 +83,41 @@ export default function LandingPage() {
       </div>
 
       <div className="slide-up mt-6 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "160ms" }}>
-        <Button asChild className="h-12 rounded-md givit-gradient px-7 text-sm font-bold text-white shadow-lg givit-glow transition-transform hover:-translate-y-0.5 hover:brightness-110">
-          <Link href="/signup?next=/home">
-            Create free account <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="h-12 rounded-md border-white/25 bg-white/5 px-7 text-sm font-semibold text-white hover:bg-white/10">
-          <Link href="/login?next=/home">Log in</Link>
-        </Button>
+        {user ? (
+          <>
+            <Button asChild className="h-12 rounded-md givit-gradient px-7 text-sm font-bold text-white shadow-lg givit-glow transition-transform hover:-translate-y-0.5 hover:brightness-110">
+              <Link href="/home">
+                Go to Dashboard <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-12 rounded-md border-white/25 bg-white/5 px-7 text-sm font-semibold text-white hover:bg-white/10">
+              <Link href="/people">Your people</Link>
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button asChild className="h-12 rounded-md givit-gradient px-7 text-sm font-bold text-white shadow-lg givit-glow transition-transform hover:-translate-y-0.5 hover:brightness-110">
+              <Link href="/signup?next=/home">
+                Create free account <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-12 rounded-md border-white/25 bg-white/5 px-7 text-sm font-semibold text-white hover:bg-white/10">
+              <Link href="/login?next=/home">Log in</Link>
+            </Button>
+          </>
+        )}
       </div>
 
-      <button
-        type="button"
-        onClick={enterAsGuest}
-        className="slide-up mt-6 text-sm font-medium text-white/50 underline-offset-4 transition hover:text-white/80 hover:underline"
-        style={{ animationDelay: "220ms" }}
-      >
-        Continue browsing without an account →
-      </button>
+      {!user && (
+        <button
+          type="button"
+          onClick={enterAsGuest}
+          className="slide-up mt-6 text-sm font-medium text-white/50 underline-offset-4 transition hover:text-white/80 hover:underline"
+          style={{ animationDelay: "220ms" }}
+        >
+          Continue browsing without an account →
+        </button>
+      )}
 
       <div className="slide-up mt-14 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/40" style={{ animationDelay: "260ms" }}>
         <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> No brand deals in rankings</span>
