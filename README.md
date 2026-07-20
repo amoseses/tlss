@@ -111,7 +111,19 @@ The AutoGift system works in 4 stages:
 7. Admin reviews and charges card on file (Stripe integration needed)
 8. Admin sources items, writes card, arranges shipping
 
-**Actually sending the reminders:** adding a recipient/occasion writes rows into `gift_notifications` with `status='scheduled'`, but writing the row was never the same as sending it — nothing dispatched those until `api/cron/dispatch-notifications.ts` was added. Vercel Cron (see `vercel.json`) hits that endpoint daily; it finds every notification whose `scheduled_for` has passed, emails the `email`-channel ones via Resend and pushes the `push`-channel ones via the existing Web Push setup, then marks each `sent` or `failed`. It needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL` set in Vercel (see §1/§3) — without them it 500s harmlessly (nothing gets marked sent, so it'll retry next run) rather than silently doing nothing. You can trigger it manually to test: `curl -X POST https://your-app.vercel.app/api/cron/dispatch-notifications -H "Authorization: Bearer $CRON_SECRET"`.
+**Actually sending the reminders:** adding a recipient/occasion writes rows into `gift_notifications` with `status='scheduled'`, but writing the row was never the same as sending it — nothing dispatched those until `api/cron/dispatch-notifications.ts` was added. It finds every notification whose `scheduled_for` has passed, emails the `email`-channel ones via Resend and pushes the `push`-channel ones via the existing Web Push setup, then marks each `sent` or `failed`. It needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL` set in Vercel (see §1/§3) — without them it 500s harmlessly (nothing gets marked sent, so it'll retry next run) rather than silently doing nothing.
+
+**Scheduling it:** this deliberately does *not* use Vercel's own Cron Jobs feature (the `vercel.json` `"crons"` field) — on a Hobby account without a verified payment method on file, Vercel can reject the entire deployment over a `crons` entry, which is what broke an earlier deploy. Instead, use a free external scheduler to hit the endpoint once a day:
+
+1. Go to [cron-job.org](https://cron-job.org) (or any similar free service) and create an account.
+2. Create a new cron job:
+   - URL: `https://givit.site/api/cron/dispatch-notifications`
+   - Method: `POST`
+   - Header: `Authorization: Bearer <your CRON_SECRET value>`
+   - Schedule: once daily (e.g. 15:00 UTC, matching when reminders are scheduled to go out)
+3. Save. It'll now hit the endpoint daily and you can see each run's response/status in cron-job.org's execution history.
+
+You can also trigger it manually any time to test: `curl -X POST https://givit.site/api/cron/dispatch-notifications -H "Authorization: Bearer $CRON_SECRET"`.
 9. Status updates: `approved` → `charged` → `ordered` → `shipped` → `delivered`
 
 
