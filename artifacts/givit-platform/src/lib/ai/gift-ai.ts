@@ -67,7 +67,8 @@ export async function personalizeAutogiftSuggestions(
       })),
       cardMessage: typeof result?.cardMessage === "string" ? result.cardMessage.slice(0, 600) : null,
     };
-  } catch {
+  } catch (error) {
+    console.warn("Givit AI: AutoGift personalization failed, falling back to deterministic ranking.", error);
     return null;
   }
 }
@@ -118,7 +119,8 @@ export async function personalizeGiftChat(
       message: typeof result?.message === "string" ? result.message.slice(0, 500) : null,
       picks: picks.map((p: any) => ({ id: p.id, reason: typeof p.reason === "string" ? p.reason.slice(0, 300) : undefined })),
     };
-  } catch {
+  } catch (error) {
+    console.warn("Givit AI: chat personalization failed, falling back to deterministic ranking.", error);
     return null;
   }
 }

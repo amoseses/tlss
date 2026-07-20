@@ -49,7 +49,12 @@ export async function extractRecipientProfile(text: string): Promise<ExtractedRe
       avoidTerms: Array.isArray(ai?.avoidTerms) ? ai.avoidTerms.filter((i: unknown) => typeof i === "string").slice(0, 10) : [],
       budgetCents: typeof ai?.budgetUsd === "number" && ai.budgetUsd > 0 ? Math.round(ai.budgetUsd * 100) : null,
     };
-  } catch {
+  } catch (error) {
+    // Fails soft (blank fields, user can still fill the form manually), but
+    // silently swallowing every error made it impossible to tell "Gemini is
+    // down/misconfigured" from "there was nothing to extract" — log it so a
+    // bad or missing VITE_GEMINI_API_KEY is visible in the browser console.
+    console.warn("Givit AI: recipient extraction failed, falling back to manual entry.", error);
     return EMPTY;
   }
 }

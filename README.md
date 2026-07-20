@@ -28,6 +28,10 @@ Copy `artifacts/givit-platform/.env.example` to `artifacts/givit-platform/.env.l
 | `NEXT_PUBLIC_APP_URL` | Base URL of your deployed app | `https://your-app.vercel.app` |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push keys (phone/desktop notifications). Generate your own pair with `node -e "console.log(require('web-push').generateVAPIDKeys())"` — the private key must stay server-only. `VAPID_SUBJECT` is a `mailto:` address the push service can contact if there's abuse. | see below |
 | `VITE_VAPID_PUBLIC_KEY` | Same value as `VAPID_PUBLIC_KEY`, but `VITE_`-prefixed so the browser can subscribe. This one is meant to be public. | same as above |
+| `SUPABASE_URL` | Same project URL as `VITE_SUPABASE_URL`, without the `VITE_` prefix (used server-side by the notification cron). | `https://your-project.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key (Project Settings → API). Bypasses RLS — server-only, never expose to the client. | `eyJhbGci...` |
+| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Resend (resend.com) API key and a from-address on a domain verified in the Resend dashboard. Used to actually send AutoGift reminder emails. | see §4 |
+| `CRON_SECRET` | Shared secret the notification-dispatch cron checks on its `Authorization: Bearer` header. | any long random string |
 
 Givit AI needs `VITE_GEMINI_API_KEY` — see §5.
 
@@ -64,7 +68,16 @@ VAPID_SUBJECT=mailto:you@example.com
 VITE_VAPID_PUBLIC_KEY=...          (same value as VAPID_PUBLIC_KEY)
 ```
 
-Givit AI needs `VITE_GEMINI_API_KEY` added here — see §5.
+**Also add these, or AutoGift reminders stay stuck as `status='scheduled'` and never actually send** (see §4):
+```
+SUPABASE_URL=https://zbhumepxaywxnluapcbs.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+RESEND_API_KEY=...
+RESEND_FROM_EMAIL=Givit <notifications@yourdomain.com>
+CRON_SECRET=...
+```
+
+Givit AI needs `VITE_GEMINI_API_KEY` added here — see §5. **Remember Vite env vars are baked in at build time**: adding or changing any `VITE_`-prefixed variable in Vercel requires a new deployment (redeploy) to actually take effect, not just a restart.
 
 > 🔴 **Security reminder:** an earlier commit in this repo's history accidentally included live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `SHIPPO_API_TOKEN` values before `.env.local` was git-ignored. If you haven't already, **rotate all three in the Stripe and Shippo dashboards** — removing the file from the latest commit doesn't invalidate keys still readable in git history/GitHub.
 
@@ -97,6 +110,8 @@ The AutoGift system works in 4 stages:
 6. Order created with status `pending_approval`
 7. Admin reviews and charges card on file (Stripe integration needed)
 8. Admin sources items, writes card, arranges shipping
+
+**Actually sending the reminders:** adding a recipient/occasion writes rows into `gift_notifications` with `status='scheduled'`, but writing the row was never the same as sending it — nothing dispatched those until `api/cron/dispatch-notifications.ts` was added. Vercel Cron (see `vercel.json`) hits that endpoint daily; it finds every notification whose `scheduled_for` has passed, emails the `email`-channel ones via Resend and pushes the `push`-channel ones via the existing Web Push setup, then marks each `sent` or `failed`. It needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL` set in Vercel (see §1/§3) — without them it 500s harmlessly (nothing gets marked sent, so it'll retry next run) rather than silently doing nothing. You can trigger it manually to test: `curl -X POST https://your-app.vercel.app/api/cron/dispatch-notifications -H "Authorization: Bearer $CRON_SECRET"`.
 9. Status updates: `approved` → `charged` → `ordered` → `shipped` → `delivered`
 
 

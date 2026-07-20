@@ -17,6 +17,7 @@ type WishlistItem = {
   image?: string;
   price?: string;
   productId?: string;
+  wishlistId?: string;
 };
 
 function readWishlist(): WishlistItem[] {
@@ -54,28 +55,27 @@ export function WishlistButton({ item, compact = false }: { item: WishlistItem; 
 
     if (existingIndex >= 0) {
       // Remove from wishlist
+      const existing = current[existingIndex];
       const updated = current.filter((entry) => entry.slug !== item.slug);
       writeWishlist(updated);
       setSaved(false);
-      
-      // Remove from database if logged in
-      if (user && item.productId) {
+
+      // Remove from database if logged in — wishlist_items.id (the row's own
+      // primary key) is what removeFromWishlist deletes by, not product_id,
+      // so it only works if we saved the row id back when we added it.
+      if (user && existing.wishlistId) {
         try {
-          await removeFromWishlist(item.productId);
+          await removeFromWishlist(existing.wishlistId);
         } catch (err) {
           console.error("Failed to remove from wishlist:", err);
         }
       }
     } else {
       // Add to wishlist
-      const newItem = { ...item, savedAt: new Date().toISOString() };
-      writeWishlist([newItem, ...current]);
-      setSaved(true);
-      
-      // Add to database if logged in
+      let wishlistId: string | undefined;
       if (user) {
         try {
-          await addToWishlist({
+          const { data, error } = await addToWishlist({
             user_id: user.id,
             product_id: item.productId || item.slug,
             product_name: item.name,
@@ -83,10 +83,15 @@ export function WishlistButton({ item, compact = false }: { item: WishlistItem; 
             product_price_cents: item.price ? Math.round(parseFloat(item.price) * 100) : null,
             priority: 0,
           });
+          if (error) throw error;
+          wishlistId = data?.id;
         } catch (err) {
           console.error("Failed to add to wishlist:", err);
         }
       }
+      const newItem = { ...item, wishlistId, savedAt: new Date().toISOString() };
+      writeWishlist([newItem, ...current]);
+      setSaved(true);
     }
   }
 
@@ -107,6 +112,7 @@ export function WishlistButton({ item, compact = false }: { item: WishlistItem; 
 
 export function WishlistSharePanel() {
   const [items, setItems] = useState<WishlistItem[]>([]);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const sync = () => setItems(readWishlist());
@@ -119,18 +125,57 @@ export function WishlistSharePanel() {
     };
   }, []);
 
-  const body = items.map((item, index) => `${index + 1}. ${item.name} (${item.price ?? "Saved gift"}): ${item.href}`).join("\n");
+  const absoluteHref = (href: string) => (typeof window !== "undefined" && href.startsWith("/") ? `${window.location.origin}${href}` : href);
+  const body = items.map((item, index) => `${index + 1}. ${item.name} (${item.price ?? "Saved gift"}): ${absoluteHref(item.href)}`).join("\n");
+  const text = body || "My Givit wishlist. I'll add gift ideas soon!";
+
+  // mailto: links silently no-op whenever there's no default mail client
+  // configured (very common in-browser, and inside embedded/preview
+  // browsers), which read as the whole feature being broken. Clipboard copy
+  // works everywhere with no dependency on local app config; Web Share is
+  // used where the OS actually offers a native share sheet.
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy wishlist:", err);
+    }
+  }
+
+  async function handleShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "My Givit wishlist", text });
+        return;
+      } catch {
+        // user cancelled the share sheet, or it's unsupported — fall through to copy
+      }
+    }
+    await handleCopy();
+  }
 
   return (
     <div className="rounded-2xl border border-givit-ember/20 bg-givit-sand/50 p-4">
       <div className="flex items-center gap-2 text-sm font-bold text-givit-ink"><Share2 className="h-4 w-4 text-givit-ember" /> Shareable wishlist</div>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">Build a Christmas-list-style board, then send it to family or friends. Saved locally for guests; accounts can sync it later.</p>
-      <a
-        className="mt-3 inline-flex h-9 items-center justify-center gap-2 rounded-full bg-givit-ember px-4 text-xs font-bold text-white transition hover:bg-givit-ember-hover"
-        href={`mailto:?subject=${encodeURIComponent("My Givit wishlist")}&body=${encodeURIComponent(body || "Here is my Givit wishlist. I will add gift ideas soon!")}`}
-      >
-        <Mail className="h-3.5 w-3.5" /> Send wishlist
-      </a>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={handleShare}
+          disabled={items.length === 0}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-givit-ember px-4 text-xs font-bold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Share2 className="h-3.5 w-3.5" /> {copied ? "Copied!" : "Send wishlist"}
+        </button>
+        <a
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-givit-ember/30 bg-card px-4 text-xs font-bold text-givit-ember transition hover:bg-givit-sand"
+          href={`mailto:?subject=${encodeURIComponent("My Givit wishlist")}&body=${encodeURIComponent(text)}`}
+        >
+          <Mail className="h-3.5 w-3.5" /> Email instead
+        </a>
+      </div>
     </div>
   );
 }

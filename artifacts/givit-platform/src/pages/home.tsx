@@ -3,6 +3,7 @@ import { ArrowRight, Bell, Gift, Heart, PackageCheck, Sparkles, UserRound } from
 
 import { PeopleDashboard } from "@/components/personalization/people-dashboard";
 import { RecentMemoryFeed } from "@/components/personalization/recent-memory-feed";
+import { RelationshipGraph } from "@/components/personalization/relationship-graph";
 import { RelationshipInsights } from "@/components/personalization/relationship-insights";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
@@ -91,6 +92,9 @@ export default function HomePage() {
 
       {/* Relationship intelligence — what Givit knows and is doing for you, not a product rail */}
       <RelationshipInsights />
+
+      {/* Visual map of the same memory, for people who'd rather see it than read it */}
+      <RelationshipGraph />
 
       {/* Footer CTA */}
       <Reveal>

@@ -79,7 +79,9 @@ const TRENDING_TAGS = [
 type ShoppingForPerson = {
   id: string;
   name: string;
+  relationship: string;
   interests: string[];
+  avoidTerms: string[];
   budgetCents: number | null;
 };
 
@@ -95,21 +97,41 @@ export default function ProductsPage() {
 
   const { user } = useAuth();
   const [savedPeople, setSavedPeople] = useState<ShoppingForPerson[]>([]);
+  const [peopleReady, setPeopleReady] = useState(false);
   useEffect(() => {
-    if (!user) { setSavedPeople([]); return; }
+    if (!user) { setSavedPeople([]); setPeopleReady(true); return; }
     let mounted = true;
     getGiftRecipients(user.id).then((rows: any[]) => {
       if (!mounted) return;
       setSavedPeople(rows.map((row) => ({
         id: row.id,
         name: row.name,
+        relationship: row.relationship || "",
         interests: row.interests ?? [],
+        avoidTerms: row.avoid_terms ?? [],
         budgetCents: row.default_budget_cents ?? null,
       })));
+      setPeopleReady(true);
     });
     return () => { mounted = false; };
   }, [user]);
-  const shoppingFor = forId ? savedPeople.find((p) => p.id === forId) : undefined;
+  // On the plain default view (no explicit "for", search, or category), a
+  // single saved person is an unambiguous shopping context — no reason to
+  // make the user click their own name to see it applied. "for=_none" is an
+  // explicit opt-out so "Clear" has somewhere to go in that auto case.
+  const autoPersonalizable = !forId && !q && !categorySlug;
+  const shoppingFor = forId === "_none"
+    ? undefined
+    : forId
+      ? savedPeople.find((p) => p.id === forId)
+      : autoPersonalizable && savedPeople.length === 1
+        ? savedPeople[0]
+        : undefined;
+  // While a person context should apply but hasn't loaded yet, the grid
+  // would briefly render in generic rank order and then jump into
+  // personalized order once the fetch resolves — visible, jarring reflow.
+  // Hold off rendering results until we know one way or the other.
+  const awaitingPersonalization = Boolean(user) && !peopleReady && (Boolean(forId) || autoPersonalizable);
 
   const minPrice = Number.parseFloat(minStr);
   const maxPrice = Number.parseFloat(maxStr);
@@ -153,25 +175,40 @@ export default function ProductsPage() {
   else if (sortVal === "popular") sorted.sort((a, b) => b.gift_match_score - a.gift_match_score);
   else sorted.sort((a, b) => a.rank - b.rank);
 
-  // "Shopping for" reorders toward what's actually known about that
-  // person — real interest-overlap + budget fit, not a decorative label —
-  // while keeping the existing sort as the tiebreaker so it still reads
-  // as a ranked list, not a shuffled one.
-  function matchCount(product: MarketplaceProduct, person: ShoppingForPerson) {
-    const interests = new Set(person.interests.map((i) => i.toLowerCase()));
-    return product.interests.filter((i) => interests.has(i.toLowerCase())).length;
+  // "Shopping for" reorders toward what's actually known about that person
+  // instead of just re-showing the same default rank list. Two people with
+  // different interests/relationships/avoid-terms need to visibly diverge,
+  // so this scores on several signals rather than one narrow exact-tag
+  // match (which silently no-ops, and thus looks identical across people,
+  // whenever a saved interest doesn't literally equal a product tag).
+  function personalScore(product: MarketplaceProduct, person: ShoppingForPerson) {
+    const avoid = person.avoidTerms.map((t) => t.toLowerCase()).filter(Boolean);
+    const haystack = [product.name, product.category?.name ?? "", ...product.interests, ...product.recipients]
+      .join(" ").toLowerCase();
+    if (avoid.some((term) => haystack.includes(term))) return -100;
+
+    let score = 0;
+    const interestWords = person.interests.map((i) => i.toLowerCase()).filter(Boolean);
+    for (const interest of interestWords) {
+      const hit = product.interests.some((tag) => {
+        const t = tag.toLowerCase();
+        return t === interest || t.includes(interest) || interest.includes(t);
+      });
+      if (hit) score += 2;
+      else if (haystack.includes(interest)) score += 1;
+    }
+    const relationship = person.relationship.toLowerCase();
+    if (relationship && product.recipients.some((r) => r.toLowerCase().includes(relationship) || relationship.includes(r.toLowerCase()))) {
+      score += 1;
+    }
+    if (person.budgetCents) {
+      if (product.price_cents <= person.budgetCents) score += 1;
+      else score -= 1;
+    }
+    return score;
   }
   if (shoppingFor) {
-    sorted.sort((a, b) => {
-      const matchDiff = matchCount(b, shoppingFor) - matchCount(a, shoppingFor);
-      if (matchDiff !== 0) return matchDiff;
-      if (shoppingFor.budgetCents) {
-        const aFits = a.price_cents <= shoppingFor.budgetCents ? 0 : 1;
-        const bFits = b.price_cents <= shoppingFor.budgetCents ? 0 : 1;
-        if (aFits !== bFits) return aFits - bFits;
-      }
-      return 0;
-    });
+    sorted.sort((a, b) => personalScore(b, shoppingFor) - personalScore(a, shoppingFor));
   }
 
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
@@ -269,7 +306,10 @@ export default function ProductsPage() {
               {shoppingFor.interests.length > 0 ? <span className="text-muted-foreground"> · loves {shoppingFor.interests.slice(0, 3).join(", ")}</span> : null}
             </p>
           </div>
-          <Link href={`/products${categorySlug ? `?category=${encodeURIComponent(categorySlug)}` : ""}`} className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
+          <Link
+            href={`/products?for=_none${categorySlug ? `&category=${encodeURIComponent(categorySlug)}` : ""}`}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
             <X className="h-3.5 w-3.5" /> Clear
           </Link>
         </div>
@@ -364,7 +404,7 @@ export default function ProductsPage() {
           )}
 
           <div ref={resultsRef} className="scroll-mt-32">
-          <div className="sticky top-40 z-10 mb-3 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-background/85 px-1 py-2 text-sm backdrop-blur-md">
+          <div className="mb-3 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-background/85 px-1 py-2 text-sm">
             <p>
               <span className="font-semibold text-givit-ink">{sorted.length} ranked gift ideas</span>
               {q ? <span className="text-muted-foreground"> for "{q}"</span> : null}
@@ -409,7 +449,17 @@ export default function ProductsPage() {
           )}
 
           <div key={resultsKey} className="slide-up">
-            {sorted.length > 0 ? (
+            {awaitingPersonalization ? (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="animate-pulse space-y-2 rounded-2xl border border-border/60 bg-card p-3">
+                    <div className="aspect-square rounded-xl bg-muted" />
+                    <div className="h-3 w-3/4 rounded bg-muted" />
+                    <div className="h-3 w-1/2 rounded bg-muted" />
+                  </div>
+                ))}
+              </div>
+            ) : sorted.length > 0 ? (
               <ProductGrid
                 products={featuredPicks.length > 0 ? sorted.slice(featuredPicks.length) : sorted}
                 ratings={ratings}

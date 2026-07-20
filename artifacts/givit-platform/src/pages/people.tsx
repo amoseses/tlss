@@ -176,36 +176,28 @@ function PersonProfileCard({ recipient, onDelete, onToggleAutomation }: { recipi
             {recipient.relationship && <p className="text-xs text-muted-foreground">{recipient.relationship}</p>}
           </div>
         </div>
-        <button type="button" onClick={onDelete} aria-label={`Remove ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={onToggleAutomation}
+            title={`AutoGift is ${recipient.automationEnabled !== false ? "on" : "off"} for ${recipient.name}`}
+            aria-pressed={recipient.automationEnabled !== false}
+            className="group flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-1 transition hover:bg-muted"
+          >
+            <Zap className={`h-3.5 w-3.5 transition-colors ${recipient.automationEnabled !== false ? "fill-emerald-500 text-emerald-500" : "text-muted-foreground"}`} />
+            <span className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${recipient.automationEnabled !== false ? "bg-emerald-500" : "bg-border group-hover:bg-muted-foreground/40"}`}>
+              <span
+                className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
+                  recipient.automationEnabled !== false ? "translate-x-3.5" : "translate-x-0.5"
+                }`}
+              />
+            </span>
+          </button>
+          <button type="button" onClick={onDelete} aria-label={`Remove ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
-
-      <button
-        type="button"
-        onClick={onToggleAutomation}
-        className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
-          recipient.automationEnabled !== false
-            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-            : "bg-muted text-muted-foreground hover:bg-muted/70"
-        }`}
-      >
-        <span className="flex items-center gap-1.5">
-          <Zap className="h-3.5 w-3.5" />
-          AutoGift {recipient.automationEnabled !== false ? "On" : "Off"}
-        </span>
-        <span
-          className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${
-            recipient.automationEnabled !== false ? "bg-emerald-500" : "bg-border"
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${
-              recipient.automationEnabled !== false ? "translate-x-3.5" : "translate-x-0.5"
-            }`}
-          />
-        </span>
-      </button>
 
       {recipient.interests && recipient.interests.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">

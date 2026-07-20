@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Bell, Calendar, FlaskConical, Gift, Sparkles, UserRound, X } from "lucide-react";
+import { Bell, Calendar, CalendarDays, FlaskConical, Gift, Sparkles, UserRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
@@ -14,6 +14,7 @@ export default function ConciergePage() {
   const { recipients, activeNotifications, localReady, dismissNotification } = useRecipients(user);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   // useAuth() re-validates the session (and flips loading back to true)
   // whenever the tab regains focus — without this, the full-page spinner
   // below would unmount the whole page, including an in-progress
@@ -42,7 +43,13 @@ export default function ConciergePage() {
     )
     .filter((o) => o.parsed >= new Date())
     .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())
-    .slice(0, 5);
+    .slice(0, 8);
+
+  // A reminder is already scheduled the moment the occasion is saved (see
+  // useRecipients' generateNotifications), so "reminder set" is real status,
+  // not decoration — this just surfaces it per item instead of only in the
+  // separate notifications dropdown.
+  const scheduledKeys = new Set(activeNotifications.map((n) => `${n.recipientName}-${n.occasion}-${n.date}`));
 
   if (loading && !hasLoadedOnce) {
     return (
@@ -188,29 +195,54 @@ export default function ConciergePage() {
               </Button>
             </div>
           ) : (
-            <AutoGiftCalendar recipients={recipients} />
-          )}
-
-          {upcomingAll.length > 0 && (
-            <div className="givit-section">
-              <div className="mb-3 flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-givit-ember" />
-                <h2 className="font-semibold text-givit-ink">Upcoming</h2>
-              </div>
-              <div className="space-y-2.5">
-                {upcomingAll.map((o, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <div>
-                      <p className="font-medium text-foreground">{o.recipient}</p>
-                      <p className="text-xs text-muted-foreground">{o.label}</p>
+            <>
+              {upcomingAll.length > 0 && (
+                <div className="givit-section">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-givit-ember" />
+                      <h2 className="font-semibold text-givit-ink">Upcoming</h2>
                     </div>
-                    <p className="text-xs font-semibold text-givit-ember">
-                      {o.parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowCalendar((v) => !v)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
+                    >
+                      <CalendarDays className="h-3.5 w-3.5" /> {showCalendar ? "Hide calendar" : "View calendar"}
+                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <div className="space-y-2">
+                    {upcomingAll.map((o, i) => {
+                      const daysUntil = Math.ceil((o.parsed.getTime() - Date.now()) / 86400000);
+                      const urgency = daysUntil <= 14 ? "bg-rose-50 text-rose-700" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700";
+                      const scheduled = scheduledKeys.has(`${o.recipient}-${o.label}-${o.date}`);
+                      return (
+                        <div key={i} className="flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full givit-gradient text-xs font-bold text-white">
+                            {o.recipient[0]?.toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-foreground">{o.recipient} · {o.label}</p>
+                            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                              {scheduled ? (
+                                <><Bell className="h-3 w-3 text-givit-ember" /> Reminder scheduled</>
+                              ) : (
+                                "No reminder scheduled yet"
+                              )}
+                            </p>
+                          </div>
+                          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${urgency}`}>
+                            {o.parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · {daysUntil}d
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {showCalendar && <AutoGiftCalendar recipients={recipients} />}
+            </>
           )}
         </div>
 

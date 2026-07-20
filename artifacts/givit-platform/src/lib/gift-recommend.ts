@@ -292,6 +292,35 @@ function isHelpQuery(query: string) {
   return /\b(help|how does|what can you|what do you)\b/i.test(query);
 }
 
+// Deliberately narrow and high-precision — this should only ever catch
+// clear non-gifting questions, never a real gift-shopping follow-up like
+// "her birthday is next week" or "under $50". Checked against the raw
+// per-turn message (not the merged context), so once a conversation has
+// established a recipient/occasion/budget, a later unrelated question
+// can't silently ride along on that leftover context and get answered
+// with product matches instead of an honest reply.
+const OFF_TOPIC_PATTERNS = [
+  /\bwhat(?:'s| is) my name\b/,
+  /\bwho am i\b/,
+  /\bwho are you\b/,
+  /\bwhat are you\b/,
+  /\bwhat(?:'s| is) your name\b/,
+  /\bare you (?:a |an )?(?:ai|bot|human|robot|real person)\b/,
+  /\bwho (?:made|created|built) you\b/,
+  /\bhow old are you\b/,
+  /\bwhat(?:'s| is) the capital of\b/,
+  /\bwhat(?:'s| is)\s+\d+\s*[+\-*/]\s*\d+\b/,
+  /\btell me a joke\b/,
+  /\bwhat(?:'s| is) the weather\b/,
+  /\bwhat time is it\b/,
+  /\bwrite (?:me )?(?:a |an )?(?:poem|song|story|essay|code)\b/,
+];
+
+function isOffTopicQuery(query: string) {
+  const q = query.trim().toLowerCase();
+  return OFF_TOPIC_PATTERNS.some((re) => re.test(q));
+}
+
 function missingContext(ctx: ParsedContext) {
   const missing: string[] = [];
   if (!ctx.recipient) missing.push("recipient");
@@ -522,6 +551,17 @@ export function recommendGifts(
   if (isHelpQuery(trimmed)) {
     return {
       message: "I help you find personalized gifts through conversation. Share who it's for, the occasion, budget, interests, and anything to avoid, and I'll rank curated products and explain why each fits.",
+      results: [],
+      tags: [],
+      budget: priorContext.budget,
+      needsFollowUp: true,
+      context: priorContext,
+    };
+  }
+
+  if (isOffTopicQuery(trimmed)) {
+    return {
+      message: "I don't know — I'm Givit, focused on helping you find gifts, not general questions. Tell me who you're shopping for and I'll get started.",
       results: [],
       tags: [],
       budget: priorContext.budget,

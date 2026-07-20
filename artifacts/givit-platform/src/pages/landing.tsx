@@ -24,19 +24,39 @@ const FLOATING_ICONS = [
   { Icon: Sparkles, className: "right-[7%] top-[50%] h-5 w-5 text-givit-coral/20", duration: "6.8s", delay: "0.9s" },
 ];
 
+// Classic startup-site typewriter: types a phrase out, holds it, deletes it,
+// then moves to the next. Driven by (text, deleting, phraseIndex) rather than
+// a fixed-interval swap so the reveal itself reads as motion, not a slide.
+function useTypingCycle(phrases: string[], typeMs = 34, deleteMs = 18, pauseMs = 1600) {
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [text, setText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const phrase = phrases[phraseIndex];
+
+    if (!deleting && text === phrase) {
+      const t = setTimeout(() => setDeleting(true), pauseMs);
+      return () => clearTimeout(t);
+    }
+    if (deleting && text === "") {
+      setDeleting(false);
+      setPhraseIndex((i) => (i + 1) % phrases.length);
+      return;
+    }
+    const t = setTimeout(() => {
+      setText(deleting ? phrase.slice(0, text.length - 1) : phrase.slice(0, text.length + 1));
+    }, deleting ? deleteMs : typeMs);
+    return () => clearTimeout(t);
+  }, [text, deleting, phraseIndex, phrases, typeMs, deleteMs, pauseMs]);
+
+  return text;
+}
+
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
-  const [promptIndex, setPromptIndex] = useState(0);
-
-  // "/" is the standing marketing front door, not a one-time onboarding
-  // step or a waypoint to Dashboard — it never auto-navigates, even for
-  // signed-in visitors, so the marketing site works as its own page. Signed-in
-  // visitors get "Go to Dashboard" instead of the signup/login CTAs.
-  useEffect(() => {
-    const id = setInterval(() => setPromptIndex((i) => (i + 1) % ROTATING_PROMPTS.length), 2600);
-    return () => clearInterval(id);
-  }, []);
+  const typedPrompt = useTypingCycle(ROTATING_PROMPTS);
 
   function enterAsGuest() {
     navigate("/home");
@@ -76,8 +96,9 @@ export default function LandingPage() {
         </h1>
         <p className="mt-5 min-h-[3.5rem] text-lg text-white/70 md:min-h-[2.5rem]">
           Save someone once. Givit AI remembers{" "}
-          <span key={promptIndex} className="slide-up inline-block font-semibold text-white">
-            {ROTATING_PROMPTS[promptIndex]}
+          <span className="inline-block font-semibold text-white">
+            {typedPrompt}
+            <span className="animate-cursor-blink ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-white/80 align-middle" />
           </span>
         </p>
       </div>
