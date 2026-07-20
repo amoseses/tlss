@@ -201,6 +201,7 @@ export type GiftRecommendResponse = {
   message: string;
   results: GiftRecommendResult[];
   needsFollowUp?: boolean;
+  offTopic?: boolean;
   tags: string[];
   budget: number | null;
   context: ParsedContext;
@@ -214,10 +215,30 @@ export type ParsedContext = {
   avoid: string[];
 };
 
-function extractTags(query: string) {
+// Relationship/role words in TAG_MAP (e.g. "mom" -> parent/home/kitchen tags)
+// describe who the person IS, not what they actually like — they let
+// extractTags() find *a* tag for basically any "gift for my mom" message
+// even when nothing real is known about that specific mom. That's fine for
+// scoring once we already have enough context to show results, but it must
+// not by itself count as "we have real signal about this person" for the
+// follow-up gate below, or a bare relationship label silently produces a
+// generic stereotyped product list instead of asking what they're actually
+// like.
+const RELATIONSHIP_WORDS = new Set([
+  "mom", "mother", "dad", "father", "friend", "partner", "husband", "wife", "kid", "child",
+  "coworker", "teacher", "student", "writer", "artist", "traveler", "gamer", "boss",
+  "grandma", "grandpa", "sister", "brother", "girlfriend", "boyfriend", "fiancee", "fiance",
+  "roommate", "best friend", "aunt", "uncle", "cousin", "niece", "nephew", "daughter", "son",
+  "mother-in-law", "mother in law", "father-in-law", "father in law", "stepmom", "stepdad",
+  "godmother", "godfather", "mentor", "neighbor", "employee",
+  "brother-in-law", "brother in law", "sister-in-law", "sister in law",
+]);
+
+function extractTags(query: string, opts: { excludeRelationshipOnly?: boolean } = {}) {
   const lower = query.toLowerCase();
   const tags = new Set<string>();
   for (const [keyword, mappedTags] of Object.entries(TAG_MAP)) {
+    if (opts.excludeRelationshipOnly && RELATIONSHIP_WORDS.has(keyword)) continue;
     if (lower.includes(keyword)) mappedTags.forEach((tag) => tags.add(tag));
   }
   extractAgeTags(query).forEach((tag) => tags.add(tag));
@@ -566,20 +587,28 @@ export function recommendGifts(
       tags: [],
       budget: priorContext.budget,
       needsFollowUp: true,
+      offTopic: true,
       context: priorContext,
     };
   }
 
   const ctx = mergeContext(priorContext, parseContext(trimmed));
   const tags = extractTags(trimmed);
+  // Real signal about this specific person: something explicitly stated as
+  // an interest/style/theme, excluding tags that only came from a bare
+  // relationship word like "mom" or "coworker" (see RELATIONSHIP_WORDS).
+  const contentTags = extractTags(trimmed, { excludeRelationshipOnly: true });
   const budget = ctx.budget;
   const avoidTerms = ctx.avoid;
   const missing = missingContext(ctx);
 
   // Only ask a follow-up when there's truly nothing to go on — a bare theme
   // query like "hiking gifts" or "photo gifts" should surface real results
-  // even without a recipient/occasion, not get blocked pending more info.
-  if (missing.length >= 3 && tags.length === 0) {
+  // even without a recipient/occasion. But a relationship word alone (e.g.
+  // "gift for my mom" with no interests known) is NOT enough signal on its
+  // own — it would otherwise dump a generic stereotyped product list
+  // instead of asking what she's actually like.
+  if (missing.length >= 3 && contentTags.length === 0 && ctx.interests.length === 0) {
     return {
       message: buildFollowUp(ctx),
       results: [],

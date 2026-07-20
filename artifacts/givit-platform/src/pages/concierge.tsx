@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Bell, Calendar, CalendarDays, FlaskConical, Gift, Sparkles, UserRound, X } from "lucide-react";
+import { Bell, Calendar, CalendarDays, FlaskConical, Gift, Sparkles, UserRound, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
@@ -15,6 +15,7 @@ export default function ConciergePage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarPersonId, setCalendarPersonId] = useState<string | null>(null);
   // useAuth() re-validates the session (and flips loading back to true)
   // whenever the tab regains focus — without this, the full-page spinner
   // below would unmount the whole page, including an in-progress
@@ -50,6 +51,9 @@ export default function ConciergePage() {
   // not decoration — this just surfaces it per item instead of only in the
   // separate notifications dropdown.
   const scheduledKeys = new Set(activeNotifications.map((n) => `${n.recipientName}-${n.occasion}-${n.date}`));
+
+  const onAutoGift = recipients.filter((r) => r.automationEnabled !== false);
+  const calendarPerson = calendarPersonId ? recipients.find((r) => r.id === calendarPersonId) : null;
 
   if (loading && !hasLoadedOnce) {
     return (
@@ -114,11 +118,30 @@ export default function ConciergePage() {
         />
       )}
 
+      {calendarPerson && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center" onClick={() => setCalendarPersonId(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-card p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
+                  {calendarPerson.name[0]?.toUpperCase()}
+                </div>
+                <p className="font-serif text-lg font-bold text-givit-ink">{calendarPerson.name}'s dates</p>
+              </div>
+              <button type="button" onClick={() => setCalendarPersonId(null)} aria-label="Close calendar" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <AutoGiftCalendar recipients={[calendarPerson]} />
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">AutoGift</p>
-          <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Reminders and automation</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Every date tracked in <Link href="/people" className="text-givit-ember hover:underline">People</Link>, handled automatically from here.</p>
+          <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Your gifting agent</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Every date tracked in <Link href="/people" className="text-givit-ember hover:underline">People</Link>: the agent watches the calendar and reasons through what to give, you approve before anything ships.</p>
         </div>
         <div className="flex gap-2">
           {activeNotifications.length > 0 && (
@@ -196,6 +219,48 @@ export default function ConciergePage() {
             </div>
           ) : (
             <>
+              <div className="givit-section">
+                <div className="mb-3 flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-givit-ember" />
+                  <h2 className="font-semibold text-givit-ink">People on AutoGift</h2>
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">{onAutoGift.length} active</span>
+                </div>
+                {onAutoGift.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No one has AutoGift turned on yet. Enable it for a person on the <Link href="/people" className="text-givit-ember hover:underline">People</Link> page.
+                  </p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {onAutoGift.map((r) => {
+                      const upcoming = r.occasions
+                        .filter((o) => o.date)
+                        .map((o) => ({ ...o, parsed: new Date(o.date) }))
+                        .filter((o) => o.parsed >= new Date())
+                        .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())[0];
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setCalendarPersonId(r.id)}
+                          className="flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3 text-left transition hover:border-givit-ember/40 hover:shadow-sm"
+                        >
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
+                            {r.name[0]?.toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-foreground">{r.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {upcoming ? `${upcoming.label} · ${upcoming.parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No dates yet"}
+                            </p>
+                          </div>
+                          <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {upcomingAll.length > 0 && (
                 <div className="givit-section">
                   <div className="mb-3 flex items-center justify-between gap-2">
@@ -253,12 +318,12 @@ export default function ConciergePage() {
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="font-semibold text-givit-ink">How AutoGift works</h2>
+                <h2 className="font-semibold text-givit-ink">How the agent works</h2>
                 <ol className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
                   <li>1. Add people and their key dates in People</li>
-                  <li>2. 35 days before, we email the survey at 10:00 AM EST</li>
-                  <li>3. AI suggests gifts, cards (+$5), flowers (+$25), and activities</li>
-                  <li>4. You approve, we charge the saved card, then admin fulfills and ships</li>
+                  <li>2. 35 days before, the agent emails the survey at 10:00 AM EST</li>
+                  <li>3. It reasons through the profile and proposes gifts, cards (+$5), flowers (+$25), and activities, with a reason for each</li>
+                  <li>4. You approve, it charges the saved card, then admin fulfills and ships (fully autonomous purchasing is next)</li>
                 </ol>
                 <div className="mt-3 rounded-lg bg-black/20 p-2.5 text-xs">
                   <p className="font-semibold text-givit-ink">Pricing</p>

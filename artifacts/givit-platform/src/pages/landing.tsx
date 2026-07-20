@@ -89,7 +89,7 @@ export default function LandingPage() {
 
       <div className="slide-up relative max-w-2xl" style={{ animationDelay: "80ms" }}>
         <p className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-bold uppercase tracking-widest text-givit-coral">
-          <Sparkles className="h-3.5 w-3.5" /> AI relationship memory
+          <Sparkles className="h-3.5 w-3.5" /> Your AI gifting agent
         </p>
         <h1 className="mt-4 font-serif text-4xl font-bold leading-tight md:text-6xl">
           Your AI memory for the people you love.

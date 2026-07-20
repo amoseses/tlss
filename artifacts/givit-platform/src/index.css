@@ -294,3 +294,13 @@
 }
 
 .animate-cursor-blink { animation: cursor-blink 0.9s step-end infinite; }
+
+@keyframes rotate-3d {
+  0% { transform: perspective(600px) rotateY(0deg) rotateX(8deg); }
+  100% { transform: perspective(600px) rotateY(360deg) rotateX(8deg); }
+}
+
+.animate-rotate-3d {
+  animation: rotate-3d 7s linear infinite;
+  transform-style: preserve-3d;
+}

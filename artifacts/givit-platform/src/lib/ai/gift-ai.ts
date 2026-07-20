@@ -124,3 +124,54 @@ export async function personalizeGiftChat(
     return null;
   }
 }
+
+/**
+ * Handles the "not enough info yet" turns — the deterministic layer decides
+ * *whether* more detail is needed (it's the source of truth on missing
+ * fields), but the actual reply used to always be one of ~5 fixed strings
+ * ("Got it! Who's the gift for, and what's the occasion?"), so the chat felt
+ * scripted the moment it wasn't showing product cards. This asks Gemini to
+ * write that same request for more detail as an actual reply to what the
+ * shopper just said, so it reads as conversation instead of a form.
+ */
+export async function personalizeFollowUp(
+  params: {
+    query: string;
+    missing: string[];
+    known: { recipient: string | null; occasion: string | null; budget: number | null; interests: string[] };
+  },
+  timeoutMs = 6000,
+): Promise<string | null> {
+  const { query, missing, known } = params;
+  if (typeof query !== "string" || !query.trim() || missing.length === 0) return null;
+
+  const system =
+    "You are Givit AI, a warm and concise gifting concierge chatting with a shopper. You don't have enough detail yet to recommend real products. " +
+    "Write ONE short, natural reply (max 2 sentences) that asks for whatever's still missing, in a way that directly responds to what the shopper just said — reference something specific from their message if there's anything to react to, don't just restate a form field. Never recommend or mention any specific product. Return strict JSON only, matching the requested shape exactly, with no markdown code fences.";
+
+  const user = JSON.stringify({
+    instructions: "Ask for the missing information conversationally, prioritizing whichever missing field would unblock a recommendation fastest.",
+    shopperMessage: query,
+    alreadyKnown: known,
+    stillMissing: missing,
+    responseShape: { reply: "string" },
+  });
+
+  try {
+    const result = await Promise.race([
+      callGeminiJSON(
+        [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        { temperature: 0.8, maxTokens: 200 },
+      ),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini API request timed out")), timeoutMs)),
+    ]);
+
+    return typeof result?.reply === "string" && result.reply.trim() ? result.reply.trim().slice(0, 300) : null;
+  } catch (error) {
+    console.warn("Givit AI: conversational follow-up failed, falling back to canned prompt.", error);
+    return null;
+  }
+}

@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { recommendGifts, EMPTY_CONTEXT, type GiftRecommendResult, type ParsedContext } from "@/lib/gift-recommend";
 import { fetchAllProducts, getAllMarketplaceProducts, type MarketplaceProduct } from "@/lib/data/data-layer";
-import { personalizeChatResponse } from "@/lib/ai/gift-chat-personalize";
+import { personalizeChatResponse, personalizeFollowUpMessage } from "@/lib/ai/gift-chat-personalize";
 import { readLearningProfile, applyFeedback as applyLearningFeedback } from "@/lib/gift-learning";
 import { productPhotoFallback } from "@/lib/product-photo";
 import { logError, trackUserEvent } from "@/lib/monitoring";
@@ -335,12 +335,22 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       // later (once the AI call resolves) reads as the AI generating
       // products twice for one request. personalizeChatResponse already
       // falls back to `data` on timeout/failure, so this can't hang.
+      // When there's nothing to show yet, the reply still goes through
+      // Gemini (personalizeFollowUpMessage) so asking for more detail reads
+      // as conversation, not one of a handful of fixed template strings —
+      // except when it's the off-topic gate, which stays a fixed, safe
+      // reply on purpose rather than letting the model improvise one.
       const final = widePool.results && widePool.results.length > 0
         ? await personalizeChatResponse(queryForScoring, data, widePool.results).catch((error) => {
             logError(error, "GiftFinderChat.personalizeChatResponse", { query: trimmed });
             return data;
           })
-        : data;
+        : data.needsFollowUp && !data.offTopic
+          ? await personalizeFollowUpMessage(queryForScoring, data).catch((error) => {
+              logError(error, "GiftFinderChat.personalizeFollowUpMessage", { query: trimmed });
+              return data;
+            })
+          : data;
 
       (final.results ?? []).forEach((r) => shownIdsRef.current.add(r.id));
       trackUserEvent("ai_recommendation_generated", { queryLength: trimmed.length, resultCount: final.results?.length ?? 0, tags: final.tags });

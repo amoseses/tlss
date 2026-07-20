@@ -35,14 +35,17 @@ export default function HomePage() {
 
         <div className="container relative py-16 md:py-24">
           <div className="slide-up mx-auto max-w-xl text-center" style={{ animationDelay: "0ms" }}>
+            <div className="animate-rotate-3d pointer-events-none mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl givit-gradient shadow-lg">
+              <Gift className="h-7 w-7 text-white" />
+            </div>
             <p className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-bold uppercase tracking-widest text-givit-coral">
-              <Sparkles className="h-3.5 w-3.5" /> AI relationship memory
+              <Sparkles className="h-3.5 w-3.5" /> Your AI gifting agent
             </p>
             <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-white md:text-5xl">
               Never send a bad gift again.
             </h1>
             <p className="mt-4 text-base leading-7 text-white/70">
-              The AI that remembers everyone you care about.
+              Givit remembers everyone you care about, reasons about what they'd actually love, and lines it up before you approve it.
             </p>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
@@ -65,13 +68,13 @@ export default function HomePage() {
       <PeopleDashboard />
 
       {/* How it works — 30 seconds once, remembered forever */}
-      <Reveal>
+      <Reveal variant="triangle">
         <section className="border-y border-border/50 bg-givit-sand/40">
           <div className="stagger-children container grid gap-6 py-8 sm:grid-cols-3">
             {[
-              { icon: Sparkles, title: "Add someone, once", desc: "Name, interests, budget, dates to avoid. About 30 seconds — Givit AI can fill it in from a sentence." },
-              { icon: Bell, title: "Get notified early", desc: "Reminders 5–6 weeks before every important date, tied to the person, not a calendar app." },
-              { icon: PackageCheck, title: "Approve once, done", desc: "Pick a gift, approve it, and we order, card-write, and ship." },
+              { icon: Sparkles, title: "Add someone, once", desc: "Name, interests, budget, dates to avoid. About 30 seconds: Givit AI can fill it in from a sentence." },
+              { icon: Bell, title: "The agent watches the calendar", desc: "Reminders 5–6 weeks before every important date, tied to the person, not a generic calendar app." },
+              { icon: PackageCheck, title: "You approve, Givit handles it", desc: "The agent reasons through your person's profile, proposes gifts with a reason for each, then orders, card-writes, and ships once you say go." },
             ].map((item) => (
               <div key={item.title} className="slide-up flex gap-4 opacity-0">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card shadow-sm transition-transform hover:scale-110">
@@ -97,7 +100,7 @@ export default function HomePage() {
       <RelationshipGraph />
 
       {/* Footer CTA */}
-      <Reveal>
+      <Reveal variant="triangle">
         <section className="container mt-4">
           <div className="relative overflow-hidden rounded-xl bg-black px-8 py-10 text-white md:px-12">
             <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />

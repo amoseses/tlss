@@ -1,5 +1,5 @@
 import type { GiftRecommendResponse, GiftRecommendResult } from "@/lib/gift-recommend";
-import { personalizeGiftChat } from "@/lib/ai/gift-ai";
+import { personalizeFollowUp, personalizeGiftChat } from "@/lib/ai/gift-ai";
 
 /**
  * Re-ranks and rewrites match reasons for an already-computed local result
@@ -49,4 +49,24 @@ export async function personalizeChatResponse(
     message: ai.message ?? base.message,
     results,
   };
+}
+
+/**
+ * Rewrites a "needs more detail" reply through Gemini so it responds to
+ * what the shopper actually said instead of always being one of a handful
+ * of fixed template strings. Falls back to the deterministic canned
+ * message untouched on any failure/timeout — never blocks the chat.
+ */
+export async function personalizeFollowUpMessage(query: string, base: GiftRecommendResponse): Promise<GiftRecommendResponse> {
+  const ctx = base.context;
+  const missing: string[] = [];
+  if (!ctx.recipient) missing.push("recipient");
+  if (!ctx.occasion) missing.push("occasion");
+  if (!ctx.budget) missing.push("budget");
+  if (ctx.interests.length === 0) missing.push("interests");
+  if (missing.length === 0) return base;
+
+  const reply = await personalizeFollowUp({ query, missing, known: ctx });
+  if (!reply) return base;
+  return { ...base, message: reply };
 }

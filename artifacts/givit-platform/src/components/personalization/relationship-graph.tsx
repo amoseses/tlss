@@ -37,7 +37,6 @@ export function RelationshipGraph() {
       if (!mounted) return;
       setPeople(
         rows
-          .filter((r) => (r.interests ?? []).length > 0)
           .slice(0, MAX_PEOPLE)
           .map((r) => ({ id: r.id, name: r.name, interests: (r.interests ?? []).slice(0, MAX_INTERESTS_PER_PERSON) })),
       );
@@ -89,12 +88,25 @@ export function RelationshipGraph() {
           {people.map((person, i) => {
             const angle = -Math.PI / 2 + i * angleStep;
             const pos = polar(CENTER.x, CENTER.y, PERSON_RADIUS, angle);
+            const hasInterests = person.interests.length > 0;
             return (
               <g key={`node-${person.id}`}>
-                <circle cx={pos.x} cy={pos.y} r={22} className="fill-givit-ember" />
-                <text x={pos.x} y={pos.y + 4} textAnchor="middle" className="fill-white text-[10px] font-bold">
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={22}
+                  className={hasInterests ? "fill-givit-ember" : "fill-none stroke-givit-ember"}
+                  strokeWidth={hasInterests ? 0 : 2}
+                  strokeDasharray={hasInterests ? undefined : "4 3"}
+                />
+                <text x={pos.x} y={pos.y + 4} textAnchor="middle" className={hasInterests ? "fill-white text-[10px] font-bold" : "fill-givit-ember text-[10px] font-bold"}>
                   {person.name.slice(0, 8)}
                 </text>
+                {!hasInterests && (
+                  <text x={pos.x} y={pos.y + 38} textAnchor="middle" className="fill-muted-foreground text-[8px] italic">
+                    nothing known yet
+                  </text>
+                )}
               </g>
             );
           })}
