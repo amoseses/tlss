@@ -8,15 +8,19 @@ import { getGiftRecipients } from "@/lib/supabase/db";
 type GraphPerson = { id: string; name: string; interests: string[] };
 
 const WIDTH = 640;
-const HEIGHT = 420;
+const HEIGHT = 380;
 const CENTER = { x: WIDTH / 2, y: HEIGHT / 2 };
-const PERSON_RADIUS = 150;
-const INTEREST_RADIUS = 56;
+const PERSON_RADIUS = 140;
+const INTEREST_RADIUS = 46;
 const MAX_PEOPLE = 6;
 const MAX_INTERESTS_PER_PERSON = 3;
 
 function polar(cx: number, cy: number, radius: number, angleRad: number) {
   return { x: cx + radius * Math.cos(angleRad), y: cy + radius * Math.sin(angleRad) };
+}
+
+function truncate(text: string, max: number) {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
 /**
@@ -75,15 +79,15 @@ export function RelationshipGraph() {
               return (
                 <g key={`${person.id}-${interest}`}>
                   <line x1={personPos.x} y1={personPos.y} x2={pos.x} y2={pos.y} stroke="currentColor" strokeOpacity={0.12} strokeWidth={1} className="text-muted-foreground" />
-                  <circle cx={pos.x} cy={pos.y} r={4} className="fill-givit-coral" />
-                  <text x={pos.x} y={pos.y - 9} textAnchor="middle" className="fill-muted-foreground text-[9px] font-medium capitalize">{interest}</text>
+                  <circle cx={pos.x} cy={pos.y} r={3.5} className="fill-givit-coral" />
+                  <text x={pos.x} y={pos.y - 8} textAnchor="middle" className="fill-muted-foreground text-[9px] font-medium capitalize">{truncate(interest, 12)}</text>
                 </g>
               );
             });
           })}
 
-          <circle cx={CENTER.x} cy={CENTER.y} r={30} className="fill-black" />
-          <text x={CENTER.x} y={CENTER.y + 4} textAnchor="middle" className="fill-white text-[11px] font-bold">You</text>
+          <circle cx={CENTER.x} cy={CENTER.y} r={20} className="fill-black" />
+          <text x={CENTER.x} y={CENTER.y + 4} textAnchor="middle" className="fill-white text-[10px] font-bold">You</text>
 
           {people.map((person, i) => {
             const angle = -Math.PI / 2 + i * angleStep;
@@ -94,16 +98,19 @@ export function RelationshipGraph() {
                 <circle
                   cx={pos.x}
                   cy={pos.y}
-                  r={22}
+                  r={16}
                   className={hasInterests ? "fill-givit-ember" : "fill-none stroke-givit-ember"}
                   strokeWidth={hasInterests ? 0 : 2}
                   strokeDasharray={hasInterests ? undefined : "4 3"}
                 />
-                <text x={pos.x} y={pos.y + 4} textAnchor="middle" className={hasInterests ? "fill-white text-[10px] font-bold" : "fill-givit-ember text-[10px] font-bold"}>
-                  {person.name.slice(0, 8)}
+                <text x={pos.x} y={pos.y + 4} textAnchor="middle" className={hasInterests ? "fill-white text-[11px] font-bold" : "fill-givit-ember text-[11px] font-bold"}>
+                  {person.name[0]?.toUpperCase()}
+                </text>
+                <text x={pos.x} y={pos.y + 30} textAnchor="middle" className="fill-foreground text-[10px] font-semibold">
+                  {truncate(person.name, 12)}
                 </text>
                 {!hasInterests && (
-                  <text x={pos.x} y={pos.y + 38} textAnchor="middle" className="fill-muted-foreground text-[8px] italic">
+                  <text x={pos.x} y={pos.y + 43} textAnchor="middle" className="fill-muted-foreground text-[8px] italic">
                     nothing known yet
                   </text>
                 )}

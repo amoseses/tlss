@@ -192,6 +192,35 @@ export function useRecipients(user: User | null | undefined) {
     }
   }
 
+  // saveRecipients() only ever calls saveGiftRecipient() for ids not already
+  // in `recipients` (i.e. new people), so editing an existing person's
+  // fields through it would update local state but silently never persist
+  // to Supabase. This is the actual update path.
+  async function updateRecipient(id: string, updates: Partial<Recipient>) {
+    const existing = recipients.find((r) => r.id === id);
+    if (!existing) return { error: new Error("Recipient not found") };
+    const next = { ...existing, ...updates };
+    setRecipients((prev) => prev.map((r) => (r.id === id ? next : r)));
+    window.localStorage.setItem("givit-recipients", JSON.stringify(recipients.map((r) => (r.id === id ? next : r))));
+    if (!user) return { error: null };
+    const { error } = await saveGiftRecipient({
+      id,
+      user_id: user.id,
+      name: next.name,
+      relationship: next.relationship || null,
+      interests: next.interests?.length ? next.interests : [],
+      avoid_terms: next.avoidTerms?.length ? next.avoidTerms : [],
+      default_budget_cents: next.budgetCents ?? null,
+      notes: next.notes ?? null,
+      automation_enabled: next.automationEnabled ?? true,
+    });
+    if (error) {
+      console.error("Failed to update recipient:", error);
+      setRecipients((prev) => prev.map((r) => (r.id === id ? existing : r)));
+    }
+    return { error };
+  }
+
   async function toggleAutomation(id: string, enabled: boolean) {
     const recipient = recipients.find((r) => r.id === id);
     if (!recipient) return;
@@ -217,6 +246,7 @@ export function useRecipients(user: User | null | undefined) {
     localReady,
     saveRecipients,
     deleteRecipient,
+    updateRecipient,
     toggleAutomation,
     dismissNotification,
   };

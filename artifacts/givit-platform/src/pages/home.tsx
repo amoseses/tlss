@@ -6,6 +6,7 @@ import { RecentMemoryFeed } from "@/components/personalization/recent-memory-fee
 import { RelationshipGraph } from "@/components/personalization/relationship-graph";
 import { RelationshipInsights } from "@/components/personalization/relationship-insights";
 import { Button } from "@/components/ui/button";
+import { GiftBox3D } from "@/components/ui/gift-box-3d";
 import { Reveal } from "@/components/ui/reveal";
 
 // Same ambient-motion pattern as the landing splash — kept low-opacity and
@@ -35,8 +36,8 @@ export default function HomePage() {
 
         <div className="container relative py-16 md:py-24">
           <div className="slide-up mx-auto max-w-xl text-center" style={{ animationDelay: "0ms" }}>
-            <div className="animate-rotate-3d pointer-events-none mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl givit-gradient shadow-lg">
-              <Gift className="h-7 w-7 text-white" />
+            <div className="pointer-events-none mx-auto mb-2 flex h-14 items-center justify-center">
+              <GiftBox3D size={56} />
             </div>
             <p className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-bold uppercase tracking-widest text-givit-coral">
               <Sparkles className="h-3.5 w-3.5" /> Your AI gifting agent

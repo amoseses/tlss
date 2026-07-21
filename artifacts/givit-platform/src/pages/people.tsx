@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowRight, Bell, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
+import { ArrowRight, Bell, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -155,7 +155,128 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
   );
 }
 
-function PersonProfileCard({ recipient, onDelete, onToggleAutomation }: { recipient: Recipient; onDelete: () => void; onToggleAutomation: () => void }) {
+function splitTags(text: string) {
+  return text.split(",").map((t) => t.trim()).filter(Boolean);
+}
+
+// The only way to change a saved person's interests used to be deleting
+// them and starting over — this is the actual edit path, prefilled with
+// their current profile. The "tell us about them" box stays available so
+// Givit AI can still extract from a fresh sentence; anything it finds is
+// merged into (not replacing) whatever's typed directly into the fields.
+function EditRecipientModal({ recipient, onSave, onClose }: { recipient: Recipient; onSave: (updates: Partial<Recipient>) => Promise<{ error: unknown }>; onClose: () => void }) {
+  const [name, setName] = useState(recipient.name);
+  const [relationship, setRelationship] = useState(recipient.relationship || "");
+  const [interestsText, setInterestsText] = useState((recipient.interests ?? []).join(", "));
+  const [avoidText, setAvoidText] = useState((recipient.avoidTerms ?? []).join(", "));
+  const [budget, setBudget] = useState(recipient.budgetCents ? String(recipient.budgetCents / 100) : "");
+  const [notes, setNotes] = useState(recipient.notes ?? "");
+  const [aboutText, setAboutText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      let interests = splitTags(interestsText);
+      let avoidTerms = splitTags(avoidText);
+      let budgetCents = budget.trim() ? Math.round(Number.parseFloat(budget) * 100) : null;
+
+      if (aboutText.trim()) {
+        const extracted = await extractRecipientProfile(aboutText);
+        interests = Array.from(new Set([...interests, ...extracted.interests]));
+        avoidTerms = Array.from(new Set([...avoidTerms, ...extracted.avoidTerms]));
+        if (!budgetCents && extracted.budgetCents) budgetCents = extracted.budgetCents;
+      }
+
+      const { error: saveError } = await onSave({
+        name: name.trim(),
+        relationship,
+        interests,
+        avoidTerms,
+        budgetCents: Number.isFinite(budgetCents) ? budgetCents : null,
+        notes: notes.trim() || null,
+      });
+      if (saveError) {
+        setError("Couldn't save your changes. Try again.");
+        return;
+      }
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border p-5">
+          <h2 className="font-serif text-xl font-bold text-givit-ink">Edit {recipient.name}</h2>
+          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <form onSubmit={submit} className="space-y-4 p-5">
+          <div className="grid gap-1.5">
+            <label className="text-sm font-semibold">Full name *</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} required className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-sm font-semibold">Relationship</label>
+            <select value={relationship} onChange={(e) => setRelationship(e.target.value)} className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+              <option value="">Select...</option>
+              {RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
+            </select>
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-sm font-semibold">Interests</label>
+            <input value={interestsText} onChange={(e) => setInterestsText(e.target.value)} placeholder="gardening, coffee, true crime podcasts" className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+            <p className="text-xs text-muted-foreground">Comma-separated. This is what Givit AI matches gifts against.</p>
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-sm font-semibold">Avoid</label>
+            <input value={avoidText} onChange={(e) => setAvoidText(e.target.value)} placeholder="already has a kettle, allergic to nuts" className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-sm font-semibold">Usual budget</label>
+            <input type="number" min="0" step="1" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="75" className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-sm font-semibold">Notes / gift history</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+          </div>
+          <div className="grid gap-1.5">
+            <label className="flex items-center gap-1.5 text-sm font-semibold">
+              <Sparkles className="h-3.5 w-3.5 text-givit-ember" /> Or just describe them (optional)
+            </label>
+            <textarea
+              value={aboutText}
+              onChange={(e) => setAboutText(e.target.value)}
+              rows={2}
+              placeholder="e.g. Also really into hiking lately, and just got a French press."
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+            />
+            <p className="text-xs text-muted-foreground">Givit AI adds whatever it finds here on top of the fields above.</p>
+          </div>
+
+          {error && <p className="text-xs font-medium text-destructive">{error}</p>}
+
+          <div className="flex gap-2 pt-2">
+            <Button type="button" variant="outline" className="flex-1 rounded-md" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button type="submit" disabled={saving || !name.trim()} className="flex-1 rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover disabled:opacity-60">
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: { recipient: Recipient; onDelete: () => void; onEdit: () => void; onToggleAutomation: () => void }) {
   const today = new Date();
   const upcoming = recipient.occasions
     .filter((o) => o.date)
@@ -192,6 +313,9 @@ function PersonProfileCard({ recipient, onDelete, onToggleAutomation }: { recipi
                 }`}
               />
             </span>
+          </button>
+          <button type="button" onClick={onEdit} aria-label={`Edit ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+            <Pencil className="h-3.5 w-3.5" />
           </button>
           <button type="button" onClick={onDelete} aria-label={`Remove ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
             <Trash2 className="h-3.5 w-3.5" />
@@ -251,8 +375,10 @@ function PersonProfileCard({ recipient, onDelete, onToggleAutomation }: { recipi
 
 export default function PeoplePage() {
   const { user, loading } = useAuth();
-  const { recipients, localReady, saveRecipients, deleteRecipient, toggleAutomation } = useRecipients(user);
+  const { recipients, localReady, saveRecipients, deleteRecipient, updateRecipient, toggleAutomation } = useRecipients(user);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editingRecipient = editingId ? recipients.find((r) => r.id === editingId) : null;
 
   if (loading && !localReady) {
     return (
@@ -295,6 +421,14 @@ export default function PeoplePage() {
         />
       )}
 
+      {editingRecipient && (
+        <EditRecipientModal
+          recipient={editingRecipient}
+          onSave={(updates) => updateRecipient(editingRecipient.id, updates)}
+          onClose={() => setEditingId(null)}
+        />
+      )}
+
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">People</p>
@@ -324,6 +458,7 @@ export default function PeoplePage() {
               key={r.id}
               recipient={r}
               onDelete={() => void deleteRecipient(r.id)}
+              onEdit={() => setEditingId(r.id)}
               onToggleAutomation={() => void toggleAutomation(r.id, r.automationEnabled === false)}
             />
           ))}
