@@ -164,7 +164,17 @@ function splitTags(text: string) {
 // their current profile. The "tell us about them" box stays available so
 // Givit AI can still extract from a fresh sentence; anything it finds is
 // merged into (not replacing) whatever's typed directly into the fields.
-function EditRecipientModal({ recipient, onSave, onClose }: { recipient: Recipient; onSave: (updates: Partial<Recipient>) => Promise<{ error: unknown }>; onClose: () => void }) {
+function EditRecipientModal({
+  recipient,
+  onSave,
+  onSaveOccasions,
+  onClose,
+}: {
+  recipient: Recipient;
+  onSave: (updates: Partial<Recipient>) => Promise<{ error: unknown }>;
+  onSaveOccasions: (occasions: Occasion[]) => Promise<{ error: unknown }>;
+  onClose: () => void;
+}) {
   const [name, setName] = useState(recipient.name);
   const [relationship, setRelationship] = useState(recipient.relationship || "");
   const [interestsText, setInterestsText] = useState((recipient.interests ?? []).join(", "));
@@ -172,8 +182,19 @@ function EditRecipientModal({ recipient, onSave, onClose }: { recipient: Recipie
   const [budget, setBudget] = useState(recipient.budgetCents ? String(recipient.budgetCents / 100) : "");
   const [notes, setNotes] = useState(recipient.notes ?? "");
   const [aboutText, setAboutText] = useState("");
+  const [occasions, setOccasions] = useState<Occasion[]>(recipient.occasions.length > 0 ? recipient.occasions : [{ label: "Birthday", date: "" }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function addOccasion() {
+    setOccasions((prev) => [...prev, { label: "Birthday", date: "" }]);
+  }
+  function removeOccasion(i: number) {
+    setOccasions((prev) => prev.filter((_, idx) => idx !== i));
+  }
+  function updateOccasion(i: number, field: keyof Occasion, value: string) {
+    setOccasions((prev) => prev.map((o, idx) => (idx === i ? { ...o, [field]: value } : o)));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -192,15 +213,18 @@ function EditRecipientModal({ recipient, onSave, onClose }: { recipient: Recipie
         if (!budgetCents && extracted.budgetCents) budgetCents = extracted.budgetCents;
       }
 
-      const { error: saveError } = await onSave({
-        name: name.trim(),
-        relationship,
-        interests,
-        avoidTerms,
-        budgetCents: Number.isFinite(budgetCents) ? budgetCents : null,
-        notes: notes.trim() || null,
-      });
-      if (saveError) {
+      const [profileResult, occasionsResult] = await Promise.all([
+        onSave({
+          name: name.trim(),
+          relationship,
+          interests,
+          avoidTerms,
+          budgetCents: Number.isFinite(budgetCents) ? budgetCents : null,
+          notes: notes.trim() || null,
+        }),
+        onSaveOccasions(occasions.filter((o) => o.date)),
+      ]);
+      if (profileResult.error || occasionsResult.error) {
         setError("Couldn't save your changes. Try again.");
         return;
       }
@@ -230,6 +254,27 @@ function EditRecipientModal({ recipient, onSave, onClose }: { recipient: Recipie
               <option value="">Select...</option>
               {RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
             </select>
+          </div>
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold">Occasions</label>
+              <button type="button" onClick={addOccasion} className="inline-flex items-center gap-1 text-xs font-semibold text-givit-ember hover:underline">
+                <Plus className="h-3 w-3" /> Add date
+              </button>
+            </div>
+            {occasions.map((occ, i) => (
+              <div key={occ.id ?? `new-${i}`} className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
+                <select value={occ.label} onChange={(e) => updateOccasion(i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
+                  {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
+                </select>
+                <input type="date" value={occ.date} onChange={(e) => updateOccasion(i, "date", e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+                {occasions.length > 1 && (
+                  <button type="button" onClick={() => removeOccasion(i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Interests</label>
@@ -375,7 +420,7 @@ function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: 
 
 export default function PeoplePage() {
   const { user, loading } = useAuth();
-  const { recipients, localReady, saveRecipients, deleteRecipient, updateRecipient, toggleAutomation } = useRecipients(user);
+  const { recipients, localReady, saveRecipients, deleteRecipient, updateRecipient, updateOccasions, toggleAutomation } = useRecipients(user);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingRecipient = editingId ? recipients.find((r) => r.id === editingId) : null;
@@ -425,6 +470,7 @@ export default function PeoplePage() {
         <EditRecipientModal
           recipient={editingRecipient}
           onSave={(updates) => updateRecipient(editingRecipient.id, updates)}
+          onSaveOccasions={(occasions) => updateOccasions(editingRecipient.id, occasions)}
           onClose={() => setEditingId(null)}
         />
       )}

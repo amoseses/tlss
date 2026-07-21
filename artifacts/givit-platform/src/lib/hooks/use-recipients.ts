@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { createNotification, getGiftRecipients, saveGiftOccasion, saveGiftRecipient, deleteGiftRecipient } from "@/lib/supabase/db";
+import { createNotification, deleteGiftOccasion, getGiftRecipients, saveGiftOccasion, saveGiftRecipient, deleteGiftRecipient } from "@/lib/supabase/db";
 import type { User } from "@supabase/supabase-js";
 
-export type Occasion = { label: string; date: string };
+export type Occasion = { id?: string; label: string; date: string };
 export type Recipient = {
   id: string;
   name: string;
@@ -98,7 +98,7 @@ export function useRecipients(user: User | null | undefined) {
               id: row.id,
               name: row.name,
               relationship: row.relationship || "",
-              occasions: (row.gift_occasions ?? []).map((occ: any) => ({ label: occ.occasion, date: occ.occasion_date })),
+              occasions: (row.gift_occasions ?? []).map((occ: any) => ({ id: occ.id, label: occ.occasion, date: occ.occasion_date })),
               interests: row.interests ?? [],
               avoidTerms: row.avoid_terms ?? [],
               budgetCents: row.default_budget_cents ?? null,
@@ -221,6 +221,53 @@ export function useRecipients(user: User | null | undefined) {
     return { error };
   }
 
+  // Occasions with an `id` are existing DB rows (upsert = update in place);
+  // ones without an id are new, freshly added in the edit form (upsert
+  // without an id lets the DB default generate one). Anything with an id
+  // that's no longer in the incoming list was removed in the form and gets
+  // actually deleted, not just dropped from local state.
+  async function updateOccasions(recipientId: string, occasions: Occasion[]) {
+    const recipient = recipients.find((r) => r.id === recipientId);
+    if (!recipient) return { error: new Error("Recipient not found") };
+
+    const keptIds = new Set(occasions.map((o) => o.id).filter(Boolean));
+    for (const occ of recipient.occasions) {
+      if (occ.id && !keptIds.has(occ.id)) {
+        const { error } = await deleteGiftOccasion(occ.id);
+        if (error) console.error("Failed to delete occasion:", error);
+      }
+    }
+
+    const saved: Occasion[] = [];
+    for (const occ of occasions) {
+      if (!occ.date) continue;
+      if (!user) { saved.push(occ); continue; }
+      const payload: Record<string, unknown> = {
+        user_id: user.id,
+        recipient_id: recipientId,
+        occasion: occ.label,
+        occasion_date: occ.date,
+        repeats_yearly: true,
+        approval_lead_days: 35,
+      };
+      if (occ.id) payload.id = occ.id;
+      const { data, error } = await saveGiftOccasion(payload);
+      if (error) {
+        console.error("Failed to save occasion:", error);
+        saved.push(occ);
+      } else {
+        saved.push({ id: data?.id ?? occ.id, label: occ.label, date: occ.date });
+      }
+    }
+
+    const next = { ...recipient, occasions: saved };
+    const nextAll = recipients.map((r) => (r.id === recipientId ? next : r));
+    setRecipients(nextAll);
+    window.localStorage.setItem("givit-recipients", JSON.stringify(nextAll));
+    setNotifications(generateNotifications(nextAll));
+    return { error: null };
+  }
+
   async function toggleAutomation(id: string, enabled: boolean) {
     const recipient = recipients.find((r) => r.id === id);
     if (!recipient) return;
@@ -247,6 +294,7 @@ export function useRecipients(user: User | null | undefined) {
     saveRecipients,
     deleteRecipient,
     updateRecipient,
+    updateOccasions,
     toggleAutomation,
     dismissNotification,
   };

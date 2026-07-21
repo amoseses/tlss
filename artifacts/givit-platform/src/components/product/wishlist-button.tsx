@@ -113,6 +113,10 @@ export function WishlistButton({ item, compact = false }: { item: WishlistItem; 
 export function WishlistSharePanel() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [copied, setCopied] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [sending, setSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sent" | "error">("idle");
 
   useEffect(() => {
     const sync = () => setItems(readWishlist());
@@ -156,6 +160,30 @@ export function WishlistSharePanel() {
     await handleCopy();
   }
 
+  // Actually sends server-side via Resend instead of a mailto: link, which
+  // does nothing without a configured default mail client.
+  async function handleSendEmail(e: React.FormEvent) {
+    e.preventDefault();
+    if (!emailTo.trim() || sending) return;
+    setSending(true);
+    setEmailStatus("idle");
+    try {
+      const res = await fetch("/api/wishlist/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: emailTo.trim(), items: text }),
+      });
+      if (!res.ok) throw new Error("send failed");
+      setEmailStatus("sent");
+      setEmailTo("");
+    } catch (err) {
+      console.error("Failed to email wishlist:", err);
+      setEmailStatus("error");
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-givit-ember/20 bg-givit-sand/50 p-4">
       <div className="flex items-center gap-2 text-sm font-bold text-givit-ink"><Share2 className="h-4 w-4 text-givit-ember" /> Shareable wishlist</div>
@@ -169,13 +197,37 @@ export function WishlistSharePanel() {
         >
           <Share2 className="h-3.5 w-3.5" /> {copied ? "Copied!" : "Send wishlist"}
         </button>
-        <a
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-givit-ember/30 bg-card px-4 text-xs font-bold text-givit-ember transition hover:bg-givit-sand"
-          href={`mailto:?subject=${encodeURIComponent("My Givit wishlist")}&body=${encodeURIComponent(text)}`}
+        <button
+          type="button"
+          onClick={() => { setShowEmailForm((v) => !v); setEmailStatus("idle"); }}
+          disabled={items.length === 0}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-givit-ember/30 bg-card px-4 text-xs font-bold text-givit-ember transition hover:bg-givit-sand disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Mail className="h-3.5 w-3.5" /> Email instead
-        </a>
+        </button>
       </div>
+
+      {showEmailForm && (
+        <form onSubmit={handleSendEmail} className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            type="email"
+            required
+            value={emailTo}
+            onChange={(e) => setEmailTo(e.target.value)}
+            placeholder="their@email.com"
+            className="h-9 min-w-0 flex-1 rounded-full border border-border bg-background px-3 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+          />
+          <button
+            type="submit"
+            disabled={sending || !emailTo.trim()}
+            className="inline-flex h-9 items-center justify-center rounded-full bg-givit-ember px-4 text-xs font-bold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {sending ? "Sending…" : "Send"}
+          </button>
+          {emailStatus === "sent" && <p className="w-full text-xs font-medium text-emerald-600">Sent.</p>}
+          {emailStatus === "error" && <p className="w-full text-xs font-medium text-destructive">Couldn't send that. Try again.</p>}
+        </form>
+      )}
     </div>
   );
 }

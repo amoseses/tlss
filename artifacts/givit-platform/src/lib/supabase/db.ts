@@ -132,6 +132,12 @@ export async function saveGiftOccasion(occasion: Record<string, unknown>) {
   return { data, error };
 }
 
+export async function deleteGiftOccasion(id: string) {
+  const supabase = getDb();
+  const { error } = await supabase.from("gift_occasions").delete().eq("id", id);
+  return { error };
+}
+
 // ============================================================
 // GIFT NOTIFICATIONS
 // ============================================================

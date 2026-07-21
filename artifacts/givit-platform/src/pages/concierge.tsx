@@ -132,7 +132,7 @@ export default function ConciergePage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <AutoGiftCalendar recipients={[calendarPerson]} />
+            <AutoGiftCalendar recipients={[calendarPerson]} scheduledKeys={scheduledKeys} />
           </div>
         </div>
       )}
@@ -306,7 +306,7 @@ export default function ConciergePage() {
                 </div>
               )}
 
-              {showCalendar && <AutoGiftCalendar recipients={recipients} />}
+              {showCalendar && <AutoGiftCalendar recipients={recipients} scheduledKeys={scheduledKeys} />}
             </>
           )}
         </div>

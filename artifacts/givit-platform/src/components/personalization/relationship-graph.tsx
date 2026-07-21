@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Share2 } from "lucide-react";
+import { Share2, UserRound } from "lucide-react";
 
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients } from "@/lib/supabase/db";
@@ -48,7 +48,26 @@ export function RelationshipGraph() {
     return () => { mounted = false; };
   }, [user]);
 
-  if (!user || !people || people.length === 0) return null;
+  if (!user || !people) return null;
+
+  if (people.length === 0) {
+    return (
+      <section className="container py-8 md:py-12">
+        <div className="mb-5 flex items-center gap-2 border-b border-border/40 pb-4">
+          <Share2 className="h-4 w-4 text-givit-ember" />
+          <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Your memory graph</h2>
+        </div>
+        <Link
+          href="/people"
+          className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border py-12 text-center transition hover:border-givit-ember/40 hover:bg-givit-sand/40"
+        >
+          <UserRound className="h-8 w-8 text-givit-ember" />
+          <p className="font-semibold text-givit-ink">Nothing to map yet</p>
+          <p className="max-w-sm text-sm text-muted-foreground">Add a person and this fills in automatically: you, them, and what Givit learns about them over time.</p>
+        </Link>
+      </section>
+    );
+  }
 
   const angleStep = (2 * Math.PI) / people.length;
 
