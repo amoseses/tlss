@@ -202,6 +202,7 @@ export type GiftRecommendResponse = {
   results: GiftRecommendResult[];
   needsFollowUp?: boolean;
   offTopic?: boolean;
+  generalQuestion?: boolean;
   tags: string[];
   budget: number | null;
   context: ParsedContext;
@@ -340,6 +341,29 @@ const OFF_TOPIC_PATTERNS = [
 function isOffTopicQuery(query: string) {
   const q = query.trim().toLowerCase();
   return OFF_TOPIC_PATTERNS.some((re) => re.test(q));
+}
+
+// The fixed OFF_TOPIC_PATTERNS list above only catches a handful of exact
+// phrasings ("what's the capital of", "tell me a joke", ...) — anything not
+// on that list (e.g. "who won the 2026 world cup") used to fall straight
+// into the gift-intake flow and get answered with "Who's the gift for, and
+// what's the occasion?", which reads as broken. This is a broader, cheaper
+// gate: a message phrased as a question that carries no gift-shopping
+// signal at all (no recipient, occasion, budget, or interest/style tag, and
+// no gift/shop/buy wording) is almost certainly a general question, not a
+// gift request — hand it to the real AI for an honest answer instead of
+// running it through gift intake.
+const QUESTION_START = /^(who|what|when|where|why|how|which|is|are|was|were|does|do|did|can|could|will|would)\b/i;
+const GIFT_SIGNAL_WORDS = /\b(gift|present|surprise|shop|shopping|buy|budget)\b|\$\d/i;
+
+function isGeneralKnowledgeQuery(query: string, ctx: ParsedContext, contentTags: string[]) {
+  const q = query.trim();
+  if (!q) return false;
+  if (!QUESTION_START.test(q) && !q.endsWith("?")) return false;
+  if (GIFT_SIGNAL_WORDS.test(q)) return false;
+  if (ctx.recipient || ctx.occasion || ctx.budget) return false;
+  if (contentTags.length > 0) return false;
+  return true;
 }
 
 function missingContext(ctx: ParsedContext) {
@@ -601,6 +625,18 @@ export function recommendGifts(
   const budget = ctx.budget;
   const avoidTerms = ctx.avoid;
   const missing = missingContext(ctx);
+
+  if (isGeneralKnowledgeQuery(trimmed, ctx, contentTags)) {
+    return {
+      message: "Let me think about that.",
+      results: [],
+      tags: [],
+      budget: priorContext.budget,
+      needsFollowUp: false,
+      generalQuestion: true,
+      context: priorContext,
+    };
+  }
 
   // Only ask a follow-up when there's truly nothing to go on — a bare theme
   // query like "hiking gifts" or "photo gifts" should surface real results

@@ -8,8 +8,15 @@ import { getGiftRecipients } from "@/lib/supabase/db";
 type GraphPerson = { id: string; name: string; interests: string[] };
 
 const WIDTH = 640;
-const HEIGHT = 300;
-const CENTER = { x: WIDTH / 2, y: HEIGHT / 2 };
+// Person nodes sit on a circle around CENTER, and whichever node lands
+// closest to the bottom (angle 90°, which happens for 2, 4, or 6 people
+// given the -90°-start layout below) has its name/interest text drop the
+// furthest below CENTER.y. HEIGHT and CENTER.y must leave enough room below
+// that worst case or the label silently renders past the viewBox edge and
+// gets clipped — which read as "that person's interests aren't showing"
+// even though the data was there the whole time.
+const HEIGHT = 380;
+const CENTER = { x: WIDTH / 2, y: 155 };
 const PERSON_RADIUS = 125;
 const MAX_PEOPLE = 6;
 

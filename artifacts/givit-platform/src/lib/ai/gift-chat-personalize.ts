@@ -1,5 +1,5 @@
 import type { GiftRecommendResponse, GiftRecommendResult } from "@/lib/gift-recommend";
-import { personalizeFollowUp, personalizeGiftChat } from "@/lib/ai/gift-ai";
+import { answerGeneralQuestion, personalizeFollowUp, personalizeGiftChat } from "@/lib/ai/gift-ai";
 
 /**
  * Re-ranks and rewrites match reasons for an already-computed local result
@@ -69,4 +69,15 @@ export async function personalizeFollowUpMessage(query: string, base: GiftRecomm
   const reply = await personalizeFollowUp({ query, missing, known: ctx });
   if (!reply) return base;
   return { ...base, message: reply };
+}
+
+/**
+ * Handles a question flagged as unrelated to gift-shopping (see
+ * isGeneralKnowledgeQuery in gift-recommend.ts) — gets a real answer from
+ * Groq instead of a canned refusal. Falls back to an honest "not sure but
+ * happy to help you shop" reply if the AI call fails.
+ */
+export async function personalizeGeneralQuestion(query: string, base: GiftRecommendResponse): Promise<GiftRecommendResponse> {
+  const reply = await answerGeneralQuestion(query);
+  return { ...base, message: reply ?? "I'm not sure about that one, but I'm always ready to help you find a gift when you are." };
 }

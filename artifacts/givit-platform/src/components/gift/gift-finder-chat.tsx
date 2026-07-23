@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { recommendGifts, EMPTY_CONTEXT, type GiftRecommendResult, type ParsedContext } from "@/lib/gift-recommend";
 import { fetchAllProducts, getAllMarketplaceProducts, type MarketplaceProduct } from "@/lib/data/data-layer";
-import { personalizeChatResponse, personalizeFollowUpMessage } from "@/lib/ai/gift-chat-personalize";
+import { personalizeChatResponse, personalizeFollowUpMessage, personalizeGeneralQuestion } from "@/lib/ai/gift-chat-personalize";
 import { readLearningProfile, applyFeedback as applyLearningFeedback } from "@/lib/gift-learning";
 import { productPhotoFallback } from "@/lib/product-photo";
 import { logError, trackUserEvent } from "@/lib/monitoring";
@@ -20,6 +20,7 @@ type Message = {
   results?: GiftResult[];
   loading?: boolean;
   needsFollowUp?: boolean;
+  generalQuestion?: boolean;
 };
 
 type Questionnaire = {
@@ -88,6 +89,39 @@ function escapeRegExp(text: string) {
 // feedback later in the conversation can be attributed back to her.
 function findSavedRecipient(text: string, recipients: SavedRecipient[]): SavedRecipient | undefined {
   return recipients.find((r) => r.name.trim() && new RegExp(`\\b${escapeRegExp(r.name.trim())}\\b`, "i").test(text));
+}
+
+// "What are my mom's interests" / "what do you know about Sarah" — matches
+// either by name or by the saved relationship label (e.g. "mom"), so asking
+// about a relationship works even when the shopper never types the name.
+function findRecipientByNameOrRelationship(text: string, recipients: SavedRecipient[]): SavedRecipient | undefined {
+  const byName = findSavedRecipient(text, recipients);
+  if (byName) return byName;
+  const lower = text.toLowerCase();
+  return recipients.find((r) => r.relationship?.trim() && lower.includes(r.relationship.trim().toLowerCase()));
+}
+
+// Deliberately requires an "interests/saved/know about" style phrase AND
+// excludes gift-shopping wording, so this only intercepts real "what do you
+// have on file for X" recall questions, never a normal gift request that
+// happens to mention someone's interests in passing.
+const RECALL_PATTERN = /\b(interests?|likes?|loves?|know about|saved|remember|have (?:for|on|about))\b/i;
+const RECALL_EXCLUDE_PATTERN = /\b(gift|present|buy|shop|shopping)\b|\$\d/i;
+
+// Answers straight from the real saved profile — no AI involved, so there's
+// zero risk of it inventing interests the person never actually saved.
+function buildRecallAnswer(r: SavedRecipient): string {
+  const parts: string[] = [];
+  parts.push(
+    r.interests?.length
+      ? `${r.name}'s saved interests: ${r.interests.join(", ")}.`
+      : `I don't have any interests saved for ${r.name} yet.`,
+  );
+  if (r.avoid_terms?.length) parts.push(`Avoid list: ${r.avoid_terms.join(", ")}.`);
+  if (r.default_budget_cents) parts.push(`Default budget: ${formatMoneyLocal(r.default_budget_cents)}.`);
+  if (r.notes?.trim()) parts.push(`Notes: ${r.notes.trim()}`);
+  parts.push(`Want to add more? Edit ${r.name}'s profile on the People page.`);
+  return parts.join(" ");
 }
 
 // Silently folds a matched recipient's known interests/avoid-list/budget
@@ -305,6 +339,24 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
+    // "What are my mom's interests" etc. — answer straight from the real
+    // saved profile, no gift search or AI call involved, so it's instant
+    // and can't drift from what's actually in the database.
+    if (RECALL_PATTERN.test(trimmed) && !RECALL_EXCLUDE_PATTERN.test(trimmed)) {
+      const recipient = findRecipientByNameOrRelationship(trimmed, savedRecipients);
+      if (recipient) {
+        if (!isRegenerate) setLastQuery(trimmed);
+        setMessages((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), role: "user", content: trimmed },
+          { id: crypto.randomUUID(), role: "assistant", content: buildRecallAnswer(recipient) },
+        ]);
+        setInput("");
+        focusInput();
+        return;
+      }
+    }
+
     if (!isRegenerate) setLastQuery(trimmed);
     const replyId = crypto.randomUUID();
     setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", content: trimmed }, { id: replyId, role: "assistant", content: "", loading: true }]);
@@ -340,8 +392,15 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       // Groq (personalizeFollowUpMessage) so asking for more detail reads
       // as conversation, not one of a handful of fixed template strings —
       // except when it's the off-topic gate, which stays a fixed, safe
-      // reply on purpose rather than letting the model improvise one.
-      const final = widePool.results && widePool.results.length > 0
+      // reply on purpose rather than letting the model improvise one. A
+      // flagged general-knowledge question (see isGeneralKnowledgeQuery)
+      // skips gift scoring entirely and gets a real answer instead.
+      const final = data.generalQuestion
+        ? await personalizeGeneralQuestion(trimmed, data).catch((error) => {
+            logError(error, "GiftFinderChat.personalizeGeneralQuestion", { query: trimmed });
+            return data;
+          })
+        : widePool.results && widePool.results.length > 0
         ? await personalizeChatResponse(queryForScoring, data, widePool.results).catch((error) => {
             logError(error, "GiftFinderChat.personalizeChatResponse", { query: trimmed });
             return data;
@@ -355,7 +414,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
 
       (final.results ?? []).forEach((r) => shownIdsRef.current.add(r.id));
       trackUserEvent("ai_recommendation_generated", { queryLength: trimmed.length, resultCount: final.results?.length ?? 0, tags: final.tags });
-      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: final.message ?? "", results: final.results ?? [], needsFollowUp: final.needsFollowUp, loading: false } : m)));
+      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: final.message ?? "", results: final.results ?? [], needsFollowUp: final.needsFollowUp, generalQuestion: data.generalQuestion, loading: false } : m)));
       setLoading(false);
       focusInput();
     } catch (error) {
@@ -521,7 +580,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                         searched yet, still asking for more detail" — the
                         latter already has its own message bubble above and
                         showing this too just reads as a broken second reply. */}
-                    {msg.results && msg.results.length === 0 && !msg.needsFollowUp && (
+                    {msg.results && msg.results.length === 0 && !msg.needsFollowUp && !msg.generalQuestion && (
                       <div className="ml-11 rounded-2xl border border-border/40 bg-givit-sand p-4 text-sm text-muted-foreground">
                         No exact matches found. Try different keywords or <Link href="/products" className="givit-link font-medium">shop the marketplace</Link>.
                       </div>
