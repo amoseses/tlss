@@ -35,7 +35,7 @@ export function SiteFooter() {
               <li><Link href="/signup" className="text-white/70 transition-colors hover:text-white">Sign Up</Link></li>
               <li><Link href="/account" className="text-white/70 transition-colors hover:text-white">Settings</Link></li>
               <li><Link href="/feedback" className="text-white/70 transition-colors hover:text-white">Feedback</Link></li>
-              <li><a href="tel:2673785600" className="text-white/70 transition-colors hover:text-white">Book a call</a></li>
+              <li><a href="https://calendly.com/atticusmoes/new-meeting?month=2026-07" target="_blank" rel="noopener noreferrer" className="text-white/70 transition-colors hover:text-white">Book a call</a></li>
             </ul>
           </div>
         </div>

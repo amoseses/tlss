@@ -91,7 +91,7 @@ export default function ConciergePage() {
             <button onClick={() => setShowOnboarding(true)} className="mt-1 text-xs font-semibold text-white/50 underline-offset-4 hover:text-white/80 hover:underline">
               Just want a quick look first? Take the 60-second tour →
             </button>
-            <a href="tel:2673785600" className="text-xs text-white/40 underline-offset-4 hover:text-white/70 hover:underline">
+            <a href="https://calendly.com/atticusmoes/new-meeting?month=2026-07" target="_blank" rel="noopener noreferrer" className="text-xs text-white/40 underline-offset-4 hover:text-white/70 hover:underline">
               Prefer to talk it through? Book a consultation call
             </a>
           </div>
