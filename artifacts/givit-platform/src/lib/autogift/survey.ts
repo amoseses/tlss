@@ -291,7 +291,7 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
   if (suggestions.length < 3) {
     suggestions.push({
       id: `general-${crypto.randomUUID()}`,
-      name: "Givit Marketplace Gift Card",
+      name: "GIVIT Marketplace Gift Card",
       price: Math.max(2500, response.budget * 50),
       reason: "Let them choose exactly what they want from our curated marketplace.",
       category: "gift",

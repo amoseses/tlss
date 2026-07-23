@@ -443,7 +443,7 @@ export async function getBoardComments(boardId: string) {
     : { data: [] as { id: string; full_name: string | null }[] };
   const nameById = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
 
-  return comments.map((c: any) => ({ ...c, author_name: nameById.get(c.user_id) ?? "Givit user" }));
+  return comments.map((c: any) => ({ ...c, author_name: nameById.get(c.user_id) ?? "GIVIT user" }));
 }
 
 export async function addBoardComment(boardId: string, userId: string, message: string) {

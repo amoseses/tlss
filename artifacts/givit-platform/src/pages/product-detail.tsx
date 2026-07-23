@@ -153,7 +153,7 @@ export default function ProductDetailPage() {
               // These are concierge-fulfilled experiences (a pottery class, a
               // dinner credit) with no single bookable product page — linking
               // out to a placeholder URL would just be a dead link. Route the
-              // request into Givit AI/concierge instead of pretending there's
+              // request into GIVIT AI/concierge instead of pretending there's
               // a retailer to "shop at".
               <Button asChild className="h-12 rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
                 <Link href={`/gift?q=${encodeURIComponent(`I'd like to book: ${product.name}`)}`}>

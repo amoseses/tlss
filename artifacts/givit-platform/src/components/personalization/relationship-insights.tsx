@@ -48,7 +48,7 @@ function computeInsights(rows: any[]): Insight {
 /**
  * Replaces the Dashboard's "recently viewed products" rail — that framing
  * is pure marketplace and undercuts the relationship-memory positioning.
- * This surfaces what Givit actually knows and is doing for you: how much
+ * This surfaces what GIVIT actually knows and is doing for you: how much
  * memory it holds, what's coming up, and where the memory is thin.
  */
 export function RelationshipInsights() {
@@ -130,7 +130,7 @@ export function RelationshipInsights() {
         <div className="mt-4 flex items-start gap-3 rounded-2xl border border-dashed border-givit-ember/40 bg-givit-sand/40 p-5">
           <Brain className="mt-0.5 h-5 w-5 shrink-0 text-givit-ember" />
           <p className="text-base text-foreground">
-            Givit doesn't know much about {insight.needsDetail.join(" or ")} yet.{" "}
+            GIVIT doesn't know much about {insight.needsDetail.join(" or ")} yet.{" "}
             <Link href="/people" className="font-semibold text-givit-ember hover:underline">Add an interest</Link> for sharper ideas.
           </p>
         </div>

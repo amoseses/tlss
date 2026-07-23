@@ -290,11 +290,11 @@ export function GiftSurveyModal({
           {step === "suggestions" && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground">
-                Givit AI built three orderable options. Click through bundle pages, choose one, then regenerate or edit individual items inside that bundle.
+                GIVIT AI built three orderable options. Click through bundle pages, choose one, then regenerate or edit individual items inside that bundle.
               </p>
               {aiPersonalizing && (
                 <div className="flex items-center gap-2 rounded-lg bg-givit-ember/5 px-3 py-2 text-xs font-medium text-givit-ember">
-                  <Sparkles className="h-3.5 w-3.5 animate-pulse" /> Givit AI is personalizing these picks and drafting a card message…
+                  <Sparkles className="h-3.5 w-3.5 animate-pulse" /> GIVIT AI is personalizing these picks and drafting a card message…
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
@@ -360,7 +360,7 @@ export function GiftSurveyModal({
                   value={cardMessage}
                   onChange={(e) => { setCardMessage(e.target.value); setCardMessageTouched(true); }}
                   rows={3}
-                  placeholder="Write a personalized message for the card... (Givit AI will draft one for you once suggestions finish generating)"
+                  placeholder="Write a personalized message for the card... (GIVIT AI will draft one for you once suggestions finish generating)"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
                 />
               </div>

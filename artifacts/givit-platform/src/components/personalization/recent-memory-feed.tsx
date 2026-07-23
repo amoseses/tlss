@@ -25,7 +25,7 @@ function timeAgo(iso: string) {
  * relationship-memory product should show its memory growing, not a
  * marketplace feed. Pulls whichever saved people were touched most
  * recently (real gift_recipients.updated_at, not a fabricated timeline)
- * and shows what Givit currently knows about them.
+ * and shows what GIVIT currently knows about them.
  */
 export function RecentMemoryFeed() {
   const { user } = useAuth();
@@ -52,7 +52,7 @@ export function RecentMemoryFeed() {
     <section className="container py-8 md:py-12">
       <div className="mb-5 flex items-center gap-2 border-b border-border/40 pb-4">
         <Brain className="h-4 w-4 text-givit-ember" />
-        <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">What Givit remembers</h2>
+        <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">What GIVIT remembers</h2>
       </div>
       <div className="stagger-children grid gap-4 sm:grid-cols-2">
         {entries.map((entry) => (

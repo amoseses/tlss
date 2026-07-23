@@ -134,7 +134,7 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
                   placeholder="e.g. Loves gardening, homemade food, and traveling. Already has lots of kitchen gadgets."
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
                 />
-                <p className="text-xs text-muted-foreground">Givit AI reads this and fills in interests and things to avoid automatically.</p>
+                <p className="text-xs text-muted-foreground">GIVIT AI reads this and fills in interests and things to avoid automatically.</p>
               </div>
             </div>
           ))}
@@ -162,7 +162,7 @@ function splitTags(text: string) {
 // The only way to change a saved person's interests used to be deleting
 // them and starting over — this is the actual edit path, prefilled with
 // their current profile. The "tell us about them" box stays available so
-// Givit AI can still extract from a fresh sentence; anything it finds is
+// GIVIT AI can still extract from a fresh sentence; anything it finds is
 // merged into (not replacing) whatever's typed directly into the fields.
 function EditRecipientModal({
   recipient,
@@ -279,7 +279,7 @@ function EditRecipientModal({
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Interests</label>
             <input value={interestsText} onChange={(e) => setInterestsText(e.target.value)} placeholder="gardening, coffee, true crime podcasts" className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
-            <p className="text-xs text-muted-foreground">Comma-separated. This is what Givit AI matches gifts against.</p>
+            <p className="text-xs text-muted-foreground">Comma-separated. This is what GIVIT AI matches gifts against.</p>
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Avoid</label>
@@ -304,7 +304,7 @@ function EditRecipientModal({
               placeholder="e.g. Also really into hiking lately, and just got a French press."
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
             />
-            <p className="text-xs text-muted-foreground">Givit AI adds whatever it finds here on top of the fields above.</p>
+            <p className="text-xs text-muted-foreground">GIVIT AI adds whatever it finds here on top of the fields above.</p>
           </div>
 
           {error && <p className="text-xs font-medium text-destructive">{error}</p>}
@@ -446,7 +446,7 @@ export default function PeoplePage() {
               <UserRound className="h-6 w-6 text-white" />
             </div>
             <h2 className="font-serif text-3xl font-bold text-white">Your people, remembered.</h2>
-            <p className="text-sm leading-6 text-white/70">Save the people you care about once. Givit AI keeps their interests, budgets, and dates so you never start from zero.</p>
+            <p className="text-sm leading-6 text-white/70">Save the people you care about once. GIVIT AI keeps their interests, budgets, and dates so you never start from zero.</p>
             <div className="mt-2 flex flex-wrap justify-center gap-3">
               <Button asChild className="rounded-full givit-gradient px-6 text-white hover:brightness-110"><Link href="/signup?next=/people">Create free account</Link></Button>
               <Button asChild variant="outline" className="rounded-full border-white/20 bg-white/10 px-6 text-white hover:bg-white/20"><Link href="/login?next=/people">Log in</Link></Button>
@@ -479,7 +479,7 @@ export default function PeoplePage() {
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">People</p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">The people you care about</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Interests, budgets, and dates: saved once, remembered by Givit AI every time.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Interests, budgets, and dates: saved once, remembered by GIVIT AI every time.</p>
         </div>
         <Button onClick={() => setShowModal(true)} className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
           <Plus className="h-4 w-4" /> Add person

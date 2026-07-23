@@ -80,7 +80,7 @@ export default function LandingPage() {
       <div className="slide-up mb-10 flex flex-col items-center gap-3" style={{ animationDelay: "0ms" }}>
         <div className="relative">
           <div className="animate-pulse-ring pointer-events-none absolute inset-0 rounded-2xl bg-givit-ember/40 blur-xl" />
-          <img src="/Screenshot 2026-06-23 095149.png" alt="Givit" className="animate-float relative h-20 w-20 rounded-2xl object-cover shadow-2xl md:h-24 md:w-24" />
+          <img src="/Screenshot 2026-06-23 095149.png" alt="GIVIT" className="animate-float relative h-20 w-20 rounded-2xl object-cover shadow-2xl md:h-24 md:w-24" />
         </div>
         <span className="font-serif text-3xl font-bold tracking-tight">
           GIV<span className="text-givit-coral">IT</span>
@@ -95,7 +95,7 @@ export default function LandingPage() {
           Your AI memory for the people you love.
         </h1>
         <p className="mt-5 min-h-[3.5rem] text-lg text-white/70 md:min-h-[2.5rem]">
-          Save someone once. Givit AI remembers{" "}
+          Save someone once. GIVIT AI remembers{" "}
           <span className="inline-block font-semibold text-white">
             {typedPrompt}
             <span className="animate-cursor-blink ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-white/80 align-middle" />

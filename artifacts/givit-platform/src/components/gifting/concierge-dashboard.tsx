@@ -39,7 +39,7 @@ export function ConciergeDashboard({ data }: { data: ConciergeDashboardData }) {
       <div className="rounded-2xl border bg-black p-6 text-white shadow-sm">
         <Badge className="bg-white text-black">AutoGift</Badge>
         <h1 className="mt-3 font-serif text-4xl font-bold">Gifting on autopilot, approval-only.</h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/65">Add people and dates. Givit pings you 5–6 weeks out, builds the gift, and charges only when you approve.</p>
+        <p className="mt-2 max-w-2xl text-sm text-white/65">Add people and dates. GIVIT pings you 5–6 weeks out, builds the gift, and charges only when you approve.</p>
         <Button type="button" className="mt-5 rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={() => setShowOnboarding(true)}>Open setup wizard</Button>
       </div>
 
@@ -228,7 +228,7 @@ function PaymentCard({ stripePublishableKey, paymentReady }: { stripePublishable
     <Card>
       <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-givit-ember" /> Stripe payment setup</CardTitle></CardHeader>
       <CardContent>
-        <p className="mb-4 text-sm text-muted-foreground">Cards are captured with Stripe Elements and saved securely. Givit charges only after you approve a gift.</p>
+        <p className="mb-4 text-sm text-muted-foreground">Cards are captured with Stripe Elements and saved securely. GIVIT charges only after you approve a gift.</p>
         {stripePublishableKey ? (
           <Elements stripe={getStripePromise(stripePublishableKey)}><StripeSetupForm paymentReady={paymentReady} /></Elements>
         ) : (

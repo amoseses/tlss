@@ -125,7 +125,7 @@ export const CONCIERGE_AUTOMATION_CONFIG: ConciergeAutomationConfig = {
 
 export const CONCIERGE_STEPS = [
   { title: "Onboard dates and recipients", description: "Save recipients, addresses, occasions, and automation preferences in Supabase under the signed-in user's account.", status: "ready", icon: HeartHandshake },
-  { title: "Tokenize payment", description: "Stripe Elements creates a SetupIntent so Givit stores only customer/payment-method IDs.", status: "ready", icon: CreditCard },
+  { title: "Tokenize payment", description: "Stripe Elements creates a SetupIntent so GIVIT stores only customer/payment-method IDs.", status: "ready", icon: CreditCard },
   { title: "Schedule five-week surveys", description: "Each active occasion gets a gift questionnaire 5–6 weeks before the date.", status: "ready", icon: Bell },
   { title: "Generate AI gift box", description: "The survey expands catalog recommendations into a structured bundle with product, card, flowers/add-ons, shipping, and fee lines.", status: "ready", icon: Sparkles },
   { title: "Approve and fulfill", description: "Approval charges the saved Stripe method, marks the order Paid - Pending Fulfillment, and queues admin fulfillment tasks.", status: "ready", icon: PackageCheck },
@@ -134,8 +134,8 @@ export const CONCIERGE_STEPS = [
 export const AUTOMATION_RULES = [
   "Users can skip onboarding and edit setup later.",
   "Global and recipient toggles must both be on before prompts send.",
-  "The Givit questionnaire is scheduled 5–6 weeks before the occasion date.",
-  "Givit never stores raw card data and charges only after approval.",
+  "The GIVIT questionnaire is scheduled 5–6 weeks before the occasion date.",
+  "GIVIT never stores raw card data and charges only after approval.",
   "All reads and writes are scoped by user_id and protected by Supabase RLS policies.",
 ];
 
@@ -239,21 +239,21 @@ export function buildGiftBoxRecommendation(input: {
     ? [
         { item_type: "experience", title: `${input.occasion} experience or ticket credit`, description: `Admin queue will source an event or experience matching ${combinedInterests.slice(0, 4).join(", ") || "the survey"}.`, price_cents: Math.max(2500, Math.min(input.budgetCents - DEFAULT_CARD_CENTS - PLATFORM_FEE_CENTS, Math.round(input.budgetCents * 0.78))), external_url: null, metadata: { source: "admin_experience_queue" } },
         { item_type: "card", title: "Custom handwritten card", description: "Handwritten card routed to the card-writing queue.", price_cents: DEFAULT_CARD_CENTS, external_url: null },
-        { item_type: "service", title: "Givit concierge fee", description: "Approval tracking, sourcing coordination, and fulfillment routing.", price_cents: PLATFORM_FEE_CENTS, external_url: null },
+        { item_type: "service", title: "GIVIT concierge fee", description: "Approval tracking, sourcing coordination, and fulfillment routing.", price_cents: PLATFORM_FEE_CENTS, external_url: null },
       ]
     : [
         { item_type: "gift", title: product.name, description: product.ai_summary, price_cents: cappedGiftPrice, external_url: product.affiliate_url, product_id: product.id, seller_id: product.seller_id, metadata: { retailer: product.retailer, brand: product.brand, source_url: product.affiliate_url } },
         { item_type: "card", title: "Custom handwritten card", description: "Handwritten card routed to the card-writing queue.", price_cents: DEFAULT_CARD_CENTS, external_url: null },
         { item_type: wantsFlowers ? "flowers" : "gift", title: wantsFlowers ? "Occasion bouquet" : "Curated gift-box add-on", description: wantsFlowers ? "Bouquet selected for the occasion, address, and delivery window." : "Small complementary add-on chosen by the fulfillment team.", price_cents: wantsFlowers ? DEFAULT_FLOWERS_CENTS : 1400, external_url: null, metadata: { source: wantsFlowers ? "florist_queue" : "admin_add_on_queue" } },
         { item_type: "shipping", title: "Estimated shipping", description: "Shipping budget based on delivery preference and date buffer.", price_cents: DEFAULT_SHIPPING_CENTS, external_url: null },
-        { item_type: "service", title: "Givit concierge fee", description: "Approval tracking, sourcing coordination, and fulfillment routing.", price_cents: PLATFORM_FEE_CENTS, external_url: null },
+        { item_type: "service", title: "GIVIT concierge fee", description: "Approval tracking, sourcing coordination, and fulfillment routing.", price_cents: PLATFORM_FEE_CENTS, external_url: null },
       ];
 
   const total = getBundleTotal(items);
   return {
     headline: `${recipientLabel}'s ${input.occasion} gift box`,
     rationale: wantsExperience
-      ? "The survey indicated an experience would be more memorable than a shipped object, so Givit will source tickets or a local event and pair it with a personal card."
+      ? "The survey indicated an experience would be more memorable than a shipped object, so GIVIT will source tickets or a local event and pair it with a personal card."
       : `${product.name} is the strongest catalog match for ${input.relationship || "recipient"}, ${input.occasion}, and the stated interests while respecting the avoid list and budget.`,
     card_message: `Happy ${input.occasion}, ${recipientLabel}! I hope this brings a little joy and feels perfectly picked for you.`,
     estimated_delivery_date: getEstimatedDeliveryDate(occasionDate),

@@ -185,7 +185,7 @@ export default function AdminPage() {
           occasions: ["birthday", "holiday"],
           recipients: ["friend", "family"],
           ai_summary: extracted.description || `Admin-imported ${extracted.category} gift.`,
-          why_we_picked_it: "Added via admin link import, curated for the Givit marketplace.",
+          why_we_picked_it: "Added via admin link import, curated for the GIVIT marketplace.",
           images: extracted.imageUrl ? [{ storage_path: extracted.imageUrl, sort_order: 0 }] : [],
           metadata: { category: extracted.category, source: "admin_bulk_import", importedAt: new Date().toISOString() },
         });
@@ -378,7 +378,7 @@ export default function AdminPage() {
       {activeTab === "rankings" && (
         <div className="space-y-4">
           <div className="rounded-lg border border-givit-ember/20 bg-givit-ember/5 p-4 text-sm text-muted-foreground">
-            Admins can tune every product ranking signal shown across Givit. Changes save to the product row so marketplace sorting, category placement, and AI gift matching can use the updated values.
+            Admins can tune every product ranking signal shown across GIVIT. Changes save to the product row so marketplace sorting, category placement, and AI gift matching can use the updated values.
           </div>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-sm">
@@ -417,7 +417,7 @@ export default function AdminPage() {
                 <h2 className="font-semibold text-givit-ink">Upload spreadsheet</h2>
               </div>
               <p className="text-sm text-muted-foreground">
-                A <code className="rounded bg-muted px-1 py-0.5 text-xs">product_url</code> column is all you need: Givit AI reads each page and fills in name, brand, category, and price. Add <code className="rounded bg-muted px-1 py-0.5 text-xs">name</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">brand</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">price</code>, or <code className="rounded bg-muted px-1 py-0.5 text-xs">category</code> columns to override the AI for specific rows.
+                A <code className="rounded bg-muted px-1 py-0.5 text-xs">product_url</code> column is all you need: GIVIT AI reads each page and fills in name, brand, category, and price. Add <code className="rounded bg-muted px-1 py-0.5 text-xs">name</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">brand</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">price</code>, or <code className="rounded bg-muted px-1 py-0.5 text-xs">category</code> columns to override the AI for specific rows.
               </p>
               <div className="rounded-lg border-2 border-dashed border-border/60 p-6 text-center">
                 <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />

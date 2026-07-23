@@ -8,7 +8,7 @@ export function SiteFooter() {
         <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-4">
           <div className="col-span-2">
             <Link href="/home" className="mb-3 flex items-center gap-2">
-              <img src="/Screenshot 2026-06-23 095149.png" alt="Givit" className="h-8 w-8 rounded-md object-cover" />
+              <img src="/Screenshot 2026-06-23 095149.png" alt="GIVIT" className="h-8 w-8 rounded-md object-cover" />
               <span className="font-serif text-lg font-bold text-white">
                 GIV<span className="text-givit-coral">IT</span>
               </span>
@@ -22,7 +22,7 @@ export function SiteFooter() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/35">Explore</p>
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/products" className="text-white/70 transition-colors hover:text-white">Marketplace</Link></li>
-              <li><Link href="/gift" className="text-white/70 transition-colors hover:text-white">Givit AI</Link></li>
+              <li><Link href="/gift" className="text-white/70 transition-colors hover:text-white">GIVIT AI</Link></li>
               <li><Link href="/concierge" className="text-white/70 transition-colors hover:text-white">AutoGift</Link></li>
               <li><Link href="/boards" className="text-white/70 transition-colors hover:text-white">Gift Boards</Link></li>
             </ul>
@@ -50,7 +50,7 @@ export function SiteFooter() {
             </div>
             <div>
               <p className="font-serif text-base font-bold text-white">Become a beta tester</p>
-              <p className="text-xs leading-relaxed text-white/50">Shape Givit AI, AutoGift, and the marketplace before anyone else sees them.</p>
+              <p className="text-xs leading-relaxed text-white/50">Shape GIVIT AI, AutoGift, and the marketplace before anyone else sees them.</p>
             </div>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-givit-ember px-4 py-2 text-xs font-semibold text-white">

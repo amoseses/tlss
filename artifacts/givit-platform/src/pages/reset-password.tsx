@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
                 <CheckCircle className="h-6 w-6 text-emerald-600" />
               </div>
-              <p className="text-sm text-muted-foreground">Password updated. Taking you to Givit…</p>
+              <p className="text-sm text-muted-foreground">Password updated. Taking you to GIVIT…</p>
             </div>
           ) : !sessionReady ? (
             <div className="space-y-3 py-2 text-center">

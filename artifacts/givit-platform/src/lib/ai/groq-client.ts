@@ -2,7 +2,7 @@
  * Thin wrapper around Groq's OpenAI-compatible chat completions API.
  *
  * The API key is read from Vite env (`VITE_GROQ_API_KEY`) so it is not
- * hardcoded in source. Groq's free tier is what's actually driving Givit
+ * hardcoded in source. Groq's free tier is what's actually driving GIVIT
  * AI now — Gemini required billing to use at any real volume.
  */
 

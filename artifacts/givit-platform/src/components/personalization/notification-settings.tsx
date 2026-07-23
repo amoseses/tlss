@@ -31,7 +31,7 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
   async function test() {
     setBusy(true);
     setMessage("");
-    const { error } = await sendTestPush(userId, "Givit", "This is what a real reminder will look like on this device.");
+    const { error } = await sendTestPush(userId, "GIVIT", "This is what a real reminder will look like on this device.");
     setMessage(error || "Test notification sent, check your device.");
     setBusy(false);
   }

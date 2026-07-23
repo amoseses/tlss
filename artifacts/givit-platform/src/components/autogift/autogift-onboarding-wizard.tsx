@@ -83,7 +83,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
     } else if (step === "payment") {
       const digits = cardNumber.replace(/\D/g, "");
       if (!cardName.trim() || digits.length < 13 || !/^\d{2}\/?\d{2}$/.test(cardExpiry.replace(/\s/g, "")) || cardCvc.replace(/\D/g, "").length < 3) {
-        setError("Enter the full cardholder name, card number, expiration, and CVC. In production these fields are submitted through Stripe Elements so raw card data never touches Givit servers.");
+        setError("Enter the full cardholder name, card number, expiration, and CVC. In production these fields are submitted through Stripe Elements so raw card data never touches GIVIT servers.");
         return;
       }
       setStep("recipient");

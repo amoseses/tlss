@@ -46,7 +46,7 @@ export default function HomePage() {
               Never send a bad gift again.
             </h1>
             <p className="mt-4 text-base leading-7 text-white/70">
-              Givit remembers everyone you care about, reasons about what they'd actually love, and lines it up before you approve it.
+              GIVIT remembers everyone you care about, reasons about what they'd actually love, and lines it up before you approve it.
             </p>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
@@ -65,7 +65,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <p className="container py-6 text-center font-serif text-lg italic text-muted-foreground md:text-xl">
+      <p className="container py-6 text-center text-xl font-bold tracking-tight text-foreground md:text-2xl">
         One place that remembers who you're shopping for, what they love, and when it matters.
       </p>
 
@@ -77,9 +77,9 @@ export default function HomePage() {
         <section className="border-y border-border/50 bg-givit-sand/40">
           <div className="stagger-children container grid gap-6 py-8 sm:grid-cols-3">
             {[
-              { icon: Sparkles, title: "Add someone, once", desc: "Name, interests, budget, dates to avoid. About 30 seconds: Givit AI can fill it in from a sentence." },
+              { icon: Sparkles, title: "Add someone, once", desc: "Name, interests, budget, dates to avoid. About 30 seconds: GIVIT AI can fill it in from a sentence." },
               { icon: Bell, title: "The agent watches the calendar", desc: "Reminders 5–6 weeks before every important date, tied to the person, not a generic calendar app." },
-              { icon: PackageCheck, title: "You approve, Givit handles it", desc: "The agent reasons through your person's profile, proposes gifts with a reason for each, then orders, card-writes, and ships once you say go." },
+              { icon: PackageCheck, title: "You approve, GIVIT handles it", desc: "The agent reasons through your person's profile, proposes gifts with a reason for each, then orders, card-writes, and ships once you say go." },
             ].map((item) => (
               <div key={item.title} className="slide-up flex gap-4 opacity-0">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card shadow-sm transition-transform hover:scale-110">
@@ -95,10 +95,10 @@ export default function HomePage() {
         </section>
       </Reveal>
 
-      {/* What Givit has learned recently — a real, growing memory feed, not a product rail */}
+      {/* What GIVIT has learned recently — a real, growing memory feed, not a product rail */}
       <RecentMemoryFeed />
 
-      {/* Relationship intelligence — what Givit knows and is doing for you, not a product rail */}
+      {/* Relationship intelligence — what GIVIT knows and is doing for you, not a product rail */}
       <RelationshipInsights />
 
       {/* Visual map of the same memory, for people who'd rather see it than read it */}
@@ -110,7 +110,7 @@ export default function HomePage() {
           <div className="relative overflow-hidden rounded-xl bg-black px-8 py-10 text-white md:px-12">
             <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
             <div className="relative max-w-2xl">
-              <h2 className="font-serif text-2xl font-bold md:text-3xl">Every AI conversation starts from zero. Givit starts with years of context.</h2>
+              <h2 className="font-serif text-2xl font-bold md:text-3xl">Every AI conversation starts from zero. GIVIT starts with years of context.</h2>
               <p className="mt-3 mb-6 text-sm leading-7 text-white/65">
                 AutoGift reminds you early, handles fulfillment once you approve, and gets to know your people over time. <Link href="/login" className="underline text-white/80 hover:text-white">Sign in</Link> to get started.
               </p>

@@ -438,14 +438,14 @@ export default function ProductsPage() {
                   onChange={(e) => e.currentTarget.form?.requestSubmit()}
                   className="h-8 rounded-full border border-border/60 bg-card px-3 text-xs font-medium text-foreground outline-none"
                 >
-                  <option value="ranked">Givit ranked</option>
+                  <option value="ranked">GIVIT ranked</option>
                   <option value="popular">Gift match score</option>
                   <option value="price_asc">Price: Low to High</option>
                   <option value="price_desc">Price: High to Low</option>
                 </select>
               </form>
               <Link href="/gift" className="inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
-                <Sparkles className="h-4 w-4" /> Ask Givit AI
+                <Sparkles className="h-4 w-4" /> Ask GIVIT AI
               </Link>
             </div>
           </div>

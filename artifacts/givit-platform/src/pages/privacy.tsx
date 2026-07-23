@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         </section>
         <section>
           <h2 className="font-serif text-xl font-bold text-givit-ink">AI and your data</h2>
-          <p className="mt-2 text-sm leading-7 text-muted-foreground">Queries you send to Givit AI are processed to generate gift recommendations. We may use anonymised, aggregated patterns to improve recommendation quality. We do not use your personal messages to train third-party AI models.</p>
+          <p className="mt-2 text-sm leading-7 text-muted-foreground">Queries you send to GIVIT AI are processed to generate gift recommendations. We may use anonymised, aggregated patterns to improve recommendation quality. We do not use your personal messages to train third-party AI models.</p>
         </section>
         <section>
           <h2 className="font-serif text-xl font-bold text-givit-ink">Contact</h2>

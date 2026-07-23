@@ -131,7 +131,7 @@ export function WishlistSharePanel() {
 
   const absoluteHref = (href: string) => (typeof window !== "undefined" && href.startsWith("/") ? `${window.location.origin}${href}` : href);
   const body = items.map((item, index) => `${index + 1}. ${item.name} (${item.price ?? "Saved gift"}): ${absoluteHref(item.href)}`).join("\n");
-  const text = body || "My Givit wishlist. I'll add gift ideas soon!";
+  const text = body || "My GIVIT wishlist. I'll add gift ideas soon!";
 
   // mailto: links silently no-op whenever there's no default mail client
   // configured (very common in-browser, and inside embedded/preview
@@ -151,7 +151,7 @@ export function WishlistSharePanel() {
   async function handleShare() {
     if (navigator.share) {
       try {
-        await navigator.share({ title: "My Givit wishlist", text });
+        await navigator.share({ title: "My GIVIT wishlist", text });
         return;
       } catch {
         // user cancelled the share sheet, or it's unsupported — fall through to copy
@@ -249,7 +249,7 @@ export function WishlistRail() {
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-givit-ember/30 bg-givit-sand/40 p-4 text-sm text-muted-foreground">
-        Save products while you browse. Your wishlist keeps the Givit product pages handy for birthdays, holidays, and shared boards.
+        Save products while you browse. Your wishlist keeps the GIVIT product pages handy for birthdays, holidays, and shared boards.
       </div>
     );
   }

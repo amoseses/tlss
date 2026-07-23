@@ -35,7 +35,7 @@ const TITLES = [
 const BODIES = [
   "Wrapped beautifully and arrived on time. The recipient lit up when they opened it, already getting daily use.",
   "I was nervous about picking something they didn't already have, but this was a hit. Quality feels well above the price.",
-  "Bought this through Givit's recommendation and it matched their interests perfectly. Would gift again.",
+  "Bought this through GIVIT's recommendation and it matched their interests perfectly. Would gift again.",
   "Solid, practical gift that doesn't feel boring. They mentioned it again a week later, which never happens.",
   "Packaging was gift-ready and the item itself feels premium. Easy win for a tricky person to shop for.",
   "Took a chance on this and it paid off. It fit their hobby exactly and they said it was the most thoughtful gift this year.",
@@ -112,7 +112,7 @@ export function GiftReviews({ productId }: { productId: string }) {
     const data = new FormData(form);
     const review: GiftReview = {
       id: `user-${Date.now()}`,
-      author: String(data.get("author") || "Givit shopper").trim() || "Givit shopper",
+      author: String(data.get("author") || "GIVIT shopper").trim() || "GIVIT shopper",
       rating,
       title: String(data.get("title") || "Gift review").trim() || "Gift review",
       body: String(data.get("body") || "").trim(),

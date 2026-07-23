@@ -10,7 +10,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
         <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-givit-coral/20 blur-3xl" />
 
         <Link href="/" className="relative flex items-center gap-2">
-          <img src="/Screenshot 2026-06-23 095149.png" alt="Givit" className="h-9 w-9 rounded-lg object-cover" />
+          <img src="/Screenshot 2026-06-23 095149.png" alt="GIVIT" className="h-9 w-9 rounded-lg object-cover" />
           <span className="font-serif text-2xl font-bold text-white">GIV<span className="text-givit-coral">IT</span></span>
         </Link>
 
@@ -24,7 +24,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
           </ul>
         </div>
 
-        <p className="relative text-xs text-white/40">© {new Date().getFullYear()} Givit</p>
+        <p className="relative text-xs text-white/40">© {new Date().getFullYear()} GIVIT</p>
       </div>
 
       <div className="flex items-center justify-center p-6 sm:p-10">

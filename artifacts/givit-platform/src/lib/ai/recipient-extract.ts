@@ -21,7 +21,7 @@ export async function extractRecipientProfile(text: string): Promise<ExtractedRe
 
   try {
     const system =
-      "You extract structured gifting preferences from a short description of a person, for a gifting app called Givit. " +
+      "You extract structured gifting preferences from a short description of a person, for a gifting app called GIVIT. " +
       "Only extract what's actually stated or clearly implied — never invent interests, brands, or a budget that wasn't mentioned. " +
       "Interests should be short lowercase tags (2-4 words max each, e.g. \"gardening\", \"cooking\", \"true crime podcasts\"), not full sentences. " +
       "avoidTerms are things to explicitly avoid buying (already owns it, dislikes it, allergic, etc.). " +
@@ -54,7 +54,7 @@ export async function extractRecipientProfile(text: string): Promise<ExtractedRe
     // silently swallowing every error made it impossible to tell "Groq is
     // down/misconfigured" from "there was nothing to extract" — log it so a
     // bad or missing VITE_GROQ_API_KEY is visible in the browser console.
-    console.warn("Givit AI: recipient extraction failed, falling back to manual entry.", error);
+    console.warn("GIVIT AI: recipient extraction failed, falling back to manual entry.", error);
     return EMPTY;
   }
 }

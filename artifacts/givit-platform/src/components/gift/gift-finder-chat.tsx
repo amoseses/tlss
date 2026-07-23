@@ -36,7 +36,7 @@ type Questionnaire = {
 const GREETING: Message = {
   id: "greeting",
   role: "assistant",
-  content: "Hey! I'm Givit, your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll suggest thoughtful picks with a reason for each one.",
+  content: "Hey! I'm GIVIT, your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll suggest thoughtful picks with a reason for each one.",
 };
 
 const QUICK_PROMPTS = [
@@ -68,7 +68,7 @@ type SavedRecipient = {
 // Turns a saved AutoGift recipient profile into the same free-text shape
 // the chat already knows how to parse — this is the "memory layer": the
 // interests/avoid-list/budget were captured once in AutoGift and now drive
-// a Givit AI query with zero retyping.
+// a GIVIT AI query with zero retyping.
 function buildRecipientPrompt(r: SavedRecipient) {
   const parts = [`Gift for ${r.name}${r.relationship ? ` (${r.relationship})` : ""}`];
   if (r.default_budget_cents) parts.push(`budget ${formatMoneyLocal(r.default_budget_cents)}`);
@@ -158,7 +158,7 @@ function TypingIndicator() {
         <Sparkles className="h-3.5 w-3.5 text-white" />
       </div>
       <div className="chat-bubble-ai flex flex-col gap-1">
-        <span className="text-[10px] font-semibold text-muted-foreground">Givit is thinking…</span>
+        <span className="text-[10px] font-semibold text-muted-foreground">GIVIT is thinking…</span>
         <div className="flex items-center gap-1.5">
           <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
           <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
@@ -263,7 +263,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   const [form, setForm] = useState<Questionnaire>({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
   // Saved AutoGift recipient profiles double as one-tap starting points here
   // — their interests/avoid-list/budget were already captured once, so
-  // reusing them avoids making the shopper retype what Givit already knows.
+  // reusing them avoids making the shopper retype what GIVIT already knows.
   const [savedRecipients, setSavedRecipients] = useState<SavedRecipient[]>([]);
   useEffect(() => {
     if (!user) { setSavedRecipients([]); return; }
@@ -538,7 +538,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
 
         <div className="givit-panel flex flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
-            <p className="text-xs font-semibold text-muted-foreground">Givit AI</p>
+            <p className="text-xs font-semibold text-muted-foreground">GIVIT AI</p>
             <div className="flex gap-1.5">
               {lastQuery && !loading && (
                 <button type="button" onClick={regenerate} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">

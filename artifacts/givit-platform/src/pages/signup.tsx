@@ -69,7 +69,7 @@ export default function SignupPage() {
       <Card className="givit-panel rounded-2xl shadow-md">
         <CardHeader>
           <CardTitle className="text-2xl font-normal">Create account</CardTitle>
-          <CardDescription>Start gifting smarter with Givit.</CardDescription>
+          <CardDescription>Start gifting smarter with GIVIT.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

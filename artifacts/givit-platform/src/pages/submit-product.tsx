@@ -82,7 +82,7 @@ export default function SubmitProductPage() {
     e.preventDefault();
     if (!user) { navigate("/login?next=/submit-product"); return; }
     if (!url.trim()) { setError("Product URL is required"); return; }
-    if (duplicate) { setError(`This looks like it might already be in Givit ("${duplicate.name}"). Double-check before resubmitting, or edit the details if this is actually different.`); return; }
+    if (duplicate) { setError(`This looks like it might already be in GIVIT ("${duplicate.name}"). Double-check before resubmitting, or edit the details if this is actually different.`); return; }
     setLoading(true);
     setError("");
 
@@ -152,7 +152,7 @@ export default function SubmitProductPage() {
       <div className="mb-6">
         <h1 className="font-serif text-3xl font-bold text-givit-ink">Add your own product or experience</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Found a great gift idea? Paste the link; Givit AI fills in the details and shows you exactly what the card will look like before it's queued for admin approval.
+          Found a great gift idea? Paste the link; GIVIT AI fills in the details and shows you exactly what the card will look like before it's queued for admin approval.
         </p>
       </div>
 
@@ -205,12 +205,12 @@ export default function SubmitProductPage() {
                 required
                 className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
               />
-              {checkingDuplicate && <p className="text-xs text-muted-foreground">Checking if this is already in Givit…</p>}
+              {checkingDuplicate && <p className="text-xs text-muted-foreground">Checking if this is already in GIVIT…</p>}
               {duplicate && (
                 <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
-                    This link looks like it might already be in Givit: <strong>{duplicate.name}</strong> ({duplicate.source === "catalog" ? "in the marketplace" : duplicate.source === "approved" ? "already approved" : "pending review from someone else"}). You can still submit if this is genuinely different.
+                    This link looks like it might already be in GIVIT: <strong>{duplicate.name}</strong> ({duplicate.source === "catalog" ? "in the marketplace" : duplicate.source === "approved" ? "already approved" : "pending review from someone else"}). You can still submit if this is genuinely different.
                   </span>
                 </div>
               )}

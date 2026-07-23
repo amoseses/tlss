@@ -584,7 +584,7 @@ export function recommendGifts(
 
   if (isGreeting(trimmed)) {
     return {
-      message: "Hey! I'm Givit, your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll find thoughtful picks with a reason for each one.",
+      message: "Hey! I'm GIVIT, your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll find thoughtful picks with a reason for each one.",
       results: [],
       tags: [],
       budget: priorContext.budget,
@@ -606,7 +606,7 @@ export function recommendGifts(
 
   if (isOffTopicQuery(trimmed)) {
     return {
-      message: "I don't know — I'm Givit, focused on helping you find gifts, not general questions. Tell me who you're shopping for and I'll get started.",
+      message: "I don't know — I'm GIVIT, focused on helping you find gifts, not general questions. Tell me who you're shopping for and I'll get started.",
       results: [],
       tags: [],
       budget: priorContext.budget,

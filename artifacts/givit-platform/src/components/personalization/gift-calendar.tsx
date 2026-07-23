@@ -58,7 +58,7 @@ export function GiftCalendar() {
           </p>
           <h2 className="mt-2 font-serif text-2xl font-bold text-givit-ink">Bring users back before big moments.</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Track birthdays, anniversaries, holidays, graduations, and weddings. Givit turns each reminder into AI-ranked gift options.
+            Track birthdays, anniversaries, holidays, graduations, and weddings. GIVIT turns each reminder into AI-ranked gift options.
           </p>
         </div>
         {next ? (

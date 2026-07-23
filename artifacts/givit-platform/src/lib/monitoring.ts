@@ -54,7 +54,7 @@ export function logError(error: unknown, source?: string, metadata?: Record<stri
   };
   appendLocal(LOCAL_ERROR_KEY, entry);
   void trackEvent("client_error", { source, message: entry.message, stack: entry.stack, ...metadata }).catch(() => undefined);
-  console.error(`[Givit monitoring] ${source ?? "unknown"}:`, normalized, metadata);
+  console.error(`[GIVIT monitoring] ${source ?? "unknown"}:`, normalized, metadata);
 }
 
 export function trackUserEvent(eventType: string, metadata?: Record<string, unknown>) {

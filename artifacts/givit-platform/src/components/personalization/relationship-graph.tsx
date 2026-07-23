@@ -29,7 +29,7 @@ function truncate(text: string, max: number) {
 }
 
 /**
- * A node-and-edge architecture diagram of what Givit remembers: you at the
+ * A node-and-edge architecture diagram of what GIVIT remembers: you at the
  * center, each saved person one ring out, and their known interests as their
  * own satellite nodes branching further out from them. Each person's
  * satellites are confined to a narrow arc around that person's own angle
@@ -65,7 +65,7 @@ export function RelationshipGraph() {
         >
           <UserRound className="h-8 w-8 text-givit-ember" />
           <p className="font-semibold text-givit-ink">Nothing to map yet</p>
-          <p className="max-w-sm text-sm text-muted-foreground">Add a person and this fills in automatically: you, them, and what Givit learns about them over time.</p>
+          <p className="max-w-sm text-sm text-muted-foreground">Add a person and this fills in automatically: you, them, and what GIVIT learns about them over time.</p>
         </Link>
       </section>
     );

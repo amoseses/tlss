@@ -33,7 +33,7 @@ export function LoginPrompt() {
               <Gift className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Welcome to Givit</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Welcome to GIVIT</p>
               <h2 className="font-serif text-2xl font-bold text-givit-ink">Log in to start gift notifications.</h2>
             </div>
           </div>
@@ -47,7 +47,7 @@ export function LoginPrompt() {
           </button>
         </div>
         <p className="mt-4 text-sm leading-6 text-muted-foreground">
-          Log in so Givit can save your people, dates, reminders, and approval queue on your account.
+          Log in so GIVIT can save your people, dates, reminders, and approval queue on your account.
         </p>
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
           <Button asChild className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">

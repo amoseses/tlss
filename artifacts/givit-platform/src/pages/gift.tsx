@@ -10,7 +10,7 @@ export default function GiftFinderPage() {
       <div className="container py-8 md:py-12">
         <div className="mb-8">
           <h1 className="font-serif text-3xl font-bold text-foreground md:text-4xl">
-            Givit AI
+            GIVIT AI
           </h1>
         </div>
         <GiftFinderChat initialQuery={initialQuery} />

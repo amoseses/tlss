@@ -141,7 +141,7 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
     const meta = metaRes.ok ? (await metaRes.json())?.data : null;
 
     const system =
-      `You turn a raw product or experience page into a clean marketplace listing for a gift shop called Givit. ` +
+      `You turn a raw product or experience page into a clean marketplace listing for a gift shop called GIVIT. ` +
       `Use only the page metadata given to you — never invent specifics you weren't told (no fake prices/reviews). ` +
       `If the price isn't in the metadata, make a reasonable estimate based on the category and note it's estimated. ` +
       `Categories must be exactly one of: ${EXTRACT_CATEGORIES.join(", ")}. ` +
@@ -221,7 +221,7 @@ export function saveImportedProduct(row: ImportedProductRow) {
     priceCents,
     affiliateUrl: normalizeProductUrl(extracted.url),
     summary: row.description || `Admin-imported ${extracted.category} gift sourced from ${extracted.brand}.`,
-    why: "Added via admin spreadsheet import, curated for the Givit marketplace.",
+    why: "Added via admin spreadsheet import, curated for the GIVIT marketplace.",
     interests: extracted.category.split(/\s+/).concat(["giftable", "curated"]),
     importedAt: new Date().toISOString(),
     imageUrl: bestProductImageUrl(extracted.url, row.imageUrl),
@@ -248,7 +248,7 @@ export function getImportedMarketplaceProducts(): MarketplaceProduct[] {
       id,
       slug: item.slug,
       name: item.name,
-      description: `${item.summary}\n\nWhy Givit picked it: ${item.why}`,
+      description: `${item.summary}\n\nWhy GIVIT picked it: ${item.why}`,
       sku: `GIVIT-IMP-${String(index + 1).padStart(4, "0")}`,
       price_cents: item.priceCents,
       weight_oz: 8,

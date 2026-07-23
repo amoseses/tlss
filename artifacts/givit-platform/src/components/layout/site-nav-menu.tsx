@@ -49,7 +49,7 @@ export function SiteNavMenu({ categories, isSeller }: Props) {
         {isSeller ? (
           <DropdownMenuItem onClick={() => navigate("/admin")}>Admin Products</DropdownMenuItem>
         ) : (
-          <DropdownMenuItem onClick={() => navigate("/gift")}>Givit AI</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate("/gift")}>GIVIT AI</DropdownMenuItem>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
