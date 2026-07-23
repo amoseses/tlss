@@ -1,7 +1,7 @@
 import type { MarketplaceProduct } from "@/lib/data/marketplace";
 import { MARKETPLACE_CATEGORIES } from "@/lib/data/marketplace";
 import type { Category } from "@/types/database";
-import { callGeminiJSON } from "@/lib/ai/gemini-client";
+import { callGroqJSON } from "@/lib/ai/groq-client";
 
 const EXTRACT_CATEGORIES = ["tech", "kitchen", "writing", "beauty", "fitness", "outdoor", "pets", "art", "experiences", "home", "gaming"];
 
@@ -127,12 +127,12 @@ export function extractProductFromUrl(url: string, hints?: Partial<ImportedProdu
 }
 
 /**
- * Real AI extraction (page metadata + Gemini LLM) for admin bulk import —
+ * Real AI extraction (page metadata + Groq LLM) for admin bulk import —
  * falls back to the regex/heuristic extractProductFromUrl() above if
  * metadata fetch or the AI call fails, so a bulk import never hard-fails.
  * Metadata comes from /api/metadata (plain Microlink proxy, no AI, no
- * secret key); the normalization pass itself runs client-side via Gemini
- * using the browser-exposed Vite Gemini key.
+ * secret key); the normalization pass itself runs client-side via Groq
+ * using the browser-exposed Vite Groq key.
  */
 export async function extractProductWithAI(url: string, hints?: Partial<ImportedProductRow>): Promise<Omit<ImportedProductRow, "status"> & { aiPowered: boolean; giftMatchScore: number }> {
   const fallback = extractProductFromUrl(url, hints);
@@ -163,7 +163,7 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
       },
     });
 
-    const ai = await callGeminiJSON(
+    const ai = await callGroqJSON(
       [
         { role: "system", content: system },
         { role: "user", content: user },

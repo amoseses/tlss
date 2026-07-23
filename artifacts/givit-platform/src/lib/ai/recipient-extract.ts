@@ -1,4 +1,4 @@
-import { callGeminiJSON } from "@/lib/ai/gemini-client";
+import { callGroqJSON } from "@/lib/ai/groq-client";
 
 export type ExtractedRecipientProfile = {
   interests: string[];
@@ -36,7 +36,7 @@ export async function extractRecipientProfile(text: string): Promise<ExtractedRe
       },
     });
 
-    const ai = await callGeminiJSON(
+    const ai = await callGroqJSON(
       [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -51,9 +51,9 @@ export async function extractRecipientProfile(text: string): Promise<ExtractedRe
     };
   } catch (error) {
     // Fails soft (blank fields, user can still fill the form manually), but
-    // silently swallowing every error made it impossible to tell "Gemini is
+    // silently swallowing every error made it impossible to tell "Groq is
     // down/misconfigured" from "there was nothing to extract" — log it so a
-    // bad or missing VITE_GEMINI_API_KEY is visible in the browser console.
+    // bad or missing VITE_GROQ_API_KEY is visible in the browser console.
     console.warn("Givit AI: recipient extraction failed, falling back to manual entry.", error);
     return EMPTY;
   }

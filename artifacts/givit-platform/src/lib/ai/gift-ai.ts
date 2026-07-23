@@ -1,7 +1,7 @@
 /**
- * Client-side AI personalization via Gemini generateContent API (see gemini-client.ts). Always
+ * Client-side AI personalization via Groq (see groq-client.ts). Always
  * fails soft (returns null) so callers can fall back to the deterministic
- * local matching if Gemini is unavailable, the API key is missing, or
+ * local matching if Groq is unavailable, the API key is missing, or
  * the call errors/times out.
  *
  * Never invent products: the model can only select/reorder/reword the exact
@@ -10,7 +10,7 @@
  * AI-generated.
  */
 
-import { callGeminiJSON } from "./gemini-client";
+import { callGroqJSON } from "./groq-client";
 
 export type AutogiftAISuggestion = { id: string; reason?: string; rating?: number };
 export type AutogiftAIResult = {
@@ -44,14 +44,14 @@ export async function personalizeAutogiftSuggestions(
 
   try {
     const result = await Promise.race([
-      callGeminiJSON(
+      callGroqJSON(
         [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
         { temperature: 0.8, maxTokens: 900 },
       ),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini API request timed out")), timeoutMs)),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Groq API request timed out")), timeoutMs)),
     ]);
 
     const candidateIds = new Set(candidates.map((c) => c.id));
@@ -100,14 +100,14 @@ export async function personalizeGiftChat(
 
   try {
     const result = await Promise.race([
-      callGeminiJSON(
+      callGroqJSON(
         [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
         { temperature: 0.7, maxTokens: 600 },
       ),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini API request timed out")), timeoutMs)),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Groq API request timed out")), timeoutMs)),
     ]);
 
     const candidateIds = new Set(candidates.map((c) => c.id));
@@ -130,7 +130,7 @@ export async function personalizeGiftChat(
  * *whether* more detail is needed (it's the source of truth on missing
  * fields), but the actual reply used to always be one of ~5 fixed strings
  * ("Got it! Who's the gift for, and what's the occasion?"), so the chat felt
- * scripted the moment it wasn't showing product cards. This asks Gemini to
+ * scripted the moment it wasn't showing product cards. This asks Groq to
  * write that same request for more detail as an actual reply to what the
  * shopper just said, so it reads as conversation instead of a form.
  */
@@ -159,14 +159,14 @@ export async function personalizeFollowUp(
 
   try {
     const result = await Promise.race([
-      callGeminiJSON(
+      callGroqJSON(
         [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
         { temperature: 0.8, maxTokens: 200 },
       ),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini API request timed out")), timeoutMs)),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Groq API request timed out")), timeoutMs)),
     ]);
 
     return typeof result?.reply === "string" && result.reply.trim() ? result.reply.trim().slice(0, 300) : null;

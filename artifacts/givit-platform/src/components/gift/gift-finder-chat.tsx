@@ -336,7 +336,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       // products twice for one request. personalizeChatResponse already
       // falls back to `data` on timeout/failure, so this can't hang.
       // When there's nothing to show yet, the reply still goes through
-      // Gemini (personalizeFollowUpMessage) so asking for more detail reads
+      // Groq (personalizeFollowUpMessage) so asking for more detail reads
       // as conversation, not one of a handful of fixed template strings —
       // except when it's the off-topic gate, which stays a fixed, safe
       // reply on purpose rather than letting the model improvise one.

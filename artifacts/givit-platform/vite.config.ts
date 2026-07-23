@@ -16,8 +16,8 @@ async function readJsonBody(req: import("http").IncomingMessage): Promise<any> {
 
 // Mirrors the /api/* Vercel serverless functions for local `pnpm run dev`,
 // so behavior matches between dev and production without needing
-// `vercel dev`. Givit AI itself runs client-side via Gemini (see
-// src/lib/ai/gemini-client.ts) — these are just the remaining plain-data
+// `vercel dev`. Givit AI itself runs client-side via Groq (see
+// src/lib/ai/groq-client.ts) — these are just the remaining plain-data
 // endpoints (photo/metadata proxying, push) that still need a secret-free
 // or CORS-avoiding server hop.
 function aiApiDevMiddleware(): Plugin {

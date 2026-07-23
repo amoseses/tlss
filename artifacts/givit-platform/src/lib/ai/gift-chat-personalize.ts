@@ -52,7 +52,7 @@ export async function personalizeChatResponse(
 }
 
 /**
- * Rewrites a "needs more detail" reply through Gemini so it responds to
+ * Rewrites a "needs more detail" reply through Groq so it responds to
  * what the shopper actually said instead of always being one of a handful
  * of fixed template strings. Falls back to the deterministic canned
  * message untouched on any failure/timeout — never blocks the chat.

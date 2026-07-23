@@ -157,7 +157,7 @@ export default function AdminPage() {
   async function runProcessing() {
     setProcessing(true);
     setDone(0);
-    // Sequential, not Promise.all: each row hits Gemini + Microlink, and
+    // Sequential, not Promise.all: each row hits Groq + Microlink, and
     // firing dozens at once would just rate-limit the whole batch.
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]!;
