@@ -65,6 +65,10 @@ export default function HomePage() {
         </div>
       </section>
 
+      <p className="container py-6 text-center font-serif text-lg italic text-muted-foreground md:text-xl">
+        One place that remembers who you're shopping for, what they love, and when it matters.
+      </p>
+
       {/* People dashboard — the actual front door for returning, logged-in users */}
       <PeopleDashboard />
 

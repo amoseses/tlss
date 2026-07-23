@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Bell, Calendar, CalendarDays, FlaskConical, Gift, Sparkles, UserRound, X, Zap } from "lucide-react";
+import { Bell, Calendar, CalendarDays, Gift, Sparkles, UserRound, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
+import { Reveal } from "@/components/ui/reveal";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useRecipients, type ConciergeNotification } from "@/lib/hooks/use-recipients";
 import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
@@ -195,9 +196,6 @@ export default function ConciergePage() {
               )}
             </div>
           )}
-          <Button onClick={() => setSurveyNotification({ id: "test", recipientName: recipients[0]?.name || "Test Recipient", occasion: recipients[0]?.occasions[0]?.label || "Birthday", date: recipients[0]?.occasions[0]?.date || new Date(Date.now()+35*86400000).toISOString().slice(0,10), daysUntil: 35, dismissed: false, createdAt: new Date().toISOString() })} variant="outline" className="rounded-md">
-            <FlaskConical className="h-4 w-4" /> Test AutoGift
-          </Button>
         </div>
       </div>
 
@@ -219,6 +217,7 @@ export default function ConciergePage() {
             </div>
           ) : (
             <>
+              <Reveal variant="triangle">
               <div className="givit-section">
                 <div className="mb-3 flex items-center gap-2">
                   <Zap className="h-4 w-4 text-givit-ember" />
@@ -238,28 +237,48 @@ export default function ConciergePage() {
                         .filter((o) => o.parsed >= new Date())
                         .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())[0];
                       return (
-                        <button
+                        <div
                           key={r.id}
-                          type="button"
-                          onClick={() => setCalendarPersonId(r.id)}
-                          className="flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3 text-left transition hover:border-givit-ember/40 hover:shadow-sm"
+                          className="flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3 transition hover:border-givit-ember/40 hover:shadow-sm"
                         >
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
                             {r.name[0]?.toUpperCase()}
                           </div>
-                          <div className="min-w-0 flex-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSurveyNotification({
+                                id: `build-${r.id}`,
+                                recipientName: r.name,
+                                occasion: upcoming?.label || "an upcoming date",
+                                date: upcoming?.date || new Date(Date.now() + 35 * 86400000).toISOString().slice(0, 10),
+                                daysUntil: upcoming ? Math.ceil((upcoming.parsed.getTime() - Date.now()) / 86400000) : 35,
+                                dismissed: false,
+                                createdAt: new Date().toISOString(),
+                              })
+                            }
+                            className="min-w-0 flex-1 text-left"
+                          >
                             <p className="truncate text-sm font-semibold text-foreground">{r.name}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {upcoming ? `${upcoming.label} · ${upcoming.parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No dates yet"}
+                            <p className="truncate text-xs font-medium text-givit-ember">
+                              {upcoming ? `Build for ${upcoming.label}, ${upcoming.parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" })} →` : "Build their gift →"}
                             </p>
-                          </div>
-                          <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        </button>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCalendarPersonId(r.id)}
+                            title={`${r.name}'s reminder dates`}
+                            className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition hover:bg-givit-sand hover:text-foreground"
+                          >
+                            <CalendarDays className="h-4 w-4" />
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
                 )}
               </div>
+              </Reveal>
 
               {upcomingAll.length > 0 && (
                 <div className="givit-section">
@@ -312,6 +331,7 @@ export default function ConciergePage() {
         </div>
 
         <aside className="space-y-4">
+          <Reveal variant="triangle" delayMs={100}>
           <div className="rounded-xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-5">
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-givit-ember text-white">
@@ -340,6 +360,7 @@ export default function ConciergePage() {
               </Button>
             </div>
           </div>
+          </Reveal>
         </aside>
       </div>
     </PageShell>

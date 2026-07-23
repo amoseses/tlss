@@ -31,6 +31,7 @@ import { ProductCard } from "@/components/product/product-card";
 import { ProductGrid } from "@/components/product/product-grid";
 import { WishlistRail } from "@/components/product/wishlist-button";
 import { Button } from "@/components/ui/button";
+import { Reveal } from "@/components/ui/reveal";
 import {
   GIFT_COLLECTIONS,
   MARKETPLACE_CATEGORIES,
@@ -209,6 +210,20 @@ export default function ProductsPage() {
   }
   if (shoppingFor) {
     sorted.sort((a, b) => personalScore(b, shoppingFor) - personalScore(a, shoppingFor));
+
+    // Re-ranking alone leaves the same ~82-item count for every person,
+    // which reads as no real personalization happening — if we actually
+    // know something about them, only keep products with a genuine
+    // positive match instead of just reshuffling the full catalog. Falls
+    // back to a smaller top-slice (not the full list) when filtering would
+    // leave too few to browse, rather than an empty page.
+    if (shoppingFor.interests.length > 0) {
+      const filtered = sorted.filter((p) => personalScore(p, shoppingFor) > 0);
+      const fallbackFill = sorted.filter((p) => !filtered.includes(p)).slice(0, Math.max(0, 24 - filtered.length));
+      const next = filtered.length >= 8 ? filtered : [...filtered, ...fallbackFill];
+      sorted.length = 0;
+      sorted.push(...next);
+    }
   }
 
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
@@ -478,15 +493,17 @@ export default function ProductsPage() {
 
           <div className="mt-6"><RecentlyViewedRail compact /></div>
 
-          <section className="mt-6 grid gap-4 md:grid-cols-2">
-            {GIFT_COLLECTIONS.map((collection) => (
-              <Link key={collection.slug} href={`/products?q=${encodeURIComponent(collection.query)}`} className="rounded-3xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-md">
-                <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Gift board</p>
-                <h3 className="mt-2 font-serif text-xl font-bold text-givit-ink">{collection.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{collection.description}</p>
-              </Link>
-            ))}
-          </section>
+          <Reveal variant="triangle">
+            <section className="mt-6 grid gap-4 md:grid-cols-2">
+              {GIFT_COLLECTIONS.map((collection) => (
+                <Link key={collection.slug} href={`/products?q=${encodeURIComponent(collection.query)}`} className="rounded-3xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-givit-ember/40 hover:shadow-md">
+                  <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Gift board</p>
+                  <h3 className="mt-2 font-serif text-xl font-bold text-givit-ink">{collection.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{collection.description}</p>
+                </Link>
+              ))}
+            </section>
+          </Reveal>
         </div>
       </div>
     </PageShell>

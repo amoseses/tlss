@@ -56,22 +56,22 @@ export function RecentMemoryFeed() {
       </div>
       <div className="stagger-children grid gap-4 sm:grid-cols-2">
         {entries.map((entry) => (
-          <div key={entry.id} className="slide-up flex items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 opacity-0">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
+          <div key={entry.id} className="slide-up flex items-start gap-4 rounded-2xl border border-border/60 bg-card p-5 opacity-0">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full givit-gradient text-base font-bold text-white">
               {entry.name[0]?.toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-foreground">
+              <p className="text-base text-foreground">
                 <span className="font-semibold">{entry.name}</span>
                 <span className="text-muted-foreground"> · updated {timeAgo(entry.updatedAt)}</span>
               </p>
-              <p className="mt-1 flex flex-wrap gap-1.5">
+              <p className="mt-1.5 flex flex-wrap gap-1.5">
                 {entry.interests.slice(0, 5).map((interest) => (
-                  <span key={interest} className="rounded-full bg-givit-sand px-2 py-0.5 text-[11px] font-medium text-givit-ink">{interest}</span>
+                  <span key={interest} className="rounded-full bg-givit-sand px-2.5 py-1 text-xs font-medium text-givit-ink">{interest}</span>
                 ))}
               </p>
-              <Link href={`/gift?q=${encodeURIComponent(`Gift for ${entry.name}`)}`} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-givit-ember hover:underline">
-                <Sparkles className="h-3 w-3" /> Find something for {entry.name.split(" ")[0]}
+              <Link href={`/gift?q=${encodeURIComponent(`Gift for ${entry.name}`)}`} className="mt-2.5 inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
+                <Sparkles className="h-3.5 w-3.5" /> Find something for {entry.name.split(" ")[0]}
               </Link>
             </div>
           </div>

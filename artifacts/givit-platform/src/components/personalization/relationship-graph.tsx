@@ -79,7 +79,7 @@ export function RelationshipGraph() {
       </div>
 
       <div className="rounded-2xl border border-border/60 bg-card p-3 sm:p-4">
-        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto h-auto w-full max-w-md" role="img" aria-label="Graph of saved people and what Givit knows about each">
+        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto h-auto w-full" role="img" aria-label="Graph of saved people and what Givit knows about each">
           {people.map((person, i) => {
             const angle = -Math.PI / 2 + i * angleStep;
             const personPos = polar(CENTER.x, CENTER.y, PERSON_RADIUS, angle);
@@ -93,7 +93,7 @@ export function RelationshipGraph() {
             const angle = -Math.PI / 2 + i * angleStep;
             const pos = polar(CENTER.x, CENTER.y, PERSON_RADIUS, angle);
             const hasInterests = person.interests.length > 0;
-            const summary = hasInterests ? truncate(person.interests.join(", "), 22) : "nothing known yet";
+            const summary = hasInterests ? truncate(person.interests.join(", "), 30) : "nothing known yet";
             return (
               <g key={`node-${person.id}`}>
                 {person.interests.length > 0 && <title>{`${person.name}: ${person.interests.join(", ")}`}</title>}
