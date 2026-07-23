@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -34,15 +35,42 @@ import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
 
+// Route swaps used to be an instant unmount/remount — the old page's content
+// vanished and the new page's (plus its own entrance animations) popped in on
+// the same frame, reading as a blink/flash rather than a navigation. This
+// crossfades the swap itself: fade the outgoing page out, then swap content
+// and fade the incoming page in. Plain CSS transition + state, no animation
+// library, so there's nothing that can crash on a bad dependency resolution.
+function usePageTransition(location: string) {
+  const [displayLocation, setDisplayLocation] = useState(location);
+  const [opacity, setOpacity] = useState(1);
+
+  useEffect(() => {
+    if (location === displayLocation) return;
+    setOpacity(0);
+    const swap = window.setTimeout(() => {
+      setDisplayLocation(location);
+      // Committing opacity:0 for the new content first, then flipping to 1
+      // on the next frame, is what makes the browser actually animate the
+      // fade-in instead of just snapping straight to visible.
+      requestAnimationFrame(() => setOpacity(1));
+    }, 150);
+    return () => window.clearTimeout(swap);
+  }, [location, displayLocation]);
+
+  return { displayLocation, opacity };
+}
+
 function Router() {
   const [location] = useLocation();
-  const isLanding = location === "/";
+  const { displayLocation, opacity } = usePageTransition(location);
+  const isLanding = displayLocation === "/";
 
   return (
     <div className="flex min-h-screen flex-col">
       {!isLanding && <SiteHeader />}
-      <main className="flex-1">
-        <Switch>
+      <main className="flex-1" style={{ opacity, transition: "opacity 150ms ease-in-out" }}>
+        <Switch location={displayLocation}>
           <Route path="/" component={LandingPage} />
           <Route path="/home" component={HomePage} />
           <Route path="/products" component={ProductsPage} />

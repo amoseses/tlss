@@ -1,11 +1,11 @@
 import { Link } from "wouter";
-import { ArrowRight, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { ArrowRight, ShieldCheck, Users } from "lucide-react";
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-white/10 bg-black text-white/70">
       <div className="container py-12">
-        <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-4">
           <div className="col-span-2">
             <Link href="/home" className="mb-3 flex items-center gap-2">
               <img src="/Screenshot 2026-06-23 095149.png" alt="Givit" className="h-8 w-8 rounded-md object-cover" />
@@ -16,34 +16,15 @@ export function SiteFooter() {
             <p className="max-w-[220px] text-xs leading-relaxed text-white/50">
               AI gift discovery and a curated marketplace. No brand deals in rankings.
             </p>
-            <Link
-              href="/gift"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-md givit-gradient px-4 py-2 text-xs font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:brightness-110"
-            >
-              <Sparkles className="h-3 w-3" />
-              Try Givit AI
-            </Link>
           </div>
 
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/35">Discover</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/35">Explore</p>
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/products" className="text-white/70 transition-colors hover:text-white">Marketplace</Link></li>
               <li><Link href="/gift" className="text-white/70 transition-colors hover:text-white">Givit AI</Link></li>
-              <li><Link href="/products?sort=popular" className="text-white/70 transition-colors hover:text-white">Top Ranked</Link></li>
-              <li><Link href="/boards" className="text-white/70 transition-colors hover:text-white">Gift Boards</Link></li>
               <li><Link href="/concierge" className="text-white/70 transition-colors hover:text-white">AutoGift</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/35">Marketplace</p>
-            <ul className="space-y-2.5 text-sm">
-              <li><Link href="/products?category=tech" className="text-white/70 transition-colors hover:text-white">Tech Gifts</Link></li>
-              <li><Link href="/products?category=home" className="text-white/70 transition-colors hover:text-white">Home Gifts</Link></li>
-              <li><Link href="/products?category=experiences" className="text-white/70 transition-colors hover:text-white">Experiences</Link></li>
-              <li><Link href="/feedback" className="text-white/70 transition-colors hover:text-white">Contact Us</Link></li>
-              <li><a href="tel:2673785600" className="text-white/70 transition-colors hover:text-white">Book a consultation call</a></li>
+              <li><Link href="/boards" className="text-white/70 transition-colors hover:text-white">Gift Boards</Link></li>
             </ul>
           </div>
 
@@ -54,6 +35,7 @@ export function SiteFooter() {
               <li><Link href="/signup" className="text-white/70 transition-colors hover:text-white">Sign Up</Link></li>
               <li><Link href="/account" className="text-white/70 transition-colors hover:text-white">Settings</Link></li>
               <li><Link href="/feedback" className="text-white/70 transition-colors hover:text-white">Feedback</Link></li>
+              <li><a href="tel:2673785600" className="text-white/70 transition-colors hover:text-white">Book a call</a></li>
             </ul>
           </div>
         </div>
@@ -86,7 +68,6 @@ export function SiteFooter() {
               </div>
               <Link href="/privacy" className="transition-colors hover:text-white/60">Privacy Policy</Link>
               <Link href="/terms" className="transition-colors hover:text-white/60">Terms of Use</Link>
-              <span>Original retailer links only</span>
             </div>
           </div>
         </div>

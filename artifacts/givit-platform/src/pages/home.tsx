@@ -114,14 +114,9 @@ export default function HomePage() {
               <p className="mt-3 mb-6 text-sm leading-7 text-white/65">
                 AutoGift reminds you early, handles fulfillment once you approve, and gets to know your people over time. <Link href="/login" className="underline text-white/80 hover:text-white">Sign in</Link> to get started.
               </p>
-              <div className="flex flex-wrap gap-3">
-                <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
-                  <Link href="/people"><Bell className="h-4 w-4" /> Add your first person</Link>
-                </Button>
-                <Button asChild variant="outline" className="rounded-md border-white/20 bg-white/10 text-white transition-transform hover:-translate-y-0.5 hover:bg-white/20">
-                  <Link href="/gift"><Sparkles className="h-4 w-4" /> Try Givit AI</Link>
-                </Button>
-              </div>
+              <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
+                <Link href="/people"><Bell className="h-4 w-4" /> Add your first person</Link>
+              </Button>
             </div>
           </div>
         </section>
