@@ -11,8 +11,8 @@
 export function GiftBox3D({ size = 56, className = "" }: { size?: number; className?: string }) {
   const half = size / 2;
   const ribbonWidth = Math.max(4, Math.round(size * 0.16));
-  const loopWidth = size * 0.34;
-  const loopHeight = Math.max(6, size * 0.13);
+  const loopSize = size * 0.4;
+  const loopBorder = Math.max(2, Math.round(size * 0.07));
   const knotSize = Math.max(7, size * 0.17);
 
   const faceBase: React.CSSProperties = {
@@ -52,27 +52,35 @@ export function GiftBox3D({ size = 56, className = "" }: { size?: number; classN
         <div className="givit-gradient rounded-md" style={{ position: "absolute", inset: 0 }}>
           {crossRibbon}
         </div>
+        {/* left loop — a hollow ring (not a filled pill) attached at its inner
+            edge and tilted up/out so it reads as a loop standing off the
+            box, not a flat spoke lying on the surface */}
         <div
-          className="absolute rounded-full border-2 border-white bg-white/40"
+          className="absolute rounded-full"
           style={{
-            left: half - loopWidth, top: half - loopHeight / 2,
-            width: loopWidth, height: loopHeight,
-            transform: "translateZ(7px) rotateZ(-22deg) rotateY(25deg)",
+            left: half - loopSize, top: half - loopSize / 2,
+            width: loopSize, height: loopSize,
+            border: `${loopBorder}px solid white`,
+            background: "transparent",
+            transform: "translateZ(6px) rotateY(38deg) rotateZ(-14deg)",
             transformOrigin: "100% 50%",
           }}
         />
+        {/* right loop (mirrored) */}
         <div
-          className="absolute rounded-full border-2 border-white bg-white/40"
+          className="absolute rounded-full"
           style={{
-            left: half, top: half - loopHeight / 2,
-            width: loopWidth, height: loopHeight,
-            transform: "translateZ(7px) rotateZ(22deg) rotateY(-25deg)",
+            left: half, top: half - loopSize / 2,
+            width: loopSize, height: loopSize,
+            border: `${loopBorder}px solid white`,
+            background: "transparent",
+            transform: "translateZ(6px) rotateY(-38deg) rotateZ(14deg)",
             transformOrigin: "0% 50%",
           }}
         />
         <div
           className="absolute rounded-full bg-white shadow-sm"
-          style={{ left: half - knotSize / 2, top: half - knotSize / 2, width: knotSize, height: knotSize, transform: "translateZ(9px)" }}
+          style={{ left: half - knotSize / 2, top: half - knotSize / 2, width: knotSize, height: knotSize, transform: "translateZ(10px)" }}
         />
       </div>
       {/* bottom */}

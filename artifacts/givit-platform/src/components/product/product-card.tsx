@@ -10,6 +10,8 @@ import type { Product, ProductImage } from "@/types/database";
 
 import { StarRating } from "./star-rating";
 
+type ShoppingForPerson = { name: string; interests: string[] };
+
 type Props = {
   product: Product;
   images: ProductImage[];
@@ -18,6 +20,7 @@ type Props = {
   compact?: boolean;
   featured?: boolean;
   rankLabel?: string;
+  shoppingFor?: ShoppingForPerson;
 };
 
 export function ProductCard({
@@ -28,6 +31,7 @@ export function ProductCard({
   compact = false,
   featured = false,
   rankLabel,
+  shoppingFor,
 }: Props) {
   const marketplaceProduct = product as Product & Partial<MarketplaceProduct>;
   const categorySlug = marketplaceProduct.category?.slug ?? null;
@@ -44,7 +48,24 @@ export function ProductCard({
   const rankingLabel = rankLabel ?? (marketplaceProduct.category?.name
     ? `#${categoryRank} in ${marketplaceProduct.category.name}`
     : `#${categoryRank} in Marketplace`);
-  const blurb = marketplaceProduct.why_we_picked_it || (!compact ? marketplaceProduct.ai_summary : undefined);
+  // When shopping for a saved person, ground the reason in an actual
+  // overlap with their stated interests instead of the generic editorial
+  // blurb — and when there's no real overlap, say so plainly rather than
+  // implying a match that isn't there.
+  const matchedInterests = shoppingFor
+    ? (marketplaceProduct.interests ?? []).filter((tag) =>
+        shoppingFor.interests.some((si) => {
+          const t = tag.toLowerCase();
+          const s = si.toLowerCase();
+          return t === s || t.includes(s) || s.includes(t);
+        }))
+    : [];
+  const personalizedReason = shoppingFor
+    ? matchedInterests.length > 0
+      ? `Matches ${shoppingFor.name.split(" ")[0]}'s love of ${matchedInterests.slice(0, 2).join(" and ")}`
+      : `Picked with ${shoppingFor.name.split(" ")[0]} in mind`
+    : undefined;
+  const blurb = personalizedReason || marketplaceProduct.why_we_picked_it || (!compact ? marketplaceProduct.ai_summary : undefined);
 
   return (
     // Below `sm`, a full vertical card (tall image, then text, then a

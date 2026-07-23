@@ -7,13 +7,11 @@ import { getGiftRecipients } from "@/lib/supabase/db";
 
 type GraphPerson = { id: string; name: string; interests: string[] };
 
-const WIDTH = 640;
-const HEIGHT = 380;
+const WIDTH = 560;
+const HEIGHT = 230;
 const CENTER = { x: WIDTH / 2, y: HEIGHT / 2 };
-const PERSON_RADIUS = 140;
-const INTEREST_RADIUS = 46;
+const PERSON_RADIUS = 100;
 const MAX_PEOPLE = 6;
-const MAX_INTERESTS_PER_PERSON = 3;
 
 function polar(cx: number, cy: number, radius: number, angleRad: number) {
   return { x: cx + radius * Math.cos(angleRad), y: cy + radius * Math.sin(angleRad) };
@@ -24,11 +22,14 @@ function truncate(text: string, max: number) {
 }
 
 /**
- * A visual map of what Givit actually remembers — you, the people you've
- * saved, and the interests attached to each — rather than a stats panel.
- * Positions are plain trigonometry (small, fixed dataset), not a physics
- * simulation: no graph library needed for "you -> up to 6 people -> up to
- * 3 interests each".
+ * A compact visual map of what Givit remembers — you, the people you've
+ * saved, and a one-line preview of what's known about each. Earlier
+ * versions fanned each interest out as its own satellite node/label, which
+ * both bloated the footprint and caused adjacent labels to visually
+ * collide for anyone with more than one interest saved (e.g. "skincare"
+ * and "haircare" sitting close enough to overlap). A single truncated
+ * summary line per person avoids that entirely, with the full list
+ * available as a native tooltip on hover.
  */
 export function RelationshipGraph() {
   const { user } = useAuth();
@@ -39,11 +40,7 @@ export function RelationshipGraph() {
     let mounted = true;
     getGiftRecipients(user.id).then((rows: any[]) => {
       if (!mounted) return;
-      setPeople(
-        rows
-          .slice(0, MAX_PEOPLE)
-          .map((r) => ({ id: r.id, name: r.name, interests: (r.interests ?? []).slice(0, MAX_INTERESTS_PER_PERSON) })),
-      );
+      setPeople(rows.slice(0, MAX_PEOPLE).map((r) => ({ id: r.id, name: r.name, interests: r.interests ?? [] })));
     });
     return () => { mounted = false; };
   }, [user]);
@@ -81,63 +78,51 @@ export function RelationshipGraph() {
         <Link href="/people" className="givit-link shrink-0 text-sm font-medium">Manage people →</Link>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-2 sm:p-4">
-        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="h-auto w-full" role="img" aria-label="Graph of saved people and their known interests">
+      <div className="rounded-2xl border border-border/60 bg-card p-3 sm:p-4">
+        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto h-auto w-full max-w-md" role="img" aria-label="Graph of saved people and what Givit knows about each">
           {people.map((person, i) => {
             const angle = -Math.PI / 2 + i * angleStep;
             const personPos = polar(CENTER.x, CENTER.y, PERSON_RADIUS, angle);
             return <line key={`edge-${person.id}`} x1={CENTER.x} y1={CENTER.y} x2={personPos.x} y2={personPos.y} stroke="currentColor" strokeOpacity={0.15} strokeWidth={1.5} className="text-givit-ember" />;
           })}
 
-          {people.map((person, i) => {
-            const angle = -Math.PI / 2 + i * angleStep;
-            const personPos = polar(CENTER.x, CENTER.y, PERSON_RADIUS, angle);
-            return person.interests.map((interest, j) => {
-              const spreadAngle = angle + (j - (person.interests.length - 1) / 2) * 0.55;
-              const pos = polar(personPos.x, personPos.y, INTEREST_RADIUS, spreadAngle);
-              return (
-                <g key={`${person.id}-${interest}`}>
-                  <line x1={personPos.x} y1={personPos.y} x2={pos.x} y2={pos.y} stroke="currentColor" strokeOpacity={0.12} strokeWidth={1} className="text-muted-foreground" />
-                  <circle cx={pos.x} cy={pos.y} r={3.5} className="fill-givit-coral" />
-                  <text x={pos.x} y={pos.y - 8} textAnchor="middle" className="fill-muted-foreground text-[9px] font-medium capitalize">{truncate(interest, 12)}</text>
-                </g>
-              );
-            });
-          })}
-
-          <circle cx={CENTER.x} cy={CENTER.y} r={20} className="fill-black" />
+          <circle cx={CENTER.x} cy={CENTER.y} r={18} className="fill-black" />
           <text x={CENTER.x} y={CENTER.y + 4} textAnchor="middle" className="fill-white text-[10px] font-bold">You</text>
 
           {people.map((person, i) => {
             const angle = -Math.PI / 2 + i * angleStep;
             const pos = polar(CENTER.x, CENTER.y, PERSON_RADIUS, angle);
             const hasInterests = person.interests.length > 0;
+            const summary = hasInterests ? truncate(person.interests.join(", "), 16) : "nothing known yet";
             return (
               <g key={`node-${person.id}`}>
+                {person.interests.length > 0 && <title>{`${person.name}: ${person.interests.join(", ")}`}</title>}
                 <circle
                   cx={pos.x}
                   cy={pos.y}
-                  r={16}
+                  r={14}
                   className={hasInterests ? "fill-givit-ember" : "fill-none stroke-givit-ember"}
                   strokeWidth={hasInterests ? 0 : 2}
                   strokeDasharray={hasInterests ? undefined : "4 3"}
                 />
-                <text x={pos.x} y={pos.y + 4} textAnchor="middle" className={hasInterests ? "fill-white text-[11px] font-bold" : "fill-givit-ember text-[11px] font-bold"}>
+                <text x={pos.x} y={pos.y + 4} textAnchor="middle" className={hasInterests ? "fill-white text-[10px] font-bold" : "fill-givit-ember text-[10px] font-bold"}>
                   {person.name[0]?.toUpperCase()}
                 </text>
-                <text x={pos.x} y={pos.y + 30} textAnchor="middle" className="fill-foreground text-[10px] font-semibold">
+                <text x={pos.x} y={pos.y + 26} textAnchor="middle" className="fill-foreground text-[10px] font-semibold">
                   {truncate(person.name, 12)}
                 </text>
-                {!hasInterests && (
-                  <text x={pos.x} y={pos.y + 43} textAnchor="middle" className="fill-muted-foreground text-[8px] italic">
-                    nothing known yet
-                  </text>
-                )}
+                <text x={pos.x} y={pos.y + 39} textAnchor="middle" className={`text-[8px] ${hasInterests ? "fill-muted-foreground" : "fill-muted-foreground italic"}`}>
+                  {summary}
+                </text>
               </g>
             );
           })}
         </svg>
       </div>
+      <p className="mt-2.5 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-givit-ember" /> Interests known</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full border border-dashed border-givit-ember" /> Still learning</span>
+      </p>
     </section>
   );
 }

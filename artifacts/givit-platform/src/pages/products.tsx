@@ -396,6 +396,7 @@ export default function ProductsPage() {
                       reviewCount={s?.review_count ?? 0}
                       featured
                       rankLabel={`#${p.category_rank ?? p.rank} in ${p.category?.name ?? "Marketplace"}`}
+                      shoppingFor={shoppingFor ? { name: shoppingFor.name, interests: shoppingFor.interests } : undefined}
                     />
                   );
                 })}
@@ -465,6 +466,7 @@ export default function ProductsPage() {
                 ratings={ratings}
                 compact
                 rankContext={q ? { query: q } : activeCategory ? { categoryName: activeCategory.name } : undefined}
+                shoppingFor={shoppingFor ? { name: shoppingFor.name, interests: shoppingFor.interests } : undefined}
               />
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">

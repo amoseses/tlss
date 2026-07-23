@@ -10,9 +10,10 @@ type Props = {
   ratings: Record<string, RatingStat | undefined>;
   compact?: boolean;
   rankContext?: { query?: string; categoryName?: string };
+  shoppingFor?: { name: string; interests: string[] };
 };
 
-export function ProductGrid({ products, ratings, compact = false, rankContext }: Props) {
+export function ProductGrid({ products, ratings, compact = false, rankContext, shoppingFor }: Props) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
       {products.map((p, index) => {
@@ -34,6 +35,7 @@ export function ProductGrid({ products, ratings, compact = false, rankContext }:
             reviewCount={count}
             compact={compact}
             rankLabel={rankLabel}
+            shoppingFor={shoppingFor}
           />
         );
       })}
