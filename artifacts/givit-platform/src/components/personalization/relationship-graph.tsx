@@ -7,10 +7,10 @@ import { getGiftRecipients } from "@/lib/supabase/db";
 
 type GraphPerson = { id: string; name: string; interests: string[] };
 
-const WIDTH = 560;
-const HEIGHT = 230;
+const WIDTH = 640;
+const HEIGHT = 300;
 const CENTER = { x: WIDTH / 2, y: HEIGHT / 2 };
-const PERSON_RADIUS = 100;
+const PERSON_RADIUS = 125;
 const MAX_PEOPLE = 6;
 
 function polar(cx: number, cy: number, radius: number, angleRad: number) {
@@ -86,32 +86,32 @@ export function RelationshipGraph() {
             return <line key={`edge-${person.id}`} x1={CENTER.x} y1={CENTER.y} x2={personPos.x} y2={personPos.y} stroke="currentColor" strokeOpacity={0.15} strokeWidth={1.5} className="text-givit-ember" />;
           })}
 
-          <circle cx={CENTER.x} cy={CENTER.y} r={18} className="fill-black" />
-          <text x={CENTER.x} y={CENTER.y + 4} textAnchor="middle" className="fill-white text-[10px] font-bold">You</text>
+          <circle cx={CENTER.x} cy={CENTER.y} r={24} className="fill-black" />
+          <text x={CENTER.x} y={CENTER.y + 5} textAnchor="middle" className="fill-white text-[13px] font-bold">You</text>
 
           {people.map((person, i) => {
             const angle = -Math.PI / 2 + i * angleStep;
             const pos = polar(CENTER.x, CENTER.y, PERSON_RADIUS, angle);
             const hasInterests = person.interests.length > 0;
-            const summary = hasInterests ? truncate(person.interests.join(", "), 16) : "nothing known yet";
+            const summary = hasInterests ? truncate(person.interests.join(", "), 22) : "nothing known yet";
             return (
               <g key={`node-${person.id}`}>
                 {person.interests.length > 0 && <title>{`${person.name}: ${person.interests.join(", ")}`}</title>}
                 <circle
                   cx={pos.x}
                   cy={pos.y}
-                  r={14}
+                  r={20}
                   className={hasInterests ? "fill-givit-ember" : "fill-none stroke-givit-ember"}
-                  strokeWidth={hasInterests ? 0 : 2}
-                  strokeDasharray={hasInterests ? undefined : "4 3"}
+                  strokeWidth={hasInterests ? 0 : 2.5}
+                  strokeDasharray={hasInterests ? undefined : "5 3"}
                 />
-                <text x={pos.x} y={pos.y + 4} textAnchor="middle" className={hasInterests ? "fill-white text-[10px] font-bold" : "fill-givit-ember text-[10px] font-bold"}>
+                <text x={pos.x} y={pos.y + 5} textAnchor="middle" className={hasInterests ? "fill-white text-[13px] font-bold" : "fill-givit-ember text-[13px] font-bold"}>
                   {person.name[0]?.toUpperCase()}
                 </text>
-                <text x={pos.x} y={pos.y + 26} textAnchor="middle" className="fill-foreground text-[10px] font-semibold">
-                  {truncate(person.name, 12)}
+                <text x={pos.x} y={pos.y + 35} textAnchor="middle" className="fill-foreground text-[13px] font-semibold">
+                  {truncate(person.name, 14)}
                 </text>
-                <text x={pos.x} y={pos.y + 39} textAnchor="middle" className={`text-[8px] ${hasInterests ? "fill-muted-foreground" : "fill-muted-foreground italic"}`}>
+                <text x={pos.x} y={pos.y + 51} textAnchor="middle" className={`text-[11px] ${hasInterests ? "fill-muted-foreground" : "fill-muted-foreground italic"}`}>
                   {summary}
                 </text>
               </g>
@@ -119,10 +119,17 @@ export function RelationshipGraph() {
           })}
         </svg>
       </div>
-      <p className="mt-2.5 flex items-center justify-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-givit-ember" /> Interests known</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full border border-dashed border-givit-ember" /> Still learning</span>
-      </p>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+        <p className="text-sm text-foreground">
+          <span className="font-semibold">{people.length}</span> {people.length === 1 ? "person" : "people"} mapped ·{" "}
+          <span className="font-semibold">{people.filter((p) => p.interests.length > 0).length}</span> with interests known
+        </p>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-givit-ember" /> Interests known</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border border-dashed border-givit-ember" /> Still learning</span>
+        </div>
+      </div>
     </section>
   );
 }
