@@ -40,7 +40,16 @@ export function Reveal({
       { threshold: 0.1, rootMargin: "0px 0px -60px 0px" },
     );
     observer.observe(el);
-    return () => observer.disconnect();
+    // Safety net: the "triangle" variant clips content to a zero-width
+    // sliver until `visible` flips true, so if the observer never fires for
+    // any reason (browser quirk, extension interference, an element that's
+    // momentarily zero-height when first observed), real content — saved
+    // people, not just a decorative animation — would stay permanently
+    // invisible with no error to point at. Force it visible after a short
+    // delay no matter what, so the reveal can only ever be an animation,
+    // never a way for content to disappear.
+    const fallback = window.setTimeout(() => setVisible(true), 1200);
+    return () => { observer.disconnect(); window.clearTimeout(fallback); };
   }, []);
 
   const style =

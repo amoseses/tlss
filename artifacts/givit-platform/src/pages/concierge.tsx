@@ -217,7 +217,6 @@ export default function ConciergePage() {
             </div>
           ) : (
             <>
-              <Reveal variant="triangle">
               <div className="givit-section">
                 <div className="mb-3 flex items-center gap-2">
                   <Zap className="h-4 w-4 text-givit-ember" />
@@ -278,7 +277,6 @@ export default function ConciergePage() {
                   </div>
                 )}
               </div>
-              </Reveal>
 
               {upcomingAll.length > 0 && (
                 <div className="givit-section">

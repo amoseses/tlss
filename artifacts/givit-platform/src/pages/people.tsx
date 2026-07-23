@@ -4,7 +4,6 @@ import { ArrowRight, Bell, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } f
 
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
-import { Reveal } from "@/components/ui/reveal";
 import { useAuth } from "@/lib/auth/use-auth";
 import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
@@ -499,7 +498,6 @@ export default function PeoplePage() {
           </Button>
         </div>
       ) : (
-        <Reveal variant="triangle">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {recipients.map((r) => (
             <PersonProfileCard
@@ -519,7 +517,6 @@ export default function PeoplePage() {
             Add person
           </button>
         </div>
-        </Reveal>
       )}
 
       {recipients.length > 0 && (
