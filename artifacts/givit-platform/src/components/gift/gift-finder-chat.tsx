@@ -19,6 +19,7 @@ type Message = {
   content: string;
   results?: GiftResult[];
   loading?: boolean;
+  needsFollowUp?: boolean;
 };
 
 type Questionnaire = {
@@ -354,7 +355,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
 
       (final.results ?? []).forEach((r) => shownIdsRef.current.add(r.id));
       trackUserEvent("ai_recommendation_generated", { queryLength: trimmed.length, resultCount: final.results?.length ?? 0, tags: final.tags });
-      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: final.message ?? "", results: final.results ?? [], loading: false } : m)));
+      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, content: final.message ?? "", results: final.results ?? [], needsFollowUp: final.needsFollowUp, loading: false } : m)));
       setLoading(false);
       focusInput();
     } catch (error) {
@@ -515,7 +516,12 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                         </div>
                       </div>
                     )}
-                    {msg.results && msg.results.length === 0 && (
+                    {/* results:[] is truthy, so length===0 alone can't tell "we
+                        searched and found nothing" apart from "we haven't
+                        searched yet, still asking for more detail" — the
+                        latter already has its own message bubble above and
+                        showing this too just reads as a broken second reply. */}
+                    {msg.results && msg.results.length === 0 && !msg.needsFollowUp && (
                       <div className="ml-11 rounded-2xl border border-border/40 bg-givit-sand p-4 text-sm text-muted-foreground">
                         No exact matches found. Try different keywords or <Link href="/products" className="givit-link font-medium">shop the marketplace</Link>.
                       </div>

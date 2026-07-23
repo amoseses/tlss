@@ -45,6 +45,41 @@ function scheduledSurveySendAt(occasionDate: string) {
   return date;
 }
 
+// The one place that actually schedules a real (DB-backed) reminder for an
+// occasion — every caller that adds or changes an occasion date must go
+// through this, or that occasion silently never gets an email/push
+// reminder even though the UI looks like it saved fine.
+async function scheduleOccasionNotifications(
+  userId: string,
+  recipientId: string,
+  recipientName: string,
+  occasion: Occasion,
+) {
+  const scheduledFor = scheduledSurveySendAt(occasion.date).toISOString();
+  await createNotification({
+    user_id: userId,
+    recipient_id: recipientId,
+    occasion_id: occasion.id ?? null,
+    title: `${recipientName}'s ${occasion.label} is coming up`,
+    body: "AutoGift is ready to email the recipient survey, generate AI recommendations, and ask you to approve before charging your saved card.",
+    channel: "email",
+    scheduled_for: scheduledFor,
+    status: "scheduled",
+    metadata: { automation: "autogift", recipientName, occasion: occasion.label, occasionDate: occasion.date },
+  });
+  await createNotification({
+    user_id: userId,
+    recipient_id: recipientId,
+    occasion_id: occasion.id ?? null,
+    title: `${recipientName}'s ${occasion.label} reminder`,
+    body: "Open AutoGift to complete the survey and approval flow.",
+    channel: "in_app",
+    scheduled_for: scheduledFor,
+    status: "scheduled",
+    metadata: { automation: "autogift", recipientName, occasion: occasion.label, occasionDate: occasion.date },
+  });
+}
+
 function generateNotifications(recipients: Recipient[]): ConciergeNotification[] {
   const existing = getStoredNotifications();
   const existingKeys = new Set(existing.map((n) => `${n.recipientName}-${n.occasion}-${n.date}`));
@@ -155,29 +190,7 @@ export function useRecipients(user: User | null | undefined) {
           repeats_yearly: true,
           approval_lead_days: 35,
         });
-        const scheduledFor = scheduledSurveySendAt(occasion.date).toISOString();
-        await createNotification({
-          user_id: user.id,
-          recipient_id: recipientId,
-          occasion_id: savedOccasion?.id ?? null,
-          title: `${recipient.name}'s ${occasion.label} is coming up`,
-          body: "AutoGift is ready to email the recipient survey, generate AI recommendations, and ask you to approve before charging your saved card.",
-          channel: "email",
-          scheduled_for: scheduledFor,
-          status: "scheduled",
-          metadata: { automation: "autogift", recipientName: recipient.name, occasion: occasion.label, occasionDate: occasion.date },
-        });
-        await createNotification({
-          user_id: user.id,
-          recipient_id: recipientId,
-          occasion_id: savedOccasion?.id ?? null,
-          title: `${recipient.name}'s ${occasion.label} reminder`,
-          body: "Open AutoGift to complete the survey and approval flow.",
-          channel: "in_app",
-          scheduled_for: scheduledFor,
-          status: "scheduled",
-          metadata: { automation: "autogift", recipientName: recipient.name, occasion: occasion.label, occasionDate: occasion.date },
-        });
+        await scheduleOccasionNotifications(user.id, recipientId, recipient.name, { id: savedOccasion?.id, label: occasion.label, date: occasion.date });
       }
     }
   }
@@ -242,6 +255,14 @@ export function useRecipients(user: User | null | undefined) {
     for (const occ of occasions) {
       if (!occ.date) continue;
       if (!user) { saved.push(occ); continue; }
+
+      // A brand-new occasion, or an existing one whose date actually
+      // changed, needs a fresh reminder scheduled — an unchanged occasion
+      // being re-saved (e.g. editing an unrelated field on the same form)
+      // should NOT get a duplicate notification row created every time.
+      const previous = occ.id ? recipient.occasions.find((o) => o.id === occ.id) : undefined;
+      const isNewOrChanged = !occ.id || !previous || previous.date !== occ.date;
+
       const payload: Record<string, unknown> = {
         user_id: user.id,
         recipient_id: recipientId,
@@ -255,8 +276,13 @@ export function useRecipients(user: User | null | undefined) {
       if (error) {
         console.error("Failed to save occasion:", error);
         saved.push(occ);
-      } else {
-        saved.push({ id: data?.id ?? occ.id, label: occ.label, date: occ.date });
+        continue;
+      }
+      const resolved: Occasion = { id: data?.id ?? occ.id, label: occ.label, date: occ.date };
+      saved.push(resolved);
+
+      if (isNewOrChanged) {
+        await scheduleOccasionNotifications(user.id, recipientId, recipient.name, resolved);
       }
     }
 
