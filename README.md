@@ -33,7 +33,7 @@ Copy `artifacts/givit-platform/.env.example` to `artifacts/givit-platform/.env.l
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Resend (resend.com) API key and a from-address on a domain verified in the Resend dashboard. Used to actually send AutoGift reminder emails. | see §4 |
 | `CRON_SECRET` | Shared secret the notification-dispatch cron checks on its `Authorization: Bearer` header. | any long random string |
 
-Givit AI needs `VITE_GEMINI_API_KEY` — see §5.
+Givit AI needs either `VITE_GROK_API_KEY` / `VITE_XAI_API_KEY` or `VITE_GEMINI_API_KEY` — see §5.
 
 ### 2. Supabase Setup
 
@@ -77,7 +77,7 @@ RESEND_FROM_EMAIL=Givit <notifications@yourdomain.com>
 CRON_SECRET=...
 ```
 
-Givit AI needs `VITE_GEMINI_API_KEY` added here — see §5. **Remember Vite env vars are baked in at build time**: adding or changing any `VITE_`-prefixed variable in Vercel requires a new deployment (redeploy) to actually take effect, not just a restart.
+Givit AI needs either `VITE_GROK_API_KEY` / `VITE_XAI_API_KEY` or `VITE_GEMINI_API_KEY` added here — see §5. **Remember Vite env vars are baked in at build time**: adding or changing any `VITE_`-prefixed variable in Vercel requires a new deployment (redeploy) to actually take effect, not just a restart.
 
 > 🔴 **Security reminder:** an earlier commit in this repo's history accidentally included live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `SHIPPO_API_TOKEN` values before `.env.local` was git-ignored. If you haven't already, **rotate all three in the Stripe and Shippo dashboards** — removing the file from the latest commit doesn't invalidate keys still readable in git history/GitHub.
 
@@ -141,15 +141,15 @@ Use this checklist to test the local demo flow end-to-end:
 
 For production email testing, point your scheduler/email worker at rows in `gift_notifications` where `scheduled_for <= now()`, `status = 'scheduled'`, and `channel = 'email'`, then mark successful sends as `sent`.
 
-### 5. Givit AI (Gemini generateContent API)
+### 5. Givit AI (Grok/xAI or Gemini API)
 
-Givit AI runs client-side through Google's Gemini `generateContent` REST API using `VITE_GEMINI_API_KEY`. Set this in `.env.local` for local development and in Vercel → Project Settings → Environment Variables for production. The thin wrapper lives at `src/lib/ai/gemini-client.ts`.
+Givit AI runs client-side through xAI/Grok when `VITE_GROK_API_KEY` (or `VITE_XAI_API_KEY`) is set. If no Grok key is configured, it falls back to Google's Gemini `generateContent` REST API using `VITE_GEMINI_API_KEY`. Set the chosen key in `.env.local` for local development and in Vercel → Project Settings → Environment Variables for production. The thin wrapper lives at `src/lib/ai/gemini-client.ts`.
 
-Because `VITE_` variables are bundled into the browser, use a browser-restricted Gemini API key. The app still falls back to the existing deterministic rule-based matching if the AI call fails, so nothing crashes and results just get less personalized.
+Because `VITE_` variables are bundled into the browser, use browser-appropriate/restricted provider keys when possible. The app still falls back to the existing deterministic rule-based matching if the AI call fails, so nothing crashes and results just get less personalized.
 
 Current AI entry points:
 
-- `src/lib/ai/gift-ai.ts` — builds the prompts and calls Gemini for the `/gift` chat finder and AutoGift's survey-to-suggestions step
+- `src/lib/ai/gift-ai.ts` — builds the prompts and calls the configured AI provider for the `/gift` chat finder and AutoGift's survey-to-suggestions step
 - `src/lib/admin/imported-products.ts` (`extractProductWithAI`) — powers admin's "paste a link/spreadsheet of links, get products" bulk import
 - `api/photo.ts` + `api/metadata.ts` — small serverless functions that stay server-side on purpose: they proxy Microlink (for real product photos and page metadata) to avoid CORS/rate-limit issues calling it directly from the browser. Neither needs a secret key. `pnpm run dev` mirrors both locally via `aiApiDevMiddleware` in `vite.config.ts`.
 - `api/push/send.ts` — sends a Web Push notification to a saved subscription (unrelated to AI, still server-side since it needs the VAPID private key)
@@ -203,7 +203,7 @@ If users can't log in or sessions don't persist:
 - **Routing:** wouter (lightweight)
 - **Auth:** Supabase Auth (email/password)
 - **Data:** LocalStorage (boards, recipients, surveys, some orders) + Supabase DB (user profiles, products, orders, board likes/comments, AutoGift orders, push subscriptions)
-- **AI:** Gemini generateContent API (client-side, via `VITE_GEMINI_API_KEY`) — see §5 above
+- **AI:** xAI/Grok Chat Completions API (client-side, via `VITE_GROK_API_KEY` or `VITE_XAI_API_KEY`) or Gemini generateContent API (client-side, via `VITE_GEMINI_API_KEY`) — see §5 above
 - **Photos:** Microlink (scrapes real og:image metadata from product URLs) via `/api/photo` and `/api/metadata`
 - **Push notifications:** Web Push (VAPID) + a service worker at `public/sw.js` — see §6 above
 - **Payments:** Stripe (API keys configured, UI ready) — checkout itself is not wired up; the business model redirects to the retailer (Amazon, etc.) for affiliate commission rather than taking payment in-app, except for AutoGift concierge orders
