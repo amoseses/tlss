@@ -11,6 +11,45 @@ import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-re
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
 
+// Occasion labels tied to a real calendar date shouldn't be settable to some
+// unrelated date (e.g. "Valentine's Day" on a random July date) -- these get
+// their date auto-filled to the next real occurrence and the field locked.
+const FIXED_HOLIDAY_DATES: Record<string, { month: number; day: number }> = {
+  Christmas: { month: 12, day: 25 },
+  "Valentine's Day": { month: 2, day: 14 },
+};
+const LOCKED_OCCASION_LABELS = new Set(["Christmas", "Valentine's Day", "Mother's Day", "Father's Day"]);
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Mother's/Father's Day float to the Nth Sunday of a fixed month rather than
+// a fixed day-of-month, but are still fully determined by the label alone.
+function nthSundayOfMonth(year: number, month: number, n: number) {
+  const first = new Date(year, month - 1, 1);
+  const firstSunday = 1 + ((7 - first.getDay()) % 7);
+  return new Date(year, month - 1, firstSunday + (n - 1) * 7);
+}
+
+function computeHolidayDate(label: string, year: number): Date | null {
+  if (label === "Mother's Day") return nthSundayOfMonth(year, 5, 2);
+  if (label === "Father's Day") return nthSundayOfMonth(year, 6, 3);
+  const fixed = FIXED_HOLIDAY_DATES[label];
+  return fixed ? new Date(year, fixed.month - 1, fixed.day) : null;
+}
+
+// The next occurrence on or after today, so picking "Christmas" in July
+// lands on this December, not one that already passed.
+function nextHolidayDateString(label: string): string | null {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const thisYear = computeHolidayDate(label, today.getFullYear());
+  if (!thisYear) return null;
+  const next = thisYear >= today ? thisYear : computeHolidayDate(label, today.getFullYear() + 1);
+  return next ? next.toISOString().slice(0, 10) : null;
+}
+
 function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]) => void; onClose: () => void }) {
   type PersonForm = { name: string; relationship: string; occasions: Occasion[]; aboutText: string };
   const emptyPerson = (): PersonForm => ({ name: "", relationship: "", occasions: [{ label: "Birthday", date: "" }], aboutText: "" });
@@ -41,7 +80,11 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
     setPeople((prev) => prev.map((p, idx) => {
       if (idx !== personIndex) return p;
       const occasions = [...p.occasions];
-      occasions[occIndex] = { ...occasions[occIndex], [field]: value };
+      const next = { ...occasions[occIndex], [field]: value };
+      if (field === "label" && LOCKED_OCCASION_LABELS.has(value)) {
+        next.date = nextHolidayDateString(value) ?? next.date;
+      }
+      occasions[occIndex] = next;
       return { ...p, occasions };
     }));
   }
@@ -109,19 +152,30 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
                     <Plus className="h-3 w-3" /> Add date
                   </button>
                 </div>
-                {person.occasions.map((occ, i) => (
+                {person.occasions.map((occ, i) => {
+                  const locked = LOCKED_OCCASION_LABELS.has(occ.label);
+                  return (
                   <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
                     <select value={occ.label} onChange={(e) => updateOccasion(personIndex, i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
                       {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
                     </select>
-                    <input type="date" value={occ.date} onChange={(e) => updateOccasion(personIndex, i, "date", e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+                    <input
+                      type="date"
+                      value={occ.date}
+                      onChange={(e) => updateOccasion(personIndex, i, "date", e.target.value)}
+                      readOnly={locked}
+                      max={occ.label === "Birthday" ? todayISO() : undefined}
+                      title={locked ? `${occ.label} falls on a fixed date and is set automatically` : undefined}
+                      className={`h-9 w-full rounded-md border border-border px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20 ${locked ? "bg-muted text-muted-foreground" : "bg-background"}`}
+                    />
                     {person.occasions.length > 1 && (
                       <button type="button" onClick={() => removeOccasion(personIndex, i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
                         <X className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="grid gap-1.5">
                 <label className="flex items-center gap-1.5 text-sm font-semibold">
@@ -193,7 +247,14 @@ function EditRecipientModal({
     setOccasions((prev) => prev.filter((_, idx) => idx !== i));
   }
   function updateOccasion(i: number, field: keyof Occasion, value: string) {
-    setOccasions((prev) => prev.map((o, idx) => (idx === i ? { ...o, [field]: value } : o)));
+    setOccasions((prev) => prev.map((o, idx) => {
+      if (idx !== i) return o;
+      const next = { ...o, [field]: value };
+      if (field === "label" && LOCKED_OCCASION_LABELS.has(value)) {
+        next.date = nextHolidayDateString(value) ?? next.date;
+      }
+      return next;
+    }));
   }
 
   async function submit(e: React.FormEvent) {
@@ -262,19 +323,30 @@ function EditRecipientModal({
                 <Plus className="h-3 w-3" /> Add date
               </button>
             </div>
-            {occasions.map((occ, i) => (
+            {occasions.map((occ, i) => {
+              const locked = LOCKED_OCCASION_LABELS.has(occ.label);
+              return (
               <div key={occ.id ?? `new-${i}`} className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
                 <select value={occ.label} onChange={(e) => updateOccasion(i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
                   {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
                 </select>
-                <input type="date" value={occ.date} onChange={(e) => updateOccasion(i, "date", e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+                <input
+                  type="date"
+                  value={occ.date}
+                  onChange={(e) => updateOccasion(i, "date", e.target.value)}
+                  readOnly={locked}
+                  max={occ.label === "Birthday" ? todayISO() : undefined}
+                  title={locked ? `${occ.label} falls on a fixed date and is set automatically` : undefined}
+                  className={`h-9 w-full rounded-md border border-border px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20 ${locked ? "bg-muted text-muted-foreground" : "bg-background"}`}
+                />
                 {occasions.length > 1 && (
                   <button type="button" onClick={() => removeOccasion(i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
                     <X className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Interests</label>

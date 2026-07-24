@@ -289,8 +289,12 @@ function parseContext(query: string): ParsedContext {
   const lower = query.toLowerCase();
   // Stop the capture at a clause boundary (who/that/which/and/comma) so
   // "for my brother in law who loves hiking" captures "brother in law"
-  // instead of the whole run-on clause.
-  const recipientMatch = query.match(/(?:recipient|for my|for a|shopping for|gift for)\s+([^,.;]+?)(?=\s+(?:who|that|which|and)\b|[,.;]|$)/i);
+  // instead of the whole run-on clause. The optional ":?" handles the
+  // sidebar questionnaire's "Recipient: Sarah." format -- without it, the
+  // required \s+ right after "recipient" never matched past the colon, so
+  // a typed name there was silently dropped and match reasons fell back to
+  // an impersonal "matched on X + Y" instead of "Sarah loves X and Y".
+  const recipientMatch = query.match(/(?:recipient|for my|for a|shopping for|gift for)\s*:?\s+([^,.;]+?)(?=\s+(?:who|that|which|and)\b|[,.;]|$)/i);
   const occasionMatch = query.match(new RegExp(`(?:occasion|for (?:a|their|his|her))\\s*(${OCCASION_WORDS})`, "i"))
     ?? lower.match(new RegExp(`\\b(${OCCASION_WORDS})\\b`));
   const interestMatch = query.match(/(?:interests?|likes?|loves?|into)\s*[:\s]+([^.;]+)/i);

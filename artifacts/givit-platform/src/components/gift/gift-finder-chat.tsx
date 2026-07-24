@@ -271,7 +271,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     getGiftRecipients(user.id).then((rows) => { if (mounted) setSavedRecipients(rows as SavedRecipient[]); });
     return () => { mounted = false; };
   }, [user]);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // Accumulates recipient/occasion/budget/interests across turns so
   // answering a follow-up question (e.g. "her birthday") doesn't lose what
@@ -298,11 +298,14 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   }, []);
 
   useEffect(() => {
-    // block: "nearest" keeps this scoped to the chat panel's own scroll
-    // container — the default ("start"/"end") walks every scrollable
-    // ancestor, including the page itself, dragging the whole viewport
-    // down to the bottom every time a message is sent.
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    // scrollIntoView (even with block: "nearest") walks every scrollable
+    // ancestor of the target, not just the closest one — so it was also
+    // scrolling the browser window itself down to reveal bottomRef, dragging
+    // the whole page to the bottom of the chat panel and burying the just-
+    // returned product cards below the fold. Scrolling the container's own
+    // scrollTop directly never touches window scroll at all.
+    const container = scrollContainerRef.current;
+    if (container) container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
@@ -324,8 +327,8 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   // preventScroll: true — inputRef sits at the bottom of the chat panel, and
   // a plain .focus() call makes the browser scroll it into view by default,
   // dragging the whole page down every time a response finishes. The chat's
-  // own scroll behavior is handled separately by bottomRef's
-  // scrollIntoView({ block: "nearest" }) below.
+  // own scroll behavior is handled separately, directly on the message
+  // container's scrollTop above.
   function focusInput() {
     inputRef.current?.focus({ preventScroll: true });
   }
@@ -550,7 +553,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
               </button>
             </div>
           </div>
-          <div className="flex flex-col gap-5 overflow-y-auto p-5" style={{ maxHeight: "65vh" }}>
+          <div ref={scrollContainerRef} className="flex flex-col gap-5 overflow-y-auto p-5" style={{ maxHeight: "65vh" }}>
             {messages.map((msg) => (
               <div key={msg.id}>
                 {msg.role === "user" ? (
@@ -589,7 +592,6 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                 )}
               </div>
             ))}
-            <div ref={bottomRef} />
           </div>
           <div className="border-t border-border/60 p-3">
             <div className="flex items-end gap-2">
