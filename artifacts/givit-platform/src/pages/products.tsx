@@ -328,22 +328,28 @@ export default function ProductsPage() {
             <X className="h-3.5 w-3.5" /> Clear
           </Link>
         </div>
-      ) : savedPeople.length > 0 && !q && !categorySlug ? (
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Shopping for someone?</p>
-          {savedPeople.map((p) => (
-            <Link
-              key={p.id}
-              href={`/products?for=${encodeURIComponent(p.id)}`}
-              className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
-            >
-              <UserRound className="h-3.5 w-3.5" /> {p.name}
-            </Link>
-          ))}
+      ) : savedPeople.length > 0 ? (
+        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-givit-ember/25 bg-givit-ember/5 px-4 py-3.5">
+          <p className="text-sm font-semibold text-givit-ink">Shopping for someone?</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {savedPeople.map((p) => (
+              <Link
+                key={p.id}
+                href={`/products?for=${encodeURIComponent(p.id)}${categorySlug ? `&category=${encodeURIComponent(categorySlug)}` : ""}`}
+                className="flex items-center gap-1.5 rounded-full border border-givit-ember/30 bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-givit-ember/60 hover:text-givit-ember"
+              >
+                <UserRound className="h-3.5 w-3.5" /> {p.name}
+              </Link>
+            ))}
+          </div>
         </div>
       ) : null}
 
-      <div className="mb-6 flex snap-x gap-2 overflow-x-auto pb-1">
+      {/* Mobile-only: the vertical "Departments" sidebar below covers this
+          exact same category list on desktop (lg+) -- showing both at once
+          was pure duplication. This stays for small screens, where the
+          sidebar is hidden. */}
+      <div className="mb-6 flex snap-x gap-2 overflow-x-auto pb-1 lg:hidden">
         <Link
           href="/products"
           className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${cnPill(!categorySlug)}`}
