@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowRight, Bell, Gift, Heart, PackageCheck, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, Bell, Gift, Heart, PackageCheck, Sparkles, UserRound, Zap } from "lucide-react";
 
 import { PeopleDashboard } from "@/components/personalization/people-dashboard";
 import { RecentMemoryFeed } from "@/components/personalization/recent-memory-feed";
@@ -8,6 +8,7 @@ import { RelationshipInsights } from "@/components/personalization/relationship-
 import { Button } from "@/components/ui/button";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
 import { Reveal } from "@/components/ui/reveal";
+import { useAuth } from "@/lib/auth/use-auth";
 
 // Same ambient-motion pattern as the landing splash — kept low-opacity and
 // pointer-events-none so it reads as atmosphere, not clutter, and never
@@ -20,6 +21,7 @@ const FLOATING_ICONS = [
 ];
 
 export default function HomePage() {
+  const { user } = useAuth();
   return (
     <div className="pb-12">
       {/* Hero — minimal, relationship-first, no product wall */}
@@ -112,11 +114,21 @@ export default function HomePage() {
             <div className="relative max-w-2xl">
               <h2 className="font-serif text-2xl font-bold md:text-3xl">Every AI conversation starts from zero. GIVIT starts with years of context.</h2>
               <p className="mt-3 mb-6 text-sm leading-7 text-white/65">
-                AutoGift reminds you early, handles fulfillment once you approve, and gets to know your people over time. <Link href="/login" className="underline text-white/80 hover:text-white">Sign in</Link> to get started.
+                {user
+                  ? "AutoGift reminds you early, handles fulfillment once you approve, and gets to know your people over time."
+                  : (
+                    <>AutoGift reminds you early, handles fulfillment once you approve, and gets to know your people over time. <Link href="/login" className="underline text-white/80 hover:text-white">Sign in</Link> to get started.</>
+                  )}
               </p>
-              <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
-                <Link href="/people"><Bell className="h-4 w-4" /> Add your first person</Link>
-              </Button>
+              {user ? (
+                <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
+                  <Link href="/concierge"><Zap className="h-4 w-4" /> Go to AutoGift</Link>
+                </Button>
+              ) : (
+                <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
+                  <Link href="/people"><Bell className="h-4 w-4" /> Add your first person</Link>
+                </Button>
+              )}
             </div>
           </div>
         </section>
