@@ -1,7 +1,20 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowRight, ShieldCheck, Users } from "lucide-react";
 
+import { useAuth } from "@/lib/auth/use-auth";
+import { createClient } from "@/lib/supabase/client";
+
 export function SiteFooter() {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+
+  async function signOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    navigate("/");
+    window.location.reload();
+  }
+
   return (
     <footer className="border-t border-white/10 bg-black text-white/70">
       <div className="container py-12">
@@ -31,9 +44,18 @@ export function SiteFooter() {
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/35">Account</p>
             <ul className="space-y-2.5 text-sm">
-              <li><Link href="/login" className="text-white/70 transition-colors hover:text-white">Sign In</Link></li>
-              <li><Link href="/signup" className="text-white/70 transition-colors hover:text-white">Sign Up</Link></li>
-              <li><Link href="/account" className="text-white/70 transition-colors hover:text-white">Settings</Link></li>
+              {user ? (
+                <>
+                  <li><Link href="/account" className="text-white/70 transition-colors hover:text-white">Settings</Link></li>
+                  <li><Link href="/orders" className="text-white/70 transition-colors hover:text-white">Orders</Link></li>
+                  <li><button onClick={signOut} className="text-white/70 transition-colors hover:text-white">Sign out</button></li>
+                </>
+              ) : (
+                <>
+                  <li><Link href="/login" className="text-white/70 transition-colors hover:text-white">Sign In</Link></li>
+                  <li><Link href="/signup" className="text-white/70 transition-colors hover:text-white">Sign Up</Link></li>
+                </>
+              )}
               <li><Link href="/feedback" className="text-white/70 transition-colors hover:text-white">Feedback</Link></li>
               <li><a href="https://calendly.com/atticusmoes/new-meeting?month=2026-07" target="_blank" rel="noopener noreferrer" className="text-white/70 transition-colors hover:text-white">Book a call</a></li>
             </ul>
