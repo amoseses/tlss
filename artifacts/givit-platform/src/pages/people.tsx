@@ -7,6 +7,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
+import { nextOccurrenceDate } from "@/lib/date-utils";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
@@ -397,8 +398,7 @@ function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: 
   const today = new Date();
   const upcoming = recipient.occasions
     .filter((o) => o.date)
-    .map((o) => ({ ...o, parsed: new Date(o.date) }))
-    .filter((o) => o.parsed >= today)
+    .map((o) => ({ ...o, parsed: nextOccurrenceDate(o.date, today) }))
     .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())[0];
   const daysUntil = upcoming ? Math.ceil((upcoming.parsed.getTime() - today.getTime()) / 86400000) : null;
 

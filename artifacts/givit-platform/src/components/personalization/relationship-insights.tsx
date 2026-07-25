@@ -4,6 +4,7 @@ import { Bell, Brain, Heart, UserRound } from "lucide-react";
 
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients } from "@/lib/supabase/db";
+import { nextOccurrenceDate } from "@/lib/date-utils";
 
 type Occasion = { label: string; date: string };
 type Insight = {
@@ -32,7 +33,7 @@ function computeInsights(rows: any[]): Insight {
     const occasions: Occasion[] = (row.gift_occasions ?? []).map((occ: any) => ({ label: occ.occasion, date: occ.occasion_date }));
     for (const occ of occasions) {
       if (!occ.date) continue;
-      const parsed = new Date(occ.date);
+      const parsed = nextOccurrenceDate(occ.date, today);
       const daysUntil = Math.ceil((parsed.getTime() - today.getTime()) / 86400000);
       if (daysUntil >= 0 && daysUntil <= 45) {
         upcoming.push({ name: row.name, label: occ.label, date: occ.date, daysUntil });

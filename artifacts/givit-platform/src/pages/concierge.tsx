@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { Reveal } from "@/components/ui/reveal";
 import { useAuth } from "@/lib/auth/use-auth";
-import { useRecipients, type ConciergeNotification } from "@/lib/hooks/use-recipients";
+import { useRecipients, nextOccurrenceDate, type ConciergeNotification } from "@/lib/hooks/use-recipients";
 import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
 import { GiftSurveyModal } from "@/components/autogift/autogift-survey-modal";
 import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
 
 export default function ConciergePage() {
   const { user, profile, loading } = useAuth();
-  const { recipients, activeNotifications, localReady, dismissNotification } = useRecipients(user);
+  const { recipients, notifications, activeNotifications, localReady, dismissNotification } = useRecipients(user);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -39,19 +39,25 @@ export default function ConciergePage() {
     if (!onboardingComplete) setShowOnboarding(true);
   }, [loading, user, localReady, onboardingComplete]);
 
+  // nextOccurrenceDate, not new Date(o.date) directly -- birthdays are
+  // stored with the recipient's real birth year, so a raw date comparison
+  // reads every birthday as decades in the past and it never shows up here.
   const upcomingAll = recipients
     .flatMap((r) =>
-      r.occasions.filter((o) => o.date).map((o) => ({ ...o, recipient: r.name, parsed: new Date(o.date) }))
+      r.occasions.filter((o) => o.date).map((o) => ({ ...o, recipient: r.name, parsed: nextOccurrenceDate(o.date) }))
     )
-    .filter((o) => o.parsed >= new Date())
     .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())
     .slice(0, 8);
 
   // A reminder is already scheduled the moment the occasion is saved (see
   // useRecipients' generateNotifications), so "reminder set" is real status,
   // not decoration — this just surfaces it per item instead of only in the
-  // separate notifications dropdown.
-  const scheduledKeys = new Set(activeNotifications.map((n) => `${n.recipientName}-${n.occasion}-${n.date}`));
+  // separate notifications dropdown. Deliberately built from the FULL
+  // notification list, not activeNotifications (unread-only) -- dismissing
+  // the bell notification is just clearing a badge, it must not also flip
+  // this "is a reminder scheduled" indicator back to "no" for an occasion
+  // that's still genuinely scheduled.
+  const scheduledKeys = new Set(notifications.map((n) => `${n.recipientName}-${n.occasion}-${n.date}`));
 
   const onAutoGift = recipients.filter((r) => r.automationEnabled !== false);
   const calendarPerson = calendarPersonId ? recipients.find((r) => r.id === calendarPersonId) : null;
@@ -232,8 +238,7 @@ export default function ConciergePage() {
                     {onAutoGift.map((r) => {
                       const upcoming = r.occasions
                         .filter((o) => o.date)
-                        .map((o) => ({ ...o, parsed: new Date(o.date) }))
-                        .filter((o) => o.parsed >= new Date())
+                        .map((o) => ({ ...o, parsed: nextOccurrenceDate(o.date) }))
                         .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())[0];
                       return (
                         <div

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
-import { ShoppingBag, Sparkles, ArrowLeft } from "lucide-react";
+import { ShoppingBag, Sparkles, ArrowLeft, ExternalLink } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getUserOrders, getUserAutoGiftOrders } from "@/lib/supabase/db";
@@ -14,7 +14,7 @@ type UnifiedOrder = {
   recipientName?: string;
   occasion?: string;
   cardMessage?: string;
-  items: Array<{ id: string; name: string; quantity: number; priceCents: number }>;
+  items: Array<{ id: string; name: string; quantity: number; priceCents: number; productUrl?: string }>;
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -24,13 +24,23 @@ const STATUS_STYLES: Record<string, string> = {
   paid_pending_fulfillment: "bg-amber-100 text-amber-700",
   admin_fulfillment: "bg-amber-100 text-amber-700",
   pending: "bg-amber-100 text-amber-700",
+  pending_approval: "bg-amber-100 text-amber-700",
   submitted: "bg-amber-100 text-amber-700",
   cancelled: "bg-rose-100 text-rose-700",
   refunded: "bg-rose-100 text-rose-700",
 };
 
+// AutoGift orders are created the moment the customer clicks "Approve &
+// send to admin" during checkout -- their approval already happened, so
+// the raw DB status "pending_approval" would misleadingly read as "we're
+// still waiting on you." It actually means the concierge team hasn't
+// sourced/fulfilled it yet.
+const STATUS_LABELS: Record<string, string> = {
+  pending_approval: "Submitted, sourcing now",
+};
+
 function statusLabel(status: string) {
-  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return STATUS_LABELS[status] ?? status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 // The AutoGift survey stores its bundle as a raw items array (JSON column,
@@ -43,6 +53,7 @@ function normalizeAutoGiftItems(raw: unknown): UnifiedOrder["items"] {
     name: item.productName ?? item.name ?? "Gift item",
     quantity: item.quantity ?? 1,
     priceCents: item.price ?? item.priceCents ?? 0,
+    productUrl: item.productUrl ?? undefined,
   }));
 }
 
@@ -72,6 +83,7 @@ export default function OrdersPage() {
             name: item.product_name ?? "Item",
             quantity: item.quantity ?? 1,
             priceCents: item.unit_price_cents ?? 0,
+            productUrl: item.external_url ?? undefined,
           })),
         })),
         ...autoGiftOrders.map((o: any) => ({
@@ -148,12 +160,23 @@ export default function OrdersPage() {
                 </span>
               </div>
 
+              {order.source === "autogift" && order.status === "pending_approval" && (
+                <p className="mt-2 text-xs text-muted-foreground">You already approved this order. Nothing else to do: our concierge sources and ships each item, no retailer checkout on your end.</p>
+              )}
+
               {order.items.length > 0 && (
                 <div className="mt-3 space-y-1.5 border-t border-border/50 pt-3">
                   {order.items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">{item.quantity > 1 ? `${item.quantity}× ` : ""}{item.name}</span>
-                      <span className="font-medium text-foreground">${(item.priceCents / 100).toFixed(2)}</span>
+                    <div key={item.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="min-w-0 truncate text-muted-foreground">
+                        {item.quantity > 1 ? `${item.quantity}× ` : ""}{item.name}
+                        {item.productUrl && (
+                          <a href={item.productUrl} target="_blank" rel="noreferrer" className="ml-1.5 inline-flex items-center gap-0.5 text-xs font-medium text-givit-ember hover:underline">
+                            View <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </span>
+                      <span className="shrink-0 font-medium text-foreground">${(item.priceCents / 100).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>

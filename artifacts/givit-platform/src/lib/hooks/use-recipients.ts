@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { createNotification, deleteGiftOccasion, getGiftRecipients, saveGiftOccasion, saveGiftRecipient, deleteGiftRecipient } from "@/lib/supabase/db";
+import { nextOccurrenceDate } from "@/lib/date-utils";
 import type { User } from "@supabase/supabase-js";
+
+export { nextOccurrenceDate };
 
 export type Occasion = { id?: string; label: string; date: string };
 export type Recipient = {
@@ -39,7 +42,7 @@ function saveStoredNotifications(notifications: ConciergeNotification[]) {
 }
 
 function scheduledSurveySendAt(occasionDate: string) {
-  const date = new Date(`${occasionDate}T12:00:00`);
+  const date = nextOccurrenceDate(occasionDate);
   date.setDate(date.getDate() - NOTIFICATION_LEAD_DAYS);
   date.setUTCHours(15, 0, 0, 0);
   return date;
@@ -90,7 +93,7 @@ function generateNotifications(recipients: Recipient[]): ConciergeNotification[]
     for (const o of r.occasions) {
       const key = `${r.name}-${o.label}-${o.date}`;
       if (existingKeys.has(key)) continue;
-      const occDate = new Date(o.date);
+      const occDate = nextOccurrenceDate(o.date, now);
       const daysUntil = Math.ceil((occDate.getTime() - now.getTime()) / 86400000);
       if (daysUntil > 0 && daysUntil <= NOTIFICATION_LEAD_DAYS + 7) {
         newNotifications.push({

@@ -4,6 +4,7 @@ import { Plus, Sparkles, UserRound } from "lucide-react";
 
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients } from "@/lib/supabase/db";
+import { nextOccurrenceDate } from "@/lib/date-utils";
 
 type Occasion = { label: string; date: string };
 type Person = {
@@ -17,11 +18,9 @@ type Person = {
 };
 
 function nextOccasion(occasions: Occasion[]) {
-  const today = new Date();
   return occasions
     .filter((o) => o.date)
-    .map((o) => ({ ...o, parsed: new Date(o.date) }))
-    .filter((o) => o.parsed >= today)
+    .map((o) => ({ ...o, parsed: nextOccurrenceDate(o.date) }))
     .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())[0];
 }
 
