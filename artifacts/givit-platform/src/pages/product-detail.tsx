@@ -204,10 +204,10 @@ export default function ProductDetailPage() {
 
       <div className="mt-8">
         <Tabs defaultValue="details">
-          <TabsList className="rounded-full">
-            <TabsTrigger value="details" className="rounded-full">Details</TabsTrigger>
-            <TabsTrigger value="reviews" className="rounded-full">Reviews</TabsTrigger>
-            <TabsTrigger value="related" className="rounded-full">Related gifts</TabsTrigger>
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="related">Related gifts</TabsTrigger>
           </TabsList>
           <TabsContent value="details" className="mt-4">
             <div className="givit-section prose prose-sm max-w-none">

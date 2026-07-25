@@ -3,6 +3,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* The @base-ui/react primitives (tabs, dialog, select, checkbox, dropdown
+   menu, scroll area, separator) set boolean-style data-* attributes for
+   state (data-active, data-open/data-closed, data-checked, data-disabled,
+   data-inset) and data-orientation="horizontal"|"vertical" for layout
+   direction. Tailwind has no built-in variant for any of these -- without
+   registering them, every `data-active:`, `data-horizontal:`, etc. utility
+   in components/ui silently fails to generate, which is why e.g. the Tabs
+   component's height/active-state styling never applied. */
+@custom-variant data-active (&[data-active]);
+@custom-variant data-checked (&[data-checked]);
+@custom-variant data-disabled (&[data-disabled]);
+@custom-variant data-open (&[data-open]);
+@custom-variant data-closed (&[data-closed]);
+@custom-variant data-inset (&[data-inset]);
+@custom-variant data-horizontal (&[data-orientation="horizontal"]);
+@custom-variant data-vertical (&[data-orientation="vertical"]);
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
