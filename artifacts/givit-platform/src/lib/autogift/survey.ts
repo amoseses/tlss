@@ -1,3 +1,6 @@
+import { recommendGifts } from "@/lib/gift-recommend";
+import { getAllMarketplaceProducts } from "@/lib/data/marketplace";
+
 /**
  * AutoGift Survey + Suggestion Engine
  *
@@ -135,13 +138,28 @@ export function getSurveyResponse(surveyId: string): SurveyResponse | null {
   } catch { return null; }
 }
 
+export type SuggestionContext = {
+  recipientName?: string;
+  occasion?: string;
+  excludeIds?: string[];
+};
+
 /**
  * Generate gift suggestions based on survey response and budget.
- * AI picks from marketplace products and adds cards/flowers/activities.
+ *
+ * Card/flower add-ons stay small and rule-based (they're deliberate,
+ * occasion-driven choices, not "products"). The actual gift and activity
+ * picks are pulled from the live marketplace catalog through the same
+ * interest-scoring engine that already powers Marketplace and Givit AI
+ * chat (see gift-recommend.ts) instead of a fixed ~20-item dictionary keyed
+ * on 11 exact interest words -- that dictionary is why every AutoGift
+ * bundle converged on the same handful of generic items ("At-Home
+ * Experience Night", a default card) regardless of what the recipient
+ * actually liked: most real interests (e.g. "hiking", "makeup", "golf")
+ * simply had no entry.
  */
-export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestion[] {
+export function generateGiftSuggestions(response: SurveyResponse, context: SuggestionContext = {}): GiftSuggestion[] {
   const suggestions: GiftSuggestion[] = [];
-  const remainingBudget = response.budget * 100; // convert to cents
 
   const occasionText = `${response.notes} ${response.giftStyle} ${response.interests.join(" ")}`.toLowerCase();
   const shouldIncludeCard = response.giftStyle === "sentimental" || /birthday|anniversary|wedding|sympathy|condolence|graduation|mother|father|love|miss you|thank/.test(occasionText);
@@ -179,116 +197,44 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
     });
   }
 
-  // Activity suggestions based on gift style
-  if (response.giftStyle === "experience" || response.budget >= 75) {
-    suggestions.push({
-      id: `activity-${crypto.randomUUID()}`,
-      name: "Movie Night Box",
-      price: 3000,
-      imageUrl: "https://images.unsplash.com/photo-1521967906867-14ec9d64bee8?auto=format&fit=crop&w=600&q=80",
-      productUrl: "https://www.uncommongoods.com/",
-      reason: "A cozy movie night kit with gourmet popcorn, candy, and a streaming gift card.",
-      category: "activity",
-      fulfillmentNotes: "Confirm snack allergies, gluten-free needs, movie genre, and delivery timing.",
-      rating: 84,
-    });
-    suggestions.push({
-      id: `activity2-${crypto.randomUUID()}`,
-      name: "Local Experience Credit",
-      price: 5000,
-      imageUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=600&q=80",
-      productUrl: "https://www.airbnb.com/experiences",
-      reason: "Credit toward a local cooking class, pottery session, or wine tasting, arranged by our concierge.",
-      category: "activity",
-      fulfillmentNotes: "Confirm preferred date windows, neighborhood, accessibility, and activity type.",
-      rating: 88,
-    });
-  }
+  // Real, interest-driven gift and activity picks from the live catalog.
+  // "Experiences"-category products (pottery classes, chef's table credit,
+  // jazz nights, museum memberships, ...) fill the "activity" role instead
+  // of a hardcoded 3-item pool, so the outing bundles vary by what the
+  // recipient is actually into, not a coin flip between the same two ideas.
+  const query = [
+    context.recipientName ? `Recipient: ${context.recipientName}.` : "",
+    context.occasion ? `Occasion: ${context.occasion}.` : "",
+    response.interests.length > 0 ? `Interests: ${response.interests.join(", ")}.` : "",
+    `Style: ${response.giftStyle}.`,
+    response.budget > 0 ? `Budget under $${response.budget}.` : "",
+    response.avoidItems.length > 0 ? `Avoid: ${response.avoidItems.join(", ")}.` : "",
+    response.notes,
+  ].filter(Boolean).join(" ");
 
-  // Product suggestions based on interests
-  const INTEREST_MAP: Record<string, { name: string; price: number; url?: string; image?: string; reason?: string }[]> = {
-    tech: [
-      { name: "Anker 737 Power Bank", price: 14999, url: "https://www.anker.com/products/a1289", image: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?auto=format&fit=crop&w=600&q=80" },
-      { name: "Tile Mate Tracker", price: 2499, url: "https://www.tile.com/products/tile-mate", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
-    ],
-    reading: [
-      { name: "Kindle Paperwhite", price: 15999, url: "https://www.amazon.com/dp/B09SWW583J", image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80" },
-      { name: "Bookshop.org Gift Card", price: 5000, url: "https://bookshop.org/gift_cards", image: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=600&q=80" },
-    ],
-    cooking: [
-      { name: "AeroPress Coffee Maker", price: 4995, url: "https://aeropress.com/products/aeropress-coffee-maker", image: "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&w=600&q=80" },
-      { name: "OXO Cold Brew Maker", price: 5199, url: "https://www.oxo.com/cold-brew-coffee-maker.html", image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=600&q=80" },
-    ],
-    fitness: [
-      { name: "Stanley Quencher Tumbler", price: 4500, url: "https://www.stanley1913.com/products/adventure-quencher-travel-tumbler-40-oz", image: "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=600&q=80" },
-      { name: "Theragun Mini", price: 19900, url: "https://www.therabody.com/us/en-us/mini-us.html", image: "https://images.unsplash.com/photo-1571019613914-85f342c6a11e?auto=format&fit=crop&w=600&q=80" },
-    ],
-    music: [
-      { name: "Sony WH-1000XM5 Headphones", price: 39800 },
-      { name: "MasterClass Membership", price: 12000 },
-    ],
-    coffee: [
-      { name: "Ember Temperature Mug", price: 12995 },
-      { name: "Fellow Stagg EKG Kettle", price: 16500 },
-    ],
-    gaming: [
-      { name: "Nintendo Switch OLED", price: 34999 },
-      { name: "8BitDo Ultimate Controller", price: 6999 },
-    ],
-    travel: [
-      { name: "Patagonia Black Hole Duffel", price: 15900 },
-      { name: "Apple AirTag 4 Pack", price: 9900 },
-    ],
-    plants: [
-      { name: "Easy-Care Plant Delivery", price: 4500 },
-      { name: "Ceramic Planter Set", price: 3800 },
-    ],
-    art: [
-      { name: "Local Pottery Class Credit", price: 6500 },
-      { name: "Premium Sketchbook + Pens", price: 4200 },
-    ],
-    pets: [
-      { name: "Custom Pet Portrait", price: 8500 },
-      { name: "Pet-and-Owner Movie Night Kit", price: 3900 },
-    ],
-  };
+  const { results } = recommendGifts(query, {}, 10, {
+    catalog: getAllMarketplaceProducts(),
+    excludeIds: context.excludeIds,
+  });
 
-  for (const interest of response.interests) {
-    const matches = INTEREST_MAP[interest.toLowerCase()] ?? [];
-    for (const match of matches) {
-      const relevantAddonCost = (shouldIncludeCard ? ADDON_PRICING.card : 0) + (shouldIncludeFlowers ? ADDON_PRICING.flowers : 0);
-      const totalWithFees = match.price + relevantAddonCost;
-      if (totalWithFees <= remainingBudget || suggestions.filter((item) => item.category === "gift" || item.category === "activity").length < 3) {
-        suggestions.push({
-          id: `product-${interest}-${suggestions.length}`,
-          name: match.name,
-          price: match.price,
-          reason: match.reason || `Matches their interest in ${interest} without needing extra explanation.`,
-          imageUrl: match.image,
-          productUrl: match.url,
-          category: "gift",
-          rating: Math.max(70, 92 - suggestions.length * 3),
-        });
-      }
-    }
-  }
-
-  const hasActivity = suggestions.some((s) => s.category === "activity");
-  if (!hasActivity && suggestions.length < 6) {
+  for (const result of results) {
     suggestions.push({
-      id: `activity-variety-${crypto.randomUUID()}`,
-      name: "At-Home Experience Night",
-      price: 4000,
-      imageUrl: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=600&q=80",
-      productUrl: "https://www.uncommongoods.com/",
-      reason: "A flexible activity package such as movie night, game night, craft night, or a local outing credit chosen by the AI concierge.",
-      category: "activity",
-      rating: 82,
+      id: `product-${result.id}`,
+      name: result.name,
+      price: result.sale_price_cents ?? result.price_cents,
+      reason: result.match_reason,
+      imageUrl: result.image_url ?? undefined,
+      productUrl: `/products/${result.slug}`,
+      category: result.category_slug === "experiences" ? "activity" : "gift",
+      rating: result.gift_score?.total ?? 80,
+      fulfillmentNotes: result.avoidance_warning ?? undefined,
     });
   }
 
-  // If nothing matched, add general options
-  if (suggestions.length < 3) {
+  // Extremely sparse edge case (e.g. avoid terms that happen to rule out
+  // the whole catalog) -- recommendGifts almost always returns something,
+  // but the bundle builder should never be left with nothing to work with.
+  if (suggestions.filter((item) => item.category === "gift" || item.category === "activity").length === 0) {
     suggestions.push({
       id: `general-${crypto.randomUUID()}`,
       name: "GIVIT Marketplace Gift Card",
@@ -299,55 +245,85 @@ export function generateGiftSuggestions(response: SurveyResponse): GiftSuggestio
     });
   }
 
-  return suggestions.slice(0, 10); // enough options for a paged bundle review
+  return suggestions;
 }
 
-export function generateGiftBundles(response: SurveyResponse, count = 3): AutoGiftBundle[] {
-  const pool = generateGiftSuggestions(response);
+function dedupeItems(items: Array<GiftSuggestion | undefined>): GiftSuggestion[] {
+  const seen = new Set<string>();
+  const result: GiftSuggestion[] = [];
+  for (const item of items) {
+    if (!item || seen.has(item.id)) continue;
+    seen.add(item.id);
+    result.push(item);
+  }
+  return result;
+}
+
+function describeBundle(items: GiftSuggestion[]): string {
+  const activityItem = items.find((item) => item.category === "activity");
+  const giftItems = items.filter((item) => item.category === "gift");
+  const parts: string[] = [];
+  if (activityItem) parts.push(activityItem.name);
+  parts.push(...giftItems.map((item) => item.name));
+  if (parts.length === 0) return "A gift package tailored to their interests.";
+  if (parts.length === 1) return `${parts[0]}, matched to their interests.`;
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}.`;
+}
+
+// Derived from what actually made it into the bundle (post-dedupe) rather
+// than a fixed label per slot -- a slot can lose its activity/flower to
+// deduping or a thin catalog match, and a hardcoded title like "Two gifts"
+// reading over a bundle that only ended up with one item looks broken.
+function titleBundle(items: GiftSuggestion[]): string {
+  const hasActivity = items.some((item) => item.category === "activity");
+  const giftCount = items.filter((item) => item.category === "gift").length;
+  const hasCard = items.some((item) => item.category === "card");
+  const hasFlowers = items.some((item) => item.category === "flowers");
+  if (hasActivity && giftCount > 0) return "Experience + gift";
+  if (hasActivity) return "Experience";
+  if (giftCount >= 2) return "Two gifts";
+  if (giftCount === 1 && (hasCard || hasFlowers)) return "One gift + card";
+  if (giftCount === 1) return "One strong gift";
+  return "Gift package";
+}
+
+export function generateGiftBundles(response: SurveyResponse, count = 3, context: SuggestionContext = {}): AutoGiftBundle[] {
+  const pool = generateGiftSuggestions(response, context);
   const gifts = pool.filter((item) => item.category === "gift");
   const activities = pool.filter((item) => item.category === "activity");
   const touches = pool.filter((item) => item.category === "card" || item.category === "flowers" || item.category === "addon");
   const firstGift = gifts[0] ?? pool.find((item) => item.category !== "card");
   const secondGift = gifts[1] ?? gifts[0] ?? firstGift;
-  const activity = activities[0] ?? pool.find((item) => item.category === "activity");
-  const premiumActivity = activities[1] ?? activity;
-  const card = touches.find((item) => item.category === "card") ?? {
-    id: `card-${crypto.randomUUID()}`,
-    name: "Personalized Card",
-    price: ADDON_PRICING.card,
-    reason: "Adds a personal message so the package feels chosen, not auto-shipped.",
-    category: "card" as const,
-    rating: 86,
-    imageUrl: "https://images.unsplash.com/photo-1512909006721-3d6018887383?auto=format&fit=crop&w=600&q=80",
-  };
+  const activity = activities[0];
+  const premiumActivity = activities[1] ?? activities[0];
+  // Only include the paid "handwritten card" line item when the occasion
+  // actually calls for one -- it used to fall back to a synthesized default
+  // card and get forced into two of the three bundles regardless, which is
+  // part of why every option looked the same.
+  const card = touches.find((item) => item.category === "card");
   const flower = touches.find((item) => item.category === "flowers");
 
-  const bundles: AutoGiftBundle[] = [
-    {
-      id: `bundle-movie-${crypto.randomUUID()}`,
-      title: "Movie night + keepsake",
-      description: "A cozy at-home experience with a personal note and one useful gift.",
-      items: [activity, card, firstGift].filter(Boolean) as GiftSuggestion[],
-    },
-    {
-      id: `bundle-experience-${crypto.randomUUID()}`,
-      title: "Experience + standout gift",
-      description: "A bigger outing or credit paired with a memorable physical gift.",
-      items: [premiumActivity, secondGift, flower].filter(Boolean) as GiftSuggestion[],
-    },
-    {
-      id: `bundle-single-${crypto.randomUUID()}`,
-      title: "One strong gift",
-      description: "Spend the budget on the highest-confidence single item, with optional card notes.",
-      items: [firstGift ?? pool[0], card].filter(Boolean) as GiftSuggestion[],
-    },
+  const bundleDefs: Array<{ id: string; items: GiftSuggestion[] }> = [
+    { id: `bundle-activity-${crypto.randomUUID()}`, items: dedupeItems([activity, card, firstGift]) },
+    { id: `bundle-premium-${crypto.randomUUID()}`, items: dedupeItems([premiumActivity, secondGift, flower]) },
+    { id: `bundle-single-${crypto.randomUUID()}`, items: dedupeItems([firstGift ?? pool[0], card]) },
   ];
 
-  return bundles.slice(0, count).map((bundle, index) => ({ ...bundle, title: `Option ${index + 1}: ${bundle.title}` }));
+  return bundleDefs
+    .filter((bundle) => bundle.items.length > 0)
+    .slice(0, count)
+    .map((bundle, index) => ({ ...bundle, title: `Option ${index + 1}: ${titleBundle(bundle.items)}`, description: describeBundle(bundle.items) }));
 }
 
-export function regenerateBundleItem(response: SurveyResponse, current: GiftSuggestion, offset = 0): GiftSuggestion {
-  const pool = generateGiftSuggestions({ ...response, notes: `${response.notes} replace ${current.category} ${offset}` });
+export function regenerateBundleItem(response: SurveyResponse, current: GiftSuggestion, offset = 0, context: SuggestionContext = {}): GiftSuggestion {
+  // Real catalog items are id'd `product-<catalog id>` -- exclude the
+  // current pick from the candidate pool so "regenerate" reliably swaps in
+  // something different instead of re-scoring to the same top result.
+  const excludeIds = current.id.startsWith("product-") ? [current.id.replace(/^product-/, "").replace(/-regen-.+$/, "")] : [];
+  const pool = generateGiftSuggestions(
+    { ...response, notes: `${response.notes} replace ${current.category} ${offset}` },
+    { ...context, excludeIds: [...(context.excludeIds ?? []), ...excludeIds] },
+  );
   const replacement = pool.find((item) => item.category === current.category && item.name !== current.name)
     ?? pool.find((item) => item.category === "gift" && item.name !== current.name)
     ?? pool[offset % pool.length]

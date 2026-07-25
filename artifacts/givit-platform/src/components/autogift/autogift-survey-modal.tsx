@@ -52,6 +52,7 @@ export function GiftSurveyModal({
   const [aiPersonalizing, setAiPersonalizing] = useState(false);
   const [cardMessageTouched, setCardMessageTouched] = useState(false);
   const aiRequestToken = useRef(0);
+  const shownProductIds = useRef<Set<string>>(new Set());
 
   const currentResponse: SurveyResponse = {
     interests,
@@ -75,7 +76,20 @@ export function GiftSurveyModal({
     const response = currentResponse;
     const surveyId = `survey-${Date.now()}`;
     respondToSurvey(surveyId, response);
-    const nextBundles = generateGiftBundles({ ...response, notes: `${response.notes} Variation ${nextRegenerationCount}.` });
+    // On a regenerate (not the first generation), exclude every real
+    // catalog product already shown so far -- otherwise the scoring engine
+    // is deterministic and "Regenerate" just re-surfaces the same top picks.
+    const excludeIds = nextRegenerationCount > 0 ? Array.from(shownProductIds.current) : [];
+    const nextBundles = generateGiftBundles(
+      { ...response, notes: `${response.notes} Variation ${nextRegenerationCount}.` },
+      3,
+      { recipientName, occasion, excludeIds },
+    );
+    for (const bundle of nextBundles) {
+      for (const item of bundle.items) {
+        if (item.id.startsWith("product-")) shownProductIds.current.add(item.id.replace(/^product-/, "").replace(/-regen-.+$/, ""));
+      }
+    }
     const normalizedBundles = packageType === "recommendations"
       ? nextBundles.map((bundle, index) => ({ ...bundle, title: `Option ${index + 1}: One gift idea`, items: bundle.items.filter((item) => item.category === "gift" || item.category === "activity").slice(0, 1) }))
       : nextBundles;
@@ -119,7 +133,8 @@ export function GiftSurveyModal({
   }
 
   function replaceBundleItem(bundleId: string, item: GiftSuggestion) {
-    const replacement = regenerateBundleItem(currentResponse, item, regenerationCount + 1);
+    const replacement = regenerateBundleItem(currentResponse, item, regenerationCount + 1, { recipientName, occasion, excludeIds: Array.from(shownProductIds.current) });
+    if (replacement.id.startsWith("product-")) shownProductIds.current.add(replacement.id.replace(/^product-/, "").replace(/-regen-.+$/, ""));
     setRegenerationCount((n) => n + 1);
     setBundles((prev) => prev.map((bundle) => bundle.id === bundleId ? { ...bundle, items: bundle.items.map((existing) => existing.id === item.id ? replacement : existing) } : bundle));
     setItemNotes((prev) => ({ ...prev, [replacement.id]: replacement.fulfillmentNotes || "" }));
