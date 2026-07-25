@@ -249,7 +249,7 @@ export default function ConciergePage() {
                               setSurveyNotification({
                                 id: `build-${r.id}`,
                                 recipientName: r.name,
-                                occasion: upcoming?.label || "an upcoming date",
+                                occasion: upcoming?.label || "upcoming gift",
                                 date: upcoming?.date || new Date(Date.now() + 35 * 86400000).toISOString().slice(0, 10),
                                 daysUntil: upcoming ? Math.ceil((upcoming.parsed.getTime() - Date.now()) / 86400000) : 35,
                                 dismissed: false,

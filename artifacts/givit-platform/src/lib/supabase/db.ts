@@ -471,8 +471,13 @@ export async function saveAutoGiftOrderToDb(order: {
   customerNotes?: string;
 }) {
   const supabase = getDb();
+  // order.id is the client-side local id (e.g. "autogift-<uuid>", used to key
+  // the browser's own localStorage order list) -- autogift_orders.id is a
+  // strict UUID column, so passing that prefixed string through fails with
+  // "invalid input syntax for type uuid". Let the column's own
+  // gen_random_uuid() default assign the real DB id instead; nothing reads
+  // this row back by the local id, so they're fine to differ.
   const { data, error } = await supabase.from("autogift_orders").insert({
-    id: order.id,
     user_id: order.userId,
     recipient_name: order.recipientName,
     occasion: order.occasion,
@@ -487,6 +492,13 @@ export async function saveAutoGiftOrderToDb(order: {
     customer_notes: order.customerNotes ?? null,
   }).select().single();
   return { data, error };
+}
+
+export async function getUserAutoGiftOrders(userId: string) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("autogift_orders").select("*").eq("user_id", userId).order("created_at", { ascending: false });
+  if (error) { console.warn("[AutoGift] Could not load user orders from DB:", error.message); return []; }
+  return data ?? [];
 }
 
 export async function getAllAutoGiftOrdersFromDb() {

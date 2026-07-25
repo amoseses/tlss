@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
-import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, Sparkles, PlusCircle, Trash2 } from "lucide-react";
+import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
-import { getUserOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile, saveUserAddress, saveUserPaymentMethod, deleteUserAddress, deleteUserPaymentMethod } from "@/lib/supabase/db";
+import { getUserOrders, getUserAutoGiftOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile, saveUserAddress, saveUserPaymentMethod, deleteUserAddress, deleteUserPaymentMethod } from "@/lib/supabase/db";
 import { NotificationSettingsCard } from "@/components/personalization/notification-settings";
 
 export default function AccountPage() {
@@ -36,13 +36,22 @@ export default function AccountPage() {
     async function load() {
       setDataLoading(true);
       try {
-        const [ordersData, addressesData, paymentData, wishlistData] = await Promise.all([
+        const [ordersData, autoGiftOrdersData, addressesData, paymentData, wishlistData] = await Promise.all([
           getUserOrders(userId),
+          getUserAutoGiftOrders(userId),
           getUserAddresses(userId),
           getUserPaymentMethods(userId),
           getWishlist(userId),
         ]);
-        setOrders(ordersData);
+        // Orders panel here is a summary -- the full breakdown (marketplace
+        // vs AutoGift, items, card message) lives on /orders. Normalizing
+        // both sources to the same shape lets this panel show "N orders"
+        // and a recent-3 preview without caring which table each came from.
+        const normalized = [
+          ...ordersData.map((o: any) => ({ id: o.id, total_cents: o.total_cents, status: o.status, created_at: o.created_at })),
+          ...autoGiftOrdersData.map((o: any) => ({ id: o.id, total_cents: o.total_cents, status: o.status, created_at: o.created_at })),
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setOrders(normalized);
         setAddresses(addressesData);
         setPaymentMethods(paymentData);
         setWishlist(wishlistData);
@@ -134,7 +143,7 @@ export default function AccountPage() {
   if (!user) return null;
 
   return (
-    <PageShell narrow>
+    <PageShell className="max-w-4xl">
       <div className="mb-6 overflow-hidden rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-givit-ember/10">
@@ -185,73 +194,67 @@ export default function AccountPage() {
               </div>
             )}
           </div>
-          <div className="hidden shrink-0 rounded-2xl bg-black/20 p-3 text-center text-xs text-muted-foreground sm:block">
-            <Sparkles className="mx-auto mb-1 h-4 w-4 text-givit-ember" />
-            Your gifting cockpit
-          </div>
         </div>
       </div>
 
       {accountNotice && <div className="mb-4 rounded-xl bg-givit-ember/10 px-4 py-3 text-sm text-givit-ink">{accountNotice}</div>}
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Orders */}
-        <div className="givit-panel p-5">
-          <div className="mb-3 flex items-center gap-2">
+        <div className="givit-panel p-6">
+          <div className="mb-4 flex items-center gap-2">
             <ShoppingBag className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Orders</h2>
           </div>
           {orders.length === 0 ? (
             <p className="text-sm text-muted-foreground">No orders yet.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {orders.slice(0, 3).map((order: any) => (
-                <div key={order.id} className="rounded-lg bg-muted/50 p-2.5 text-xs">
+                <div key={order.id} className="rounded-lg bg-muted/50 p-3 text-sm">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-foreground">${(order.total_cents / 100).toFixed(2)}</span>
-                    <span className={`rounded-full px-2 py-0.5 font-medium ${
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                       order.status === "delivered" ? "bg-emerald-100 text-emerald-700" :
                       order.status === "shipped" ? "bg-blue-100 text-blue-700" :
                       "bg-amber-100 text-amber-700"
                     }`}>{order.status}</span>
                   </div>
-                  <p className="mt-1 text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</p>
                 </div>
               ))}
-              {orders.length > 3 && (
-                <Link href="/orders" className="block text-center text-xs font-semibold text-givit-ember hover:underline">
-                  View all {orders.length} orders →
-                </Link>
-              )}
+              <Link href="/orders" className="block pt-1 text-center text-sm font-semibold text-givit-ember hover:underline">
+                View all {orders.length} order{orders.length !== 1 ? "s" : ""} →
+              </Link>
             </div>
           )}
         </div>
 
         {/* Wishlist */}
-        <div className="givit-panel p-5">
-          <div className="mb-3 flex items-center gap-2">
+        <div className="givit-panel p-6">
+          <div className="mb-4 flex items-center gap-2">
             <Heart className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Wishlist</h2>
           </div>
           {wishlist.length === 0 ? (
             <p className="text-sm text-muted-foreground">Your wishlist is empty.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {wishlist.slice(0, 3).map((item: any) => (
-                <div key={item.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2">
+                <div key={item.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-2.5">
                   {item.product_image && (
-                    <img src={item.product_image} alt="" className="h-8 w-8 rounded object-cover" />
+                    <img src={item.product_image} alt="" className="h-10 w-10 rounded object-cover" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-foreground">{item.product_name}</p>
+                    <p className="truncate text-sm font-medium text-foreground">{item.product_name}</p>
                     {item.product_price_cents && (
-                      <p className="text-[10px] text-muted-foreground">${(item.product_price_cents / 100).toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">${(item.product_price_cents / 100).toFixed(2)}</p>
                     )}
                   </div>
                 </div>
               ))}
               {wishlist.length > 3 && (
-                <Link href="/products" className="block text-center text-xs font-semibold text-givit-ember hover:underline">
+                <Link href="/products" className="block pt-1 text-center text-sm font-semibold text-givit-ember hover:underline">
                   View all {wishlist.length} items →
                 </Link>
               )}
@@ -260,39 +263,44 @@ export default function AccountPage() {
         </div>
 
         {/* Saved Addresses */}
-        <div className="givit-panel p-5">
-          <div className="mb-3 flex items-center gap-2">
+        <div className="givit-panel p-6 lg:col-span-2">
+          <div className="mb-4 flex items-center gap-2">
             <MapPin className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Saved Addresses</h2>
           </div>
-          <form onSubmit={handleAddressSave} className="mb-3 grid gap-2 rounded-lg border border-border/60 p-3">
-            <div className="grid gap-2 sm:grid-cols-2"><input value={addressForm.label} onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })} placeholder="Label" className="h-9 rounded-md border border-border bg-background px-3 text-xs" /><input value={addressForm.line1} onChange={(e) => setAddressForm({ ...addressForm, line1: e.target.value })} placeholder="Street address" required className="h-9 rounded-md border border-border bg-background px-3 text-xs" /></div>
-            <div className="grid gap-2 sm:grid-cols-3"><input value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} placeholder="City" required className="h-9 rounded-md border border-border bg-background px-3 text-xs" /><input value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} placeholder="State" required className="h-9 rounded-md border border-border bg-background px-3 text-xs" /><input value={addressForm.zip} onChange={(e) => setAddressForm({ ...addressForm, zip: e.target.value })} placeholder="ZIP" required className="h-9 rounded-md border border-border bg-background px-3 text-xs" /></div>
-            <Button type="submit" size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Add address</Button>
+          <form onSubmit={handleAddressSave} className="mb-4 grid gap-3 rounded-lg border border-border/60 p-4">
+            <div className="grid gap-3 sm:grid-cols-2"><input value={addressForm.label} onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })} placeholder="Label" className="h-10 rounded-md border border-border bg-background px-3 text-sm" /><input value={addressForm.line1} onChange={(e) => setAddressForm({ ...addressForm, line1: e.target.value })} placeholder="Street address" required className="h-10 rounded-md border border-border bg-background px-3 text-sm" /></div>
+            <div className="grid gap-3 sm:grid-cols-3"><input value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} placeholder="City" required className="h-10 rounded-md border border-border bg-background px-3 text-sm" /><input value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} placeholder="State" required className="h-10 rounded-md border border-border bg-background px-3 text-sm" /><input value={addressForm.zip} onChange={(e) => setAddressForm({ ...addressForm, zip: e.target.value })} placeholder="ZIP" required className="h-10 rounded-md border border-border bg-background px-3 text-sm" /></div>
+            <Button type="submit" size="sm" className="w-fit rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Add address</Button>
           </form>
           {addresses.length === 0 ? <p className="text-sm text-muted-foreground">No saved addresses.</p> : (
-            <div className="space-y-2">{addresses.map((addr: any) => (<div key={addr.id} className="rounded-lg bg-muted/50 p-2.5 text-xs"><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-1"><span className="font-medium text-foreground">{addr.label}</span>{addr.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}</div><button type="button" onClick={() => void handleAddressDelete(addr.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Delete address"><Trash2 className="h-3.5 w-3.5" /></button></div><p className="mt-0.5 text-muted-foreground">{addr.line1}, {addr.city}, {addr.state} {addr.zip}</p></div>))}</div>
+            <div className="grid gap-2.5 sm:grid-cols-2">{addresses.map((addr: any) => (<div key={addr.id} className="rounded-lg bg-muted/50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-1.5"><span className="font-medium text-foreground">{addr.label}</span>{addr.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-xs text-givit-ember">Default</span>}</div><button type="button" onClick={() => void handleAddressDelete(addr.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Delete address"><Trash2 className="h-3.5 w-3.5" /></button></div><p className="mt-1 text-xs text-muted-foreground">{addr.line1}, {addr.city}, {addr.state} {addr.zip}</p></div>))}</div>
           )}
         </div>
 
         {/* Payment Methods */}
-        <div className="givit-panel p-5">
-          <div className="mb-3 flex items-center gap-2">
+        <div className="givit-panel p-6 lg:col-span-2">
+          <div className="mb-4 flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Payment Methods</h2>
           </div>
-          <form onSubmit={handlePaymentSave} className="mb-3 grid gap-2 rounded-lg border border-border/60 p-3">
-            <input value={cardForm.name} onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })} placeholder="Name on card" className="h-9 rounded-md border border-border bg-background px-3 text-xs" />
-            <input value={cardForm.number} onChange={(e) => setCardForm({ ...cardForm, number: formatCardNumber(e.target.value) })} placeholder="Card number" inputMode="numeric" className="h-9 rounded-md border border-border bg-background px-3 text-xs" />
-            <div className="grid grid-cols-2 gap-2"><input value={cardForm.expiry} onChange={(e) => setCardForm({ ...cardForm, expiry: formatExpiry(e.target.value) })} placeholder="MM/YY" inputMode="numeric" className="h-9 rounded-md border border-border bg-background px-3 text-xs" /><input value={cardForm.cvc} onChange={(e) => setCardForm({ ...cardForm, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="CVC" inputMode="numeric" className="h-9 rounded-md border border-border bg-background px-3 text-xs" /></div>
-            <Button type="submit" size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Save payment method</Button>
+          <form onSubmit={handlePaymentSave} className="mb-4 grid gap-3 rounded-lg border border-border/60 p-4 sm:grid-cols-2">
+            <input value={cardForm.name} onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })} placeholder="Name on card" className="h-10 rounded-md border border-border bg-background px-3 text-sm sm:col-span-2" />
+            <input value={cardForm.number} onChange={(e) => setCardForm({ ...cardForm, number: formatCardNumber(e.target.value) })} placeholder="Card number" inputMode="numeric" className="h-10 rounded-md border border-border bg-background px-3 text-sm sm:col-span-2" />
+            <input value={cardForm.expiry} onChange={(e) => setCardForm({ ...cardForm, expiry: formatExpiry(e.target.value) })} placeholder="MM/YY" inputMode="numeric" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />
+            <input value={cardForm.cvc} onChange={(e) => setCardForm({ ...cardForm, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="CVC" inputMode="numeric" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />
+            <Button type="submit" size="sm" className="w-fit rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover sm:col-span-2">Save payment method</Button>
           </form>
           {paymentMethods.length === 0 ? <p className="text-sm text-muted-foreground">No saved payment methods.</p> : (
-            <div className="space-y-2">{paymentMethods.map((pm: any) => (<div key={pm.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2.5 text-xs"><CreditCard className="h-4 w-4 text-muted-foreground" /><span className="font-medium text-foreground">{pm.card_brand} •••• {pm.card_last4}</span>{pm.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">Default</span>}<button type="button" onClick={() => void handlePaymentDelete(pm.id)} className="ml-auto rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Delete payment method"><Trash2 className="h-3.5 w-3.5" /></button></div>))}</div>
+            <div className="grid gap-2.5 sm:grid-cols-2">{paymentMethods.map((pm: any) => (<div key={pm.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-sm"><CreditCard className="h-4 w-4 text-muted-foreground" /><span className="font-medium text-foreground">{pm.card_brand} •••• {pm.card_last4}</span>{pm.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-xs text-givit-ember">Default</span>}<button type="button" onClick={() => void handlePaymentDelete(pm.id)} className="ml-auto rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Delete payment method"><Trash2 className="h-3.5 w-3.5" /></button></div>))}</div>
           )}
         </div>
 
-        {user && <NotificationSettingsCard userId={user.id} />}
+        {user && (
+          <div className="lg:col-span-2">
+            <NotificationSettingsCard userId={user.id} />
+          </div>
+        )}
       </div>
 
       {/* Quick Links */}

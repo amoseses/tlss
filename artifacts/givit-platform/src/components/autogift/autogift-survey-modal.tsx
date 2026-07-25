@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Sparkles, CheckCircle, ThumbsDown, ThumbsUp } from "lucide-react";
+import { X, Sparkles, CheckCircle, ThumbsDown, ThumbsUp, Heart } from "lucide-react";
 import { respondToSurvey, generateGiftBundles, regenerateBundleItem, createAutoGiftOrder, type SurveyResponse, type GiftSuggestion, type AutoGiftBundle, type AutoGiftOrderItem } from "@/lib/autogift/survey";
 import { personalizeBundlesWithAI } from "@/lib/autogift/ai-personalize";
 import { trackUserEvent } from "@/lib/monitoring";
@@ -355,7 +355,17 @@ export function GiftSurveyModal({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Card message</label>
+                <label className="text-sm font-semibold">Digital gift card</label>
+                <p className="text-xs text-muted-foreground">This is what {recipientName} sees attached to the gift. Edit the message below and the card updates live.</p>
+                <div className="relative overflow-hidden rounded-2xl border border-givit-ember/25 bg-gradient-to-br from-givit-sand via-white to-white p-6 shadow-sm">
+                  <Sparkles className="pointer-events-none absolute right-5 top-5 h-5 w-5 text-givit-ember/25" />
+                  <Heart className="pointer-events-none absolute bottom-5 left-5 h-4 w-4 text-givit-coral/20" />
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-givit-ember">For {recipientName} &middot; {occasion}</p>
+                  <p className="mt-4 min-h-[4.5rem] font-serif text-lg italic leading-relaxed text-givit-ink">
+                    {cardMessage || "Your personalized message will appear here once GIVIT AI drafts one, or write your own below."}
+                  </p>
+                  <p className="mt-4 text-right text-xs font-medium text-muted-foreground">Sent with GIVIT</p>
+                </div>
                 <textarea
                   value={cardMessage}
                   onChange={(e) => { setCardMessage(e.target.value); setCardMessageTouched(true); }}
@@ -416,10 +426,15 @@ export function GiftSurveyModal({
                 Your AutoGift order for {recipientName}'s {occasion} has been submitted.
                 Your saved card will be charged for the approved total, then the order goes to the admin queue for sourcing, packaging, and shipping.
               </p>
-              <div className="mt-4 text-xs text-muted-foreground">
-                <p>Card message: "{cardMessage || "No card message"}"</p>
-                {address.line1 && <p>Shipping to: {address.line1}, {address.city}, {address.state} {address.zip}</p>}
-              </div>
+              {cardMessage && (
+                <div className="relative mx-auto mt-5 max-w-sm overflow-hidden rounded-2xl border border-givit-ember/25 bg-gradient-to-br from-givit-sand via-white to-white p-5 text-left shadow-sm">
+                  <Sparkles className="pointer-events-none absolute right-4 top-4 h-4 w-4 text-givit-ember/25" />
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-givit-ember">For {recipientName} &middot; {occasion}</p>
+                  <p className="mt-3 font-serif text-base italic leading-relaxed text-givit-ink">{cardMessage}</p>
+                  <p className="mt-3 text-right text-xs font-medium text-muted-foreground">Sent with GIVIT</p>
+                </div>
+              )}
+              {address.line1 && <p className="mt-4 text-xs text-muted-foreground">Shipping to: {address.line1}, {address.city}, {address.state} {address.zip}</p>}
               <Button onClick={onClose} className="mt-6 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
                 Done
               </Button>
