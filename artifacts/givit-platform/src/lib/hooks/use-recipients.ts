@@ -216,8 +216,18 @@ export function useRecipients(user: User | null | undefined) {
     const existing = recipients.find((r) => r.id === id);
     if (!existing) return { error: new Error("Recipient not found") };
     const next = { ...existing, ...updates };
-    setRecipients((prev) => prev.map((r) => (r.id === id ? next : r)));
-    window.localStorage.setItem("givit-recipients", JSON.stringify(recipients.map((r) => (r.id === id ? next : r))));
+    // Functional updater, and localStorage/next both derived from `prev`
+    // inside it -- not the `recipients` closed over at call time. The edit
+    // modal calls updateRecipient and updateOccasions concurrently
+    // (Promise.all), and updateOccasions's own setRecipients call used to
+    // rebuild its next array from that same stale closure, silently
+    // clobbering whichever field(s) this call had just changed (e.g. a
+    // freshly typed interest) the moment it resolved second.
+    setRecipients((prev) => {
+      const nextAll = prev.map((r) => (r.id === id ? next : r));
+      window.localStorage.setItem("givit-recipients", JSON.stringify(nextAll));
+      return nextAll;
+    });
     if (!user) return { error: null };
     const { error } = await saveGiftRecipient({
       id,
@@ -289,11 +299,16 @@ export function useRecipients(user: User | null | undefined) {
       }
     }
 
-    const next = { ...recipient, occasions: saved };
-    const nextAll = recipients.map((r) => (r.id === recipientId ? next : r));
-    setRecipients(nextAll);
-    window.localStorage.setItem("givit-recipients", JSON.stringify(nextAll));
-    setNotifications(generateNotifications(nextAll));
+    // Functional updater, same reasoning as updateRecipient above: this
+    // runs concurrently with it via Promise.all in the edit modal, so
+    // building off the `recipients` closed over at call time would silently
+    // drop whatever updateRecipient had just changed.
+    setRecipients((prev) => {
+      const nextAll = prev.map((r) => (r.id === recipientId ? { ...r, occasions: saved } : r));
+      window.localStorage.setItem("givit-recipients", JSON.stringify(nextAll));
+      setNotifications(generateNotifications(nextAll));
+      return nextAll;
+    });
     return { error: null };
   }
 
