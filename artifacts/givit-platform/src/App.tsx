@@ -9,6 +9,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { LoginPrompt } from "@/components/personalization/login-prompt";
 import { BetaFeedbackWidget } from "@/components/feedback/beta-feedback-widget";
+import { UrgentOccasionBanner } from "@/components/personalization/urgent-occasion-banner";
 
 import LandingPage from "@/pages/landing";
 import HomePage from "@/pages/home";
@@ -100,6 +101,7 @@ function Router() {
   return (
     <div className="flex min-h-screen flex-col">
       {!isLanding && <SiteHeader />}
+      {!isLanding && <UrgentOccasionBanner />}
       <main className="flex-1" style={{ opacity, transition: "opacity 150ms ease-in-out" }}>
         <Switch location={displayLocation}>
           <Route path="/" component={LandingPage} />
