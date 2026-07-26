@@ -16,7 +16,7 @@ export function SiteHeader() {
           <Link href="/home" className="shrink-0 flex items-center gap-2">
             <img src="/Screenshot 2026-06-23 095149.png" alt="GIVIT" className="h-8 w-8 rounded-md object-cover" />
             <span className="font-serif text-xl font-bold tracking-tight hidden sm:block">
-              GIV<span className="text-givit-coral">IT</span>
+              GIVIT
             </span>
           </Link>
 

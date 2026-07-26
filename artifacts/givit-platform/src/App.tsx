@@ -59,6 +59,36 @@ function usePageTransition(location: string) {
     return () => window.clearTimeout(swap);
   }, [location, displayLocation]);
 
+  // Client-side routing never resets scroll position on its own, so
+  // navigating to a shorter page (e.g. a product detail page, or the
+  // Givit AI chat) while scrolled down on a taller previous page landed
+  // wherever that old offset happened to fall on the new page -- often its
+  // very bottom. This has to be a separate effect keyed on displayLocation
+  // (not fired inline with setDisplayLocation above): calling scrollTo(0,0)
+  // in the same synchronous callback that triggers the page swap runs
+  // BEFORE React actually commits the new page into the DOM, and the
+  // browser's own scroll-anchoring then compensates for that subsequent
+  // swap by dragging the scroll position away from 0 again. Running here,
+  // after displayLocation (and therefore the DOM) has already changed,
+  // avoids the race entirely.
+  useEffect(() => {
+    // A single scrollTo(0, 0) here loses a race against something later in
+    // the same navigation (borne out live: reading scrollY immediately
+    // after the call already shows a nonzero value, and it settles on a
+    // consistent nonzero offset a few hundred ms later regardless of which
+    // page was navigated to) -- so this re-asserts across the window where
+    // that late corrective scroll actually lands, instead of relying on a
+    // single well-timed call to win outright.
+    const resetScroll = () => window.scrollTo(0, 0);
+    resetScroll();
+    const raf = requestAnimationFrame(resetScroll);
+    const timers = [30, 100, 250, 500, 800].map((ms) => window.setTimeout(resetScroll, ms));
+    return () => {
+      cancelAnimationFrame(raf);
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, [displayLocation]);
+
   return { displayLocation, opacity };
 }
 
