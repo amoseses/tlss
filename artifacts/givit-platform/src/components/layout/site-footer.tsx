@@ -23,7 +23,7 @@ export function SiteFooter() {
             <Link href="/home" className="mb-3 flex items-center gap-2">
               <img src="/Screenshot 2026-06-23 095149.png" alt="GIVIT" className="h-8 w-8 rounded-md object-cover" />
               <span className="font-serif text-lg font-bold text-white">
-                GIV<span className="text-givit-coral">IT</span>
+                GIVIT
               </span>
             </Link>
             <p className="max-w-[220px] text-xs leading-relaxed text-white/50">

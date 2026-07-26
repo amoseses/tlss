@@ -11,7 +11,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
 
         <Link href="/" className="relative flex items-center gap-2">
           <img src="/Screenshot 2026-06-23 095149.png" alt="GIVIT" className="h-9 w-9 rounded-lg object-cover" />
-          <span className="font-serif text-2xl font-bold text-white">GIV<span className="text-givit-coral">IT</span></span>
+          <span className="font-serif text-2xl font-bold text-white">GIVIT</span>
         </Link>
 
         <div className="relative space-y-6">
@@ -33,7 +33,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-givit-ember">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="font-serif text-2xl font-bold text-givit-ink">GIV<span className="text-givit-coral">IT</span></span>
+            <span className="font-serif text-2xl font-bold text-givit-ink">GIVIT</span>
           </Link>
           {children}
         </div>

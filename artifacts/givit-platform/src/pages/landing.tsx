@@ -83,7 +83,7 @@ export default function LandingPage() {
           <img src="/Screenshot 2026-06-23 095149.png" alt="GIVIT" className="animate-float relative h-20 w-20 rounded-2xl object-cover shadow-2xl md:h-24 md:w-24" />
         </div>
         <span className="font-serif text-3xl font-bold tracking-tight">
-          GIV<span className="text-givit-coral">IT</span>
+          GIVIT
         </span>
       </div>
 
