@@ -294,6 +294,13 @@ export function generateGiftBundles(response: SurveyResponse, count = 3, context
   const touches = pool.filter((item) => item.category === "card" || item.category === "flowers" || item.category === "addon");
   const firstGift = gifts[0] ?? pool.find((item) => item.category !== "card");
   const secondGift = gifts[1] ?? gifts[0] ?? firstGift;
+  // The "single gift" bundle deliberately prefers a THIRD distinct gift,
+  // not firstGift again -- when no activity product scores (common, since
+  // the catalog's "experiences" category is thin), the first bundle
+  // collapses to just [card, firstGift], which is exactly the same set of
+  // items as this bundle if it also used firstGift. Falls back to
+  // firstGift only when the pool genuinely has nothing else.
+  const thirdGift = gifts[2] ?? gifts[1] ?? gifts[0] ?? firstGift;
   const activity = activities[0];
   const premiumActivity = activities[1] ?? activities[0];
   // Only include the paid "handwritten card" line item when the occasion
@@ -306,8 +313,27 @@ export function generateGiftBundles(response: SurveyResponse, count = 3, context
   const bundleDefs: Array<{ id: string; items: GiftSuggestion[] }> = [
     { id: `bundle-activity-${crypto.randomUUID()}`, items: dedupeItems([activity, card, firstGift]) },
     { id: `bundle-premium-${crypto.randomUUID()}`, items: dedupeItems([premiumActivity, secondGift, flower]) },
-    { id: `bundle-single-${crypto.randomUUID()}`, items: dedupeItems([firstGift ?? pool[0], card]) },
+    { id: `bundle-single-${crypto.randomUUID()}`, items: dedupeItems([thirdGift ?? pool[0], card]) },
   ];
+
+  // Belt-and-suspenders: a thin catalog match (few real interest hits) can
+  // still leave two bundles with the exact same item set even after the
+  // above. Detect it by comparing sorted item ids and swap in the next
+  // pool gift the duplicate bundle doesn't already contain.
+  const signature = (items: GiftSuggestion[]) => items.map((i) => i.id).sort().join("|");
+  const seenSignatures = new Set<string>();
+  for (const bundle of bundleDefs) {
+    let sig = signature(bundle.items);
+    if (seenSignatures.has(sig)) {
+      const currentIds = new Set(bundle.items.map((i) => i.id));
+      const replacement = gifts.find((g) => !currentIds.has(g.id));
+      if (replacement) {
+        bundle.items = dedupeItems([...bundle.items.filter((i) => i.category !== "gift"), replacement]);
+        sig = signature(bundle.items);
+      }
+    }
+    seenSignatures.add(sig);
+  }
 
   return bundleDefs
     .filter((bundle) => bundle.items.length > 0)
