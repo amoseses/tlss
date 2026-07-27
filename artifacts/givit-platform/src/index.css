@@ -321,3 +321,10 @@
   animation: rotate-3d 7s linear infinite;
   transform-style: preserve-3d;
 }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee { animation: marquee 26s linear infinite; }
