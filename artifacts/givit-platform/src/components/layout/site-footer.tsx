@@ -38,6 +38,7 @@ export function SiteFooter() {
               <li><Link href="/gift" className="text-white/70 transition-colors hover:text-white">GIVIT AI</Link></li>
               <li><Link href="/concierge" className="text-white/70 transition-colors hover:text-white">AutoGift</Link></li>
               <li><Link href="/boards" className="text-white/70 transition-colors hover:text-white">Gift Boards</Link></li>
+              <li><Link href="/about" className="text-white/70 transition-colors hover:text-white">About</Link></li>
             </ul>
           </div>
 
@@ -88,7 +89,6 @@ export function SiteFooter() {
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
                 No brand deals in rankings
               </div>
-              <Link href="/about" className="transition-colors hover:text-white/60">About</Link>
               <Link href="/privacy" className="transition-colors hover:text-white/60">Privacy Policy</Link>
               <Link href="/terms" className="transition-colors hover:text-white/60">Terms of Use</Link>
             </div>
