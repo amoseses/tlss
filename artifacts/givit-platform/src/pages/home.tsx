@@ -71,13 +71,7 @@ export default function HomePage() {
         Never forget a birthday or anniversary again.
       </p>
 
-      {/* People dashboard — the actual front door for returning, logged-in users */}
-      <PeopleDashboard />
-
-      {/* Visual map of who GIVIT remembers, right after the people it's about */}
-      <RelationshipGraph />
-
-      {/* How it works — 30 seconds once, remembered forever */}
+      {/* How it works — explains the mechanism before showing it in action below */}
       <Reveal variant="triangle">
         <section className="border-y border-border/50 bg-givit-sand/40">
           <div className="stagger-children container grid gap-6 py-8 sm:grid-cols-3">
@@ -99,6 +93,12 @@ export default function HomePage() {
           </div>
         </section>
       </Reveal>
+
+      {/* People dashboard — the actual front door for returning, logged-in users */}
+      <PeopleDashboard />
+
+      {/* Visual map of who GIVIT remembers, right after the people it's about */}
+      <RelationshipGraph />
 
       {/* What GIVIT has learned recently — a real, growing memory feed, not a product rail */}
       <RecentMemoryFeed />
