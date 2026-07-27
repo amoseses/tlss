@@ -123,7 +123,7 @@ export function PeopleDashboard() {
         >
           <UserRound className="h-8 w-8 text-givit-ember" />
           <p className="font-semibold text-givit-ink">Add your first person</p>
-          <p className="max-w-sm text-sm text-muted-foreground">Name, relationship, interests, and a budget: about 30 seconds. GIVIT AI remembers them from then on.</p>
+          <p className="max-w-sm text-sm text-muted-foreground">Name, relationship, interests, and a budget: about 30 seconds. Your Gift AI remembers them from then on.</p>
         </Link>
       ) : (
         <div className="stagger-children grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

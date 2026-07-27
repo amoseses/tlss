@@ -35,7 +35,7 @@ export function SiteFooter() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/35">Explore</p>
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/products" className="text-white/70 transition-colors hover:text-white">Marketplace</Link></li>
-              <li><Link href="/gift" className="text-white/70 transition-colors hover:text-white">GIVIT AI</Link></li>
+              <li><Link href="/gift" className="text-white/70 transition-colors hover:text-white">Your Gift AI</Link></li>
               <li><Link href="/concierge" className="text-white/70 transition-colors hover:text-white">AutoGift</Link></li>
               <li><Link href="/boards" className="text-white/70 transition-colors hover:text-white">Gift Boards</Link></li>
               <li><Link href="/about" className="text-white/70 transition-colors hover:text-white">About</Link></li>
@@ -73,7 +73,7 @@ export function SiteFooter() {
             </div>
             <div>
               <p className="font-serif text-base font-bold text-white">Become a beta tester</p>
-              <p className="text-xs leading-relaxed text-white/50">Shape GIVIT AI, AutoGift, and the marketplace before anyone else sees them.</p>
+              <p className="text-xs leading-relaxed text-white/50">Shape Your Gift AI, AutoGift, and the marketplace before anyone else sees them.</p>
             </div>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-givit-ember px-4 py-2 text-xs font-semibold text-white">

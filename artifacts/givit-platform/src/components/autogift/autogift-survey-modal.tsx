@@ -305,11 +305,11 @@ export function GiftSurveyModal({
           {step === "suggestions" && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground">
-                GIVIT AI built three orderable options. Click through bundle pages, choose one, then regenerate or edit individual items inside that bundle.
+                Your Gift AI built three orderable options. Click through bundle pages, choose one, then regenerate or edit individual items inside that bundle.
               </p>
               {aiPersonalizing && (
                 <div className="flex items-center gap-2 rounded-lg bg-givit-ember/5 px-3 py-2 text-xs font-medium text-givit-ember">
-                  <Sparkles className="h-3.5 w-3.5 animate-pulse" /> GIVIT AI is personalizing these picks and drafting a card message…
+                  <Sparkles className="h-3.5 w-3.5 animate-pulse" /> Your Gift AI is personalizing these picks and drafting a card message…
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
@@ -377,7 +377,7 @@ export function GiftSurveyModal({
                   <Heart className="pointer-events-none absolute bottom-5 left-5 h-4 w-4 text-givit-coral/20" />
                   <p className="text-[11px] font-bold uppercase tracking-widest text-givit-ember">For {recipientName} &middot; {occasion}</p>
                   <p className="mt-4 min-h-[4.5rem] font-serif text-lg italic leading-relaxed text-givit-ink">
-                    {cardMessage || "Your personalized message will appear here once GIVIT AI drafts one, or write your own below."}
+                    {cardMessage || "Your personalized message will appear here once Your Gift AI drafts one, or write your own below."}
                   </p>
                   <p className="mt-4 text-right text-xs font-medium text-muted-foreground">Sent with GIVIT</p>
                 </div>
@@ -385,7 +385,7 @@ export function GiftSurveyModal({
                   value={cardMessage}
                   onChange={(e) => { setCardMessage(e.target.value); setCardMessageTouched(true); }}
                   rows={3}
-                  placeholder="Write a personalized message for the card... (GIVIT AI will draft one for you once suggestions finish generating)"
+                  placeholder="Write a personalized message for the card... (Your Gift AI will draft one for you once suggestions finish generating)"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
                 />
               </div>

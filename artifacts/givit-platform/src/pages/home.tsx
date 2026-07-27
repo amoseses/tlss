@@ -68,20 +68,23 @@ export default function HomePage() {
       </section>
 
       <p className="container py-6 text-center text-xl font-bold tracking-tight text-foreground md:text-2xl">
-        One place that remembers who you're shopping for, what they love, and when it matters.
+        Never forget a birthday or anniversary again.
       </p>
 
       {/* People dashboard — the actual front door for returning, logged-in users */}
       <PeopleDashboard />
+
+      {/* Visual map of who GIVIT remembers, right after the people it's about */}
+      <RelationshipGraph />
 
       {/* How it works — 30 seconds once, remembered forever */}
       <Reveal variant="triangle">
         <section className="border-y border-border/50 bg-givit-sand/40">
           <div className="stagger-children container grid gap-6 py-8 sm:grid-cols-3">
             {[
-              { icon: Sparkles, title: "Add someone, once", desc: "Name, interests, budget, dates to avoid. About 30 seconds: GIVIT AI can fill it in from a sentence." },
-              { icon: Bell, title: "The agent watches the calendar", desc: "Reminders 5–6 weeks before every important date, tied to the person, not a generic calendar app." },
-              { icon: PackageCheck, title: "You approve, GIVIT handles it", desc: "The agent reasons through your person's profile, proposes gifts with a reason for each, then orders, card-writes, and ships once you say go." },
+              { icon: Sparkles, title: "Add someone, once", desc: "Name, interests, budget, dates to avoid — about 30 seconds." },
+              { icon: Bell, title: "The agent watches the calendar", desc: "Reminders 5–6 weeks before every important date." },
+              { icon: PackageCheck, title: "You approve, GIVIT handles it", desc: "Gift proposed with a reason, then ordered and shipped once you say go." },
             ].map((item) => (
               <div key={item.title} className="slide-up flex gap-4 opacity-0">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card shadow-sm transition-transform hover:scale-110">
@@ -103,9 +106,6 @@ export default function HomePage() {
       {/* Relationship intelligence — what GIVIT knows and is doing for you, not a product rail */}
       <RelationshipInsights />
 
-      {/* Visual map of the same memory, for people who'd rather see it than read it */}
-      <RelationshipGraph />
-
       {/* Footer CTA */}
       <Reveal variant="triangle">
         <section className="container mt-4">
@@ -115,9 +115,9 @@ export default function HomePage() {
               <h2 className="font-serif text-2xl font-bold md:text-3xl">Every AI conversation starts from zero. GIVIT starts with years of context.</h2>
               <p className="mt-3 mb-6 text-sm leading-7 text-white/65">
                 {user
-                  ? "AutoGift reminds you early, handles fulfillment once you approve, and gets to know your people over time."
+                  ? "AutoGift reminds you early and handles fulfillment once you approve."
                   : (
-                    <>AutoGift reminds you early, handles fulfillment once you approve, and gets to know your people over time. <Link href="/login" className="underline text-white/80 hover:text-white">Sign in</Link> to get started.</>
+                    <><Link href="/login" className="underline text-white/80 hover:text-white">Sign in</Link> to let AutoGift remind you early and handle fulfillment once you approve.</>
                   )}
               </p>
               {user ? (

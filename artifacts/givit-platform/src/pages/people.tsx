@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { toast } from "sonner";
 import { ArrowRight, Bell, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { nextOccurrenceDate } from "@/lib/date-utils";
 import { initials } from "@/lib/utils";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
-const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
+const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Hanukkah", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
 
 // Occasion labels tied to a real calendar date shouldn't be settable to some
 // unrelated date (e.g. "Valentine's Day" on a random July date) -- these get
@@ -20,7 +21,22 @@ const FIXED_HOLIDAY_DATES: Record<string, { month: number; day: number }> = {
   Christmas: { month: 12, day: 25 },
   "Valentine's Day": { month: 2, day: 14 },
 };
-const LOCKED_OCCASION_LABELS = new Set(["Christmas", "Valentine's Day", "Mother's Day", "Father's Day"]);
+// Hanukkah follows the Hebrew calendar, so it has no fixed month/day -- first
+// night by Gregorian year, looked up rather than computed.
+const HANUKKAH_FIRST_NIGHT: Record<number, { month: number; day: number }> = {
+  2025: { month: 12, day: 14 },
+  2026: { month: 12, day: 4 },
+  2027: { month: 12, day: 24 },
+  2028: { month: 12, day: 12 },
+  2029: { month: 12, day: 1 },
+  2030: { month: 12, day: 20 },
+};
+const LOCKED_OCCASION_LABELS = new Set(["Christmas", "Hanukkah", "Valentine's Day", "Mother's Day", "Father's Day"]);
+// Only Birthday and Anniversary need a specific year -- every other occasion
+// either recurs on a fixed date (locked/auto-computed above) or is a
+// month-and-day-only reminder with no meaningful year of its own.
+const YEARLESS_OCCASION_LABELS = new Set(["Graduation", "Other"]);
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -37,6 +53,10 @@ function nthSundayOfMonth(year: number, month: number, n: number) {
 function computeHolidayDate(label: string, year: number): Date | null {
   if (label === "Mother's Day") return nthSundayOfMonth(year, 5, 2);
   if (label === "Father's Day") return nthSundayOfMonth(year, 6, 3);
+  if (label === "Hanukkah") {
+    const night = HANUKKAH_FIRST_NIGHT[year];
+    return night ? new Date(year, night.month - 1, night.day) : null;
+  }
   const fixed = FIXED_HOLIDAY_DATES[label];
   return fixed ? new Date(year, fixed.month - 1, fixed.day) : null;
 }
@@ -50,6 +70,71 @@ function nextHolidayDateString(label: string): string | null {
   if (!thisYear) return null;
   const next = thisYear >= today ? thisYear : computeHolidayDate(label, today.getFullYear() + 1);
   return next ? next.toISOString().slice(0, 10) : null;
+}
+
+// For month/day-only occasions (no year picker shown): resolve the same
+// month+day pair to whichever of this year or next hasn't already passed.
+function nextMonthDayDateString(month: number, day: number): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const thisYear = new Date(today.getFullYear(), month - 1, day);
+  const next = thisYear >= today ? thisYear : new Date(today.getFullYear() + 1, month - 1, day);
+  return next.toISOString().slice(0, 10);
+}
+
+function dateMonth(iso: string): number {
+  return iso ? Number(iso.slice(5, 7)) : new Date().getMonth() + 1;
+}
+function dateDay(iso: string): number {
+  return iso ? Number(iso.slice(8, 10)) : new Date().getDate();
+}
+
+// Shared date control for one occasion row: a locked auto-filled date for
+// fixed holidays, a plain year-inclusive date picker for Birthday/Anniversary
+// (the only two occasions where the year itself matters), and a month+day
+// picker with no year field for everything else.
+function OccasionDateInput({ label, value, onChange }: { label: string; value: string; onChange: (iso: string) => void }) {
+  const locked = LOCKED_OCCASION_LABELS.has(label);
+  if (locked) {
+    return (
+      <input
+        type="date"
+        value={value}
+        readOnly
+        title={`${label} falls on a fixed date and is set automatically`}
+        className="h-9 w-full rounded-md border border-border bg-muted px-2 text-sm text-muted-foreground outline-none"
+      />
+    );
+  }
+  if (YEARLESS_OCCASION_LABELS.has(label)) {
+    return (
+      <div className="grid grid-cols-2 gap-1.5">
+        <select
+          value={dateMonth(value)}
+          onChange={(e) => onChange(nextMonthDayDateString(Number(e.target.value), dateDay(value)))}
+          className="h-9 w-full rounded-md border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+        >
+          {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+        </select>
+        <select
+          value={dateDay(value)}
+          onChange={(e) => onChange(nextMonthDayDateString(dateMonth(value), Number(e.target.value)))}
+          className="h-9 w-full rounded-md border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+        >
+          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
+    );
+  }
+  return (
+    <input
+      type="date"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      max={label === "Birthday" ? todayISO() : undefined}
+      className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+    />
+  );
 }
 
 function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]) => void; onClose: () => void }) {
@@ -99,17 +184,22 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
     try {
       const built = await Promise.all(valid.map(async (p) => {
         const extracted = await extractRecipientProfile(p.aboutText);
+        let occasions = p.occasions.filter((o) => o.date);
+        if (extracted.birthdayDate && !occasions.some((o) => o.label === "Birthday")) {
+          occasions = [...occasions, { label: "Birthday", date: extracted.birthdayDate }];
+        }
         return {
           id: crypto.randomUUID(),
           name: p.name.trim(),
           relationship: p.relationship,
-          occasions: p.occasions.filter((o) => o.date),
+          occasions,
           interests: extracted.interests,
           avoidTerms: extracted.avoidTerms,
           budgetCents: extracted.budgetCents,
         } satisfies Recipient;
       }));
       onAdd(built);
+      toast.success(built.length > 1 ? `${built.length} people saved` : `${built[0].name} saved`);
       onClose();
     } finally {
       setSaving(false);
@@ -155,21 +245,12 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
                   </button>
                 </div>
                 {person.occasions.map((occ, i) => {
-                  const locked = LOCKED_OCCASION_LABELS.has(occ.label);
                   return (
                   <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
                     <select value={occ.label} onChange={(e) => updateOccasion(personIndex, i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
                       {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
                     </select>
-                    <input
-                      type="date"
-                      value={occ.date}
-                      onChange={(e) => updateOccasion(personIndex, i, "date", e.target.value)}
-                      readOnly={locked}
-                      max={occ.label === "Birthday" ? todayISO() : undefined}
-                      title={locked ? `${occ.label} falls on a fixed date and is set automatically` : undefined}
-                      className={`h-9 w-full rounded-md border border-border px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20 ${locked ? "bg-muted text-muted-foreground" : "bg-background"}`}
-                    />
+                    <OccasionDateInput label={occ.label} value={occ.date} onChange={(iso) => updateOccasion(personIndex, i, "date", iso)} />
                     {person.occasions.length > 1 && (
                       <button type="button" onClick={() => removeOccasion(personIndex, i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
                         <X className="h-3.5 w-3.5" />
@@ -190,7 +271,7 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
                   placeholder="e.g. Loves gardening, homemade food, and traveling. Already has lots of kitchen gadgets."
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
                 />
-                <p className="text-xs text-muted-foreground">GIVIT AI reads this and fills in interests and things to avoid automatically.</p>
+                <p className="text-xs text-muted-foreground">Your Gift AI reads this and fills in interests and things to avoid automatically.</p>
               </div>
             </div>
           ))}
@@ -268,12 +349,16 @@ function EditRecipientModal({
       let interests = splitTags(interestsText);
       let avoidTerms = splitTags(avoidText);
       let budgetCents = budget.trim() ? Math.round(Number.parseFloat(budget) * 100) : null;
+      let finalOccasions = occasions.filter((o) => o.date);
 
       if (aboutText.trim()) {
         const extracted = await extractRecipientProfile(aboutText);
         interests = Array.from(new Set([...interests, ...extracted.interests]));
         avoidTerms = Array.from(new Set([...avoidTerms, ...extracted.avoidTerms]));
         if (!budgetCents && extracted.budgetCents) budgetCents = extracted.budgetCents;
+        if (extracted.birthdayDate && !finalOccasions.some((o) => o.label === "Birthday")) {
+          finalOccasions = [...finalOccasions, { label: "Birthday", date: extracted.birthdayDate }];
+        }
       }
 
       const [profileResult, occasionsResult] = await Promise.all([
@@ -285,12 +370,13 @@ function EditRecipientModal({
           budgetCents: Number.isFinite(budgetCents) ? budgetCents : null,
           notes: notes.trim() || null,
         }),
-        onSaveOccasions(occasions.filter((o) => o.date)),
+        onSaveOccasions(finalOccasions),
       ]);
       if (profileResult.error || occasionsResult.error) {
         setError("Couldn't save your changes. Try again.");
         return;
       }
+      toast.success(`${name.trim()} saved`);
       onClose();
     } finally {
       setSaving(false);
@@ -326,21 +412,12 @@ function EditRecipientModal({
               </button>
             </div>
             {occasions.map((occ, i) => {
-              const locked = LOCKED_OCCASION_LABELS.has(occ.label);
               return (
               <div key={occ.id ?? `new-${i}`} className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
                 <select value={occ.label} onChange={(e) => updateOccasion(i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
                   {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
                 </select>
-                <input
-                  type="date"
-                  value={occ.date}
-                  onChange={(e) => updateOccasion(i, "date", e.target.value)}
-                  readOnly={locked}
-                  max={occ.label === "Birthday" ? todayISO() : undefined}
-                  title={locked ? `${occ.label} falls on a fixed date and is set automatically` : undefined}
-                  className={`h-9 w-full rounded-md border border-border px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20 ${locked ? "bg-muted text-muted-foreground" : "bg-background"}`}
-                />
+                <OccasionDateInput label={occ.label} value={occ.date} onChange={(iso) => updateOccasion(i, "date", iso)} />
                 {occasions.length > 1 && (
                   <button type="button" onClick={() => removeOccasion(i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
                     <X className="h-3.5 w-3.5" />
@@ -353,7 +430,7 @@ function EditRecipientModal({
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Interests</label>
             <input value={interestsText} onChange={(e) => setInterestsText(e.target.value)} placeholder="gardening, coffee, true crime podcasts" className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
-            <p className="text-xs text-muted-foreground">Comma-separated. This is what GIVIT AI matches gifts against.</p>
+            <p className="text-xs text-muted-foreground">Comma-separated. This is what Your Gift AI matches gifts against.</p>
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Avoid</label>
@@ -378,7 +455,7 @@ function EditRecipientModal({
               placeholder="e.g. Also really into hiking lately, and just got a French press."
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
             />
-            <p className="text-xs text-muted-foreground">GIVIT AI adds whatever it finds here on top of the fields above.</p>
+            <p className="text-xs text-muted-foreground">Your Gift AI adds whatever it finds here on top of the fields above.</p>
           </div>
 
           {error && <p className="text-xs font-medium text-destructive">{error}</p>}
@@ -519,7 +596,7 @@ export default function PeoplePage() {
               <UserRound className="h-6 w-6 text-white" />
             </div>
             <h2 className="font-serif text-3xl font-bold text-white">Your people, remembered.</h2>
-            <p className="text-sm leading-6 text-white/70">Save the people you care about once. GIVIT AI keeps their interests, budgets, and dates so you never start from zero.</p>
+            <p className="text-sm leading-6 text-white/70">Save the people you care about once. Your Gift AI keeps their interests, budgets, and dates so you never start from zero.</p>
             <div className="mt-2 flex flex-wrap justify-center gap-3">
               <Button asChild className="rounded-full givit-gradient px-6 text-white hover:brightness-110"><Link href="/signup?next=/people">Create free account</Link></Button>
               <Button asChild variant="outline" className="rounded-full border-white/20 bg-white/10 px-6 text-white hover:bg-white/20"><Link href="/login?next=/people">Log in</Link></Button>
@@ -552,7 +629,7 @@ export default function PeoplePage() {
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">People</p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">The people you care about</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Interests, budgets, and dates: saved once, remembered by GIVIT AI every time.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Interests, budgets, and dates: saved once, remembered by Your Gift AI every time.</p>
         </div>
         <Button onClick={() => setShowModal(true)} className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
           <Plus className="h-4 w-4" /> Add person

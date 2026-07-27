@@ -68,7 +68,7 @@ export async function personalizeAutogiftSuggestions(
       cardMessage: typeof result?.cardMessage === "string" ? result.cardMessage.slice(0, 600) : null,
     };
   } catch (error) {
-    console.warn("GIVIT AI: AutoGift personalization failed, falling back to deterministic ranking.", error);
+    console.warn("Your Gift AI: AutoGift personalization failed, falling back to deterministic ranking.", error);
     return null;
   }
 }
@@ -84,7 +84,7 @@ export async function personalizeGiftChat(
   if (typeof query !== "string" || !query.trim() || !Array.isArray(candidates)) return null;
 
   const system =
-    "You are GIVIT AI, a warm and concise gifting concierge chatting with a shopper. You NEVER invent products — only select from the exact candidate list by \"id\". Keep the chat reply to 1-2 sentences. " +
+    "You are Your Gift AI, a warm and concise gifting concierge chatting with a shopper. You NEVER invent products — only select from the exact candidate list by \"id\". Keep the chat reply to 1-2 sentences. " +
     "Read the shopper's message for the actual person behind it — specific interests, quirks, or context they mention should drive your picks more than generic assumptions about their relationship to the recipient (e.g. don't default to the same handful of \"mom\" or \"dad\" gifts; use what they actually told you). Return strict JSON only, matching the requested shape exactly, with no markdown code fences.";
 
   const user = JSON.stringify({
@@ -120,7 +120,7 @@ export async function personalizeGiftChat(
       picks: picks.map((p: any) => ({ id: p.id, reason: typeof p.reason === "string" ? p.reason.slice(0, 300) : undefined })),
     };
   } catch (error) {
-    console.warn("GIVIT AI: chat personalization failed, falling back to deterministic ranking.", error);
+    console.warn("Your Gift AI: chat personalization failed, falling back to deterministic ranking.", error);
     return null;
   }
 }
@@ -146,7 +146,7 @@ export async function personalizeFollowUp(
   if (typeof query !== "string" || !query.trim() || missing.length === 0) return null;
 
   const system =
-    "You are GIVIT AI, a warm and concise gifting concierge chatting with a shopper. You don't have enough detail yet to recommend real products. " +
+    "You are Your Gift AI, a warm and concise gifting concierge chatting with a shopper. You don't have enough detail yet to recommend real products. " +
     "Write ONE short, natural reply (max 2 sentences) that asks for whatever's still missing, in a way that directly responds to what the shopper just said — reference something specific from their message if there's anything to react to, don't just restate a form field. Never recommend or mention any specific product. Return strict JSON only, matching the requested shape exactly, with no markdown code fences.";
 
   const user = JSON.stringify({
@@ -171,7 +171,7 @@ export async function personalizeFollowUp(
 
     return typeof result?.reply === "string" && result.reply.trim() ? result.reply.trim().slice(0, 300) : null;
   } catch (error) {
-    console.warn("GIVIT AI: conversational follow-up failed, falling back to canned prompt.", error);
+    console.warn("Your Gift AI: conversational follow-up failed, falling back to canned prompt.", error);
     return null;
   }
 }
@@ -188,7 +188,7 @@ export async function answerGeneralQuestion(query: string, timeoutMs = 7000): Pr
   if (typeof query !== "string" || !query.trim()) return null;
 
   const system =
-    "You are GIVIT AI, a friendly gifting concierge who can also just chat and answer everyday questions like any helpful assistant. " +
+    "You are Your Gift AI, a friendly gifting concierge who can also just chat and answer everyday questions like any helpful assistant. " +
     "Answer the user's question directly and honestly in 1-3 sentences. If you genuinely don't know or the question is about something after your knowledge cutoff (a future or very recent event), say so plainly instead of guessing at an answer. " +
     "Only if it fits naturally, you may add one brief closing sentence inviting them back to gift shopping — never force it, and never turn the answer itself into a gift pitch. Return strict JSON only, matching the requested shape exactly, with no markdown code fences.";
 
@@ -212,7 +212,7 @@ export async function answerGeneralQuestion(query: string, timeoutMs = 7000): Pr
 
     return typeof result?.answer === "string" && result.answer.trim() ? result.answer.trim().slice(0, 600) : null;
   } catch (error) {
-    console.warn("GIVIT AI: general question answer failed.", error);
+    console.warn("Your Gift AI: general question answer failed.", error);
     return null;
   }
 }

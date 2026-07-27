@@ -185,7 +185,7 @@ export function WishlistSharePanel() {
   }
 
   return (
-    <div className="rounded-2xl border border-givit-ember/20 bg-givit-sand/50 p-4">
+    <div className="rounded-2xl border border-givit-ember/20 bg-card p-4">
       <div className="flex items-center gap-2 text-sm font-bold text-givit-ink"><Share2 className="h-4 w-4 text-givit-ember" /> Shareable wishlist</div>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">Build a Christmas-list-style board, then send it to family or friends. Saved locally for guests; accounts can sync it later.</p>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -248,7 +248,7 @@ export function WishlistRail() {
 
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-givit-ember/30 bg-givit-sand/40 p-4 text-sm text-muted-foreground">
+      <div className="rounded-2xl border border-dashed border-givit-ember/30 bg-card p-4 text-sm text-muted-foreground">
         Save products while you browse. Your wishlist keeps the GIVIT product pages handy for birthdays, holidays, and shared boards.
       </div>
     );

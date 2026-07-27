@@ -95,7 +95,7 @@ export default function LandingPage() {
           Your AI memory for the people you love.
         </h1>
         <p className="mt-5 min-h-[3.5rem] text-lg text-white/70 md:min-h-[2.5rem]">
-          Save someone once. GIVIT AI remembers{" "}
+          Save someone once. Your Gift AI remembers{" "}
           <span className="inline-block font-semibold text-white">
             {typedPrompt}
             <span className="animate-cursor-blink ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-white/80 align-middle" />
@@ -143,7 +143,7 @@ export default function LandingPage() {
       <div className="slide-up mt-14 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/40" style={{ animationDelay: "260ms" }}>
         <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> No brand deals in rankings</span>
         <span className="flex items-center gap-1.5"><Gift className="h-3.5 w-3.5" /> Real gifts, real reasons</span>
-        <span className="flex items-center gap-1.5"><Bell className="h-3.5 w-3.5" /> Never forget a date again</span>
+        <span className="flex items-center gap-1.5"><Bell className="h-3.5 w-3.5" /> Never forget a birthday or anniversary again</span>
       </div>
     </div>
   );

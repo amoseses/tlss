@@ -328,7 +328,7 @@ export default function AccountPage() {
             <Gift className="h-5 w-5 text-givit-ember" />
           </div>
           <div>
-            <p className="font-semibold text-givit-ink">GIVIT AI</p>
+            <p className="font-semibold text-givit-ink">Your Gift AI</p>
             <p className="text-xs text-muted-foreground">Find gifts with AI</p>
           </div>
         </Link>

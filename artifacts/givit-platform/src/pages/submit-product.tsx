@@ -152,7 +152,7 @@ export default function SubmitProductPage() {
       <div className="mb-6">
         <h1 className="font-serif text-3xl font-bold text-givit-ink">Add your own product or experience</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Found a great gift idea? Paste the link; GIVIT AI fills in the details and shows you exactly what the card will look like before it's queued for admin approval.
+          Found a great gift idea? Paste the link; Your Gift AI fills in the details and shows you exactly what the card will look like before it's queued for admin approval.
         </p>
       </div>
 

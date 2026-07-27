@@ -541,7 +541,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
 
         <div className="givit-panel flex flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
-            <p className="text-xs font-semibold text-muted-foreground">GIVIT AI</p>
+            <p className="text-xs font-semibold text-muted-foreground">Your Gift AI</p>
             <div className="flex gap-1.5">
               {lastQuery && !loading && (
                 <button type="button" onClick={regenerate} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">

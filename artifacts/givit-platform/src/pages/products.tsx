@@ -452,7 +452,7 @@ export default function ProductsPage() {
                 </select>
               </form>
               <Link href="/gift" className="inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
-                <Sparkles className="h-4 w-4" /> Ask GIVIT AI
+                <Sparkles className="h-4 w-4" /> Ask Your Gift AI
               </Link>
             </div>
           </div>
