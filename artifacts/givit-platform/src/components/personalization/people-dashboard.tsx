@@ -5,6 +5,7 @@ import { Plus, Sparkles, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients } from "@/lib/supabase/db";
 import { nextOccurrenceDate } from "@/lib/date-utils";
+import { initials } from "@/lib/utils";
 
 type Occasion = { label: string; date: string };
 type Person = {
@@ -47,7 +48,7 @@ function PersonCard({ person }: { person: Person }) {
     >
       <div className="flex w-full items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full givit-gradient text-lg font-bold text-white">
-          {person.name[0]?.toUpperCase()}
+          {initials(person.name)}
         </div>
         <div className="min-w-0">
           <p className="truncate font-serif text-lg font-bold text-givit-ink">{person.name}</p>

@@ -4,6 +4,7 @@ import { Share2, UserRound } from "lucide-react";
 
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients } from "@/lib/supabase/db";
+import { initials } from "@/lib/utils";
 
 type GraphPerson = { id: string; name: string; interests: string[] };
 
@@ -155,7 +156,7 @@ export function RelationshipGraph() {
                   strokeDasharray={hasInterests ? undefined : "5 3"}
                 />
                 <text x={pos.x} y={pos.y + 5} textAnchor="middle" className={hasInterests ? "fill-white text-[13px] font-bold" : "fill-givit-ember text-[13px] font-bold"}>
-                  {person.name[0]?.toUpperCase()}
+                  {initials(person.name)}
                 </text>
                 <text x={pos.x} y={pos.y + 35} textAnchor="middle" className="fill-foreground text-[13px] font-semibold">
                   {truncate(person.name, 14)}

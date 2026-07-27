@@ -4,6 +4,7 @@ import { Brain, Sparkles } from "lucide-react";
 
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients } from "@/lib/supabase/db";
+import { initials } from "@/lib/utils";
 
 type MemoryEntry = {
   id: string;
@@ -58,7 +59,7 @@ export function RecentMemoryFeed() {
         {entries.map((entry) => (
           <div key={entry.id} className="slide-up flex items-start gap-4 rounded-2xl border border-border/60 bg-card p-5 opacity-0">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full givit-gradient text-base font-bold text-white">
-              {entry.name[0]?.toUpperCase()}
+              {initials(entry.name)}
             </div>
             <div className="min-w-0">
               <p className="text-base text-foreground">

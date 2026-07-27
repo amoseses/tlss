@@ -29,7 +29,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell title="Welcome back." subtitle="Sign in to manage your AutoGift schedule, saved boards, and orders.">
+    <AuthShell title="Welcome back" subtitle="Sign in to manage your AutoGift schedule, saved boards, and orders.">
       <Card className="givit-panel rounded-2xl shadow-md">
         <CardHeader>
           <CardTitle className="text-2xl font-normal">Sign in</CardTitle>

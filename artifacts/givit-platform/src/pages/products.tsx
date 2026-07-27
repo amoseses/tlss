@@ -44,6 +44,7 @@ import { useSearchParams } from "@/lib/hooks/use-search-params";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients } from "@/lib/supabase/db";
 import { formatMoney } from "@/lib/format";
+import { initials } from "@/lib/utils";
 
 const OCCASIONS = [
   "Christmas", "Valentine's Day", "Mother's Day", "Father's Day",
@@ -313,7 +314,7 @@ export default function ProductsPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-givit-ember/25 bg-givit-ember/5 px-4 py-3">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
-              {shoppingFor.name[0]?.toUpperCase()}
+              {initials(shoppingFor.name)}
             </div>
             <p className="text-sm text-givit-ink">
               <span className="font-semibold">Shopping for {shoppingFor.name}</span>

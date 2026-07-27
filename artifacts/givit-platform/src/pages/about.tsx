@@ -4,7 +4,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { Reveal } from "@/components/ui/reveal";
 import { generatedProfilePhotoUrl } from "@/lib/avatar";
 
-type TeamMember = { name: string; title: string; photo: string };
+type TeamMember = { name: string; title: string; photo: string; zoom?: number };
 
 // Photo files go in artifacts/givit-platform/public/team/ using these exact
 // names -- drop a same-named file in and it's picked up automatically, no
@@ -14,7 +14,12 @@ const TEAM: TeamMember[] = [
   { name: "Atticus Moes", title: "Founder & Chief Executive Officer", photo: "/team/atticus.jpeg" },
   { name: "Abhiram Kaakarla", title: "Co-Founder & Co-Chief Executive Officer", photo: "/team/abhiram.jpeg" },
   { name: "Swanith Vuppalapati", title: "Chief Technology Officer", photo: "/team/swanith.jpeg" },
-  { name: "Revant Palivela", title: "Chief Marketing Officer", photo: "/team/revant.jpeg" },
+  // The source photo has visible white padding above/below the subject,
+  // so it doesn't fill the card the way the others do even with
+  // object-cover (which already fills the box completely -- what's left
+  // is padding baked into the image itself). Scaling up crops that
+  // padding out of the visible frame.
+  { name: "Revant Palivela", title: "Chief Marketing Officer", photo: "/team/revant.jpeg", zoom: 1.35 },
 ];
 
 function TeamPhoto({ member }: { member: TeamMember }) {
@@ -25,6 +30,7 @@ function TeamPhoto({ member }: { member: TeamMember }) {
       alt={member.name}
       onError={() => setSrc(generatedProfilePhotoUrl(member.name))}
       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+      style={member.zoom ? { transform: `scale(${member.zoom})` } : undefined}
     />
   );
 }

@@ -1,17 +1,35 @@
-import { Link } from "wouter";
-import { Bell, LayoutGrid, Sparkles, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { useTheme } from "next-themes";
+import { Bell, CalendarDays, LayoutGrid, Sparkles, UserRound } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/lib/auth/use-auth";
 
+const NAV_ITEMS = [
+  { href: "/home", label: "Dashboard", icon: LayoutGrid },
+  { href: "/people", label: "People", icon: UserRound },
+  { href: "/gift", label: "Your Gift AI", icon: Sparkles },
+  { href: "/products", label: "Marketplace", icon: null },
+  { href: "/concierge?view=calendar", label: "Calendar", icon: CalendarDays, matchPath: "/concierge", matchSearch: "view=calendar" },
+  { href: "/concierge", label: "AutoGift", icon: Bell, accent: true },
+];
+
 export function SiteHeader() {
   const { user, profile } = useAuth();
+  const [location] = useLocation();
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = !mounted || resolvedTheme === "dark";
   const isSeller = profile?.role === "admin";
+
+  const [path, search] = location.split("?");
 
   return (
     <header className="sticky top-0 z-50 shadow-md">
-      <div className="bg-black text-white">
+      <div className={isDark ? "bg-black text-white" : "bg-white text-givit-ink border-b border-border"}>
         <div className="container flex items-center justify-between gap-3 py-2.5 md:py-3">
           <Link href="/home" className="shrink-0 flex items-center gap-2">
             <img src="/Screenshot 2026-06-23 095149.png" alt="GIVIT" className="h-8 w-8 rounded-md object-cover" />
@@ -40,42 +58,38 @@ export function SiteHeader() {
           </div>
         </div>
 
-        <div className="border-t border-white/8 bg-white/5">
-          <div className="container flex items-center gap-1 overflow-x-auto py-1.5 scrollbar-none">
-            <Link
-              href="/home"
-              className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
-            >
-              <LayoutGrid className="mr-1 inline h-3 w-3" />
-              Dashboard
-            </Link>
-            <Link
-              href="/people"
-              className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
-            >
-              <UserRound className="mr-1 inline h-3 w-3" />
-              People
-            </Link>
-            <Link
-              href="/gift"
-              className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-givit-ember transition-colors hover:bg-white/10 hover:text-givit-ember-hover whitespace-nowrap"
-            >
-              <Sparkles className="mr-1 inline h-3 w-3" />
-              AI Assistant
-            </Link>
-            <Link
-              href="/products"
-              className="shrink-0 rounded-md px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
-            >
-              Marketplace
-            </Link>
-            <Link
-              href="/concierge"
-              className="shrink-0 rounded-md px-3 py-1 text-xs font-medium text-givit-coral transition-colors hover:bg-white/10 hover:text-white whitespace-nowrap"
-            >
-              <Bell className="mr-1 inline h-3 w-3" />
-              AutoGift
-            </Link>
+        <div className={isDark ? "border-t border-white/8 bg-white/5" : "border-t border-border bg-givit-sand/40"}>
+          <div className="container flex items-center gap-1.5 overflow-x-auto py-2 scrollbar-none">
+            {NAV_ITEMS.map((item) => {
+              const [itemPath, itemSearch] = item.href.split("?");
+              const isActive = item.matchPath
+                ? path === item.matchPath && search === item.matchSearch
+                : path === itemPath && (item.matchPath || !search);
+              const Icon = item.icon;
+              const isAutoGift = item.accent;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`shrink-0 rounded-md px-3.5 py-1.5 text-sm font-semibold transition-colors whitespace-nowrap ${
+                    isAutoGift
+                      ? isActive
+                        ? "bg-givit-ember text-white"
+                        : "border border-givit-ember/40 text-givit-ember hover:bg-givit-ember/10"
+                      : isActive
+                        ? isDark
+                          ? "bg-white/15 text-white"
+                          : "bg-givit-ember/15 text-givit-ember"
+                        : isDark
+                          ? "text-white/80 hover:bg-white/10 hover:text-white"
+                          : "text-givit-ink/70 hover:bg-white hover:text-givit-ink"
+                  }`}
+                >
+                  {Icon && <Icon className="mr-1 inline h-3.5 w-3.5" />}
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>

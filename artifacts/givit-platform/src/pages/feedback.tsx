@@ -46,7 +46,7 @@ export default function FeedbackPage() {
     <PageShell narrow>
       <div className="mb-6">
         <h1 className="font-serif text-3xl font-bold text-givit-ink">Contact & Feedback</h1>
-        <p className="mt-2 text-muted-foreground text-sm">Have ideas, bugs, or suggestions? We read everything. Or <a href="https://calendly.com/atticusmoes/new-meeting?month=2026-07" target="_blank" rel="noopener noreferrer" className="text-givit-ember font-semibold hover:underline">book a call</a>.</p>
+        <p className="mt-2 text-muted-foreground text-sm">Have ideas, bugs, or suggestions? We read everything. Or <a href="https://calendly.com/atticusmoes/new-meeting?month=2026-07" target="_blank" rel="noopener noreferrer" className="text-givit-ember font-semibold hover:underline">contact us</a>.</p>
       </div>
       <form onSubmit={handleSubmit} className="givit-section space-y-4">
         {error ? <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}

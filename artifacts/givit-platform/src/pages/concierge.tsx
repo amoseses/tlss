@@ -6,6 +6,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { Reveal } from "@/components/ui/reveal";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useRecipients, nextOccurrenceDate, type ConciergeNotification } from "@/lib/hooks/use-recipients";
+import { initials } from "@/lib/utils";
 import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
 import { GiftSurveyModal } from "@/components/autogift/autogift-survey-modal";
 import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
@@ -26,6 +27,12 @@ export default function ConciergePage() {
   useEffect(() => {
     if (!loading) setHasLoadedOnce(true);
   }, [loading]);
+  // The header's "Calendar" nav item links here with ?view=calendar so it
+  // opens straight into the calendar instead of landing on the general
+  // AutoGift overview first.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("view") === "calendar") setShowCalendar(true);
+  }, []);
   const [surveyNotification, setSurveyNotification] = useState<ConciergeNotification | null>(null);
   const onboardingComplete = Boolean((profile as any)?.concierge_onboarding_completed) || window.localStorage.getItem("givit-autogift-onboarded") === "1";
 
@@ -98,7 +105,7 @@ export default function ConciergePage() {
               Just want a quick look first? Take the 60-second tour →
             </button>
             <a href="https://calendly.com/atticusmoes/new-meeting?month=2026-07" target="_blank" rel="noopener noreferrer" className="text-xs text-white/40 underline-offset-4 hover:text-white/70 hover:underline">
-              Prefer to talk it through? Book a consultation call
+              Prefer to talk it through? Contact us
             </a>
           </div>
         </div>
@@ -131,7 +138,7 @@ export default function ConciergePage() {
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
-                  {calendarPerson.name[0]?.toUpperCase()}
+                  {initials(calendarPerson.name)}
                 </div>
                 <p className="font-serif text-lg font-bold text-givit-ink">{calendarPerson.name}'s dates</p>
               </div>
@@ -246,7 +253,7 @@ export default function ConciergePage() {
                           className="flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3 transition hover:border-givit-ember/40 hover:shadow-sm"
                         >
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
-                            {r.name[0]?.toUpperCase()}
+                            {initials(r.name)}
                           </div>
                           <button
                             type="button"

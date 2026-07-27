@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
 import { nextOccurrenceDate } from "@/lib/date-utils";
+import { initials } from "@/lib/utils";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
@@ -407,7 +408,7 @@ function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: 
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full givit-gradient text-base font-bold text-white">
-            {recipient.name[0]?.toUpperCase()}
+            {initials(recipient.name)}
           </div>
           <div>
             <p className="font-serif text-base font-bold text-givit-ink">{recipient.name}</p>

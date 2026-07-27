@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { Link } from "wouter";
+import { useTheme } from "next-themes";
 import { CircleUser } from "lucide-react";
 import { generatedProfilePhotoUrl } from "@/lib/avatar";
 
@@ -23,13 +24,19 @@ type Props = {
 
 export function HeaderProfileButton({ loggedIn, email, displayName, role }: Props) {
   const [, navigate] = useLocation();
+  // The header's own background now flips light/dark with the theme (it
+  // used to always be black), so this icon/button needs to track it too --
+  // hardcoded white text would go invisible on a white header in light mode.
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
+  const iconClass = isDark ? "text-white hover:bg-white/10" : "text-givit-ink hover:bg-black/5";
 
   if (!loggedIn) {
     return (
       <Link
         href="/login"
         aria-label="Sign in"
-        className="flex h-10 w-10 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10"
+        className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${iconClass}`}
       >
         <CircleUser className="h-6 w-6" />
       </Link>
@@ -48,8 +55,8 @@ export function HeaderProfileButton({ loggedIn, email, displayName, role }: Prop
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex h-10 w-10 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10">
-        <img src={avatarUrl} alt={displayName || email || "Account"} className="h-8 w-8 rounded-full bg-white object-cover ring-2 ring-white/30" />
+      <DropdownMenuTrigger className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${iconClass}`}>
+        <img src={avatarUrl} alt={displayName || email || "Account"} className={`h-8 w-8 rounded-full bg-white object-cover ring-2 ${isDark ? "ring-white/30" : "ring-black/10"}`} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 rounded-2xl">
         <DropdownMenuLabel className="font-normal">

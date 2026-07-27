@@ -54,7 +54,7 @@ export default function HomePage() {
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
               <Button asChild className="h-12 rounded-full bg-white px-6 text-sm font-bold text-black hover:bg-white/90">
                 <Link href="/people">
-                  Create Your First Relationship <ArrowRight className="h-4 w-4" />
+                  Add Your First Relationship <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-12 rounded-full border-white/25 bg-white/5 px-6 text-sm font-semibold text-white hover:bg-white/10">
