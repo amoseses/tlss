@@ -33,6 +33,7 @@ import OrdersPage from "@/pages/orders";
 import AdminPage from "@/pages/admin";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
+import AboutPage from "@/pages/about";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -126,6 +127,7 @@ function Router() {
           <Route path="/admin" component={AdminPage} />
           <Route path="/privacy" component={PrivacyPage} />
           <Route path="/terms" component={TermsPage} />
+          <Route path="/about" component={AboutPage} />
           <Route component={NotFound} />
         </Switch>
       </main>
