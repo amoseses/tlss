@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { ArrowRight, ShieldCheck, Users } from "lucide-react";
 
+import { SponsorMarquee } from "@/components/marketing/sponsor-marquee";
 import { useAuth } from "@/lib/auth/use-auth";
 import { createClient } from "@/lib/supabase/client";
 
@@ -82,6 +83,11 @@ export function SiteFooter() {
         </Link>
 
         <div className="mt-8 border-t border-white/10 pt-6">
+          <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-widest text-white/30">Backed by</p>
+          <SponsorMarquee variant="dark" />
+        </div>
+
+        <div className="mt-6 border-t border-white/10 pt-6">
           <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-white/30">
             <p>© {new Date().getFullYear()} GIVIT. All rights reserved.</p>
             <div className="flex flex-wrap items-center gap-4">
