@@ -17,49 +17,49 @@ export function SiteFooter() {
   }
 
   return (
-    <footer className="border-t border-white/10 bg-black text-white/70">
+    <footer className="border-t border-border bg-background text-foreground/70">
       <div className="container py-12">
         <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-4">
           <div className="col-span-2">
             <Link href="/home" className="mb-3 flex items-center gap-2">
               <img src="/Screenshot 2026-06-23 095149.png" alt="GIVIT" className="h-8 w-8 rounded-md object-cover" />
-              <span className="font-serif text-lg font-bold text-white">
+              <span className="font-serif text-lg font-bold text-foreground">
                 GIVIT
               </span>
             </Link>
-            <p className="max-w-[220px] text-xs leading-relaxed text-white/50">
+            <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
               AI gift discovery and a curated marketplace. No brand deals in rankings.
             </p>
           </div>
 
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/35">Explore</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">Explore</p>
             <ul className="space-y-2.5 text-sm">
-              <li><Link href="/products" className="text-white/70 transition-colors hover:text-white">Marketplace</Link></li>
-              <li><Link href="/gift" className="text-white/70 transition-colors hover:text-white">Your Gift AI</Link></li>
-              <li><Link href="/concierge" className="text-white/70 transition-colors hover:text-white">AutoGift</Link></li>
-              <li><Link href="/boards" className="text-white/70 transition-colors hover:text-white">Gift Boards</Link></li>
-              <li><Link href="/about" className="text-white/70 transition-colors hover:text-white">About</Link></li>
+              <li><Link href="/products" className="transition-colors hover:text-foreground">Marketplace</Link></li>
+              <li><Link href="/gift" className="transition-colors hover:text-foreground">Your Gift AI</Link></li>
+              <li><Link href="/concierge" className="transition-colors hover:text-foreground">AutoGift</Link></li>
+              <li><Link href="/boards" className="transition-colors hover:text-foreground">Gift Boards</Link></li>
+              <li><Link href="/about" className="transition-colors hover:text-foreground">About</Link></li>
             </ul>
           </div>
 
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/35">Account</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">Account</p>
             <ul className="space-y-2.5 text-sm">
               {user ? (
                 <>
-                  <li><Link href="/account" className="text-white/70 transition-colors hover:text-white">Settings</Link></li>
-                  <li><Link href="/orders" className="text-white/70 transition-colors hover:text-white">Orders</Link></li>
-                  <li><button onClick={signOut} className="text-white/70 transition-colors hover:text-white">Sign out</button></li>
+                  <li><Link href="/account" className="transition-colors hover:text-foreground">Settings</Link></li>
+                  <li><Link href="/orders" className="transition-colors hover:text-foreground">Orders</Link></li>
+                  <li><button onClick={signOut} className="transition-colors hover:text-foreground">Sign out</button></li>
                 </>
               ) : (
                 <>
-                  <li><Link href="/login" className="text-white/70 transition-colors hover:text-white">Sign In</Link></li>
-                  <li><Link href="/signup" className="text-white/70 transition-colors hover:text-white">Sign Up</Link></li>
+                  <li><Link href="/login" className="transition-colors hover:text-foreground">Sign In</Link></li>
+                  <li><Link href="/signup" className="transition-colors hover:text-foreground">Sign Up</Link></li>
                 </>
               )}
-              <li><Link href="/feedback" className="text-white/70 transition-colors hover:text-white">Feedback</Link></li>
-              <li><a href="https://calendly.com/atticusmoes/new-meeting?month=2026-07" target="_blank" rel="noopener noreferrer" className="text-white/70 transition-colors hover:text-white">Contact Us</a></li>
+              <li><Link href="/feedback" className="transition-colors hover:text-foreground">Feedback</Link></li>
+              <li><a href="https://calendly.com/atticusmoes/new-meeting?month=2026-07" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground">Contact Us</a></li>
             </ul>
           </div>
         </div>
@@ -73,8 +73,8 @@ export function SiteFooter() {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-serif text-base font-bold text-white">Become a beta tester</p>
-              <p className="text-xs leading-relaxed text-white/50">Shape Your Gift AI, AutoGift, and the marketplace before anyone else sees them.</p>
+              <p className="font-serif text-base font-bold text-foreground">Become a beta tester</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">Shape Your Gift AI, AutoGift, and the marketplace before anyone else sees them.</p>
             </div>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-givit-ember px-4 py-2 text-xs font-semibold text-white">
@@ -82,21 +82,21 @@ export function SiteFooter() {
           </span>
         </Link>
 
-        <div className="mt-8 border-t border-white/10 pt-6">
-          <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-widest text-white/30">Backed by</p>
-          <SponsorMarquee variant="dark" />
+        <div className="mt-8 border-t border-border pt-6">
+          <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">Backed by</p>
+          <SponsorMarquee />
         </div>
 
-        <div className="mt-6 border-t border-white/10 pt-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-white/30">
+        <div className="mt-6 border-t border-border pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-muted-foreground/80">
             <p>© {new Date().getFullYear()} GIVIT. All rights reserved.</p>
             <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-1.5 text-white/40">
+              <div className="flex items-center gap-1.5 text-muted-foreground/80">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
                 No brand deals in rankings
               </div>
-              <Link href="/privacy" className="transition-colors hover:text-white/60">Privacy Policy</Link>
-              <Link href="/terms" className="transition-colors hover:text-white/60">Terms of Use</Link>
+              <Link href="/privacy" className="transition-colors hover:text-foreground">Privacy Policy</Link>
+              <Link href="/terms" className="transition-colors hover:text-foreground">Terms of Use</Link>
             </div>
           </div>
         </div>

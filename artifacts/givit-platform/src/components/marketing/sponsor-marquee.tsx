@@ -40,14 +40,18 @@ function AwsActivateLogo({ className }: { className?: string }) {
 
 const SPONSOR_LOGOS = [MicrosoftForStartupsLogo, GoogleForStartupsLogo, AwsActivateLogo];
 
-export function SponsorMarquee({ variant = "light" }: { variant?: "light" | "dark" }) {
+// Text color is set with literal light/dark classes rather than the
+// text-foreground token: the marquee track animates via CSS transform
+// continuously, and elements inside a continuously-transformed (and
+// thus separately-composited) subtree don't reliably repaint their
+// custom-property-derived color when the theme toggles, even though
+// the same token resolves fine everywhere else on the page.
+export function SponsorMarquee() {
   const track = [...SPONSOR_LOGOS, ...SPONSOR_LOGOS];
-  const edgeFrom = variant === "dark" ? "from-black" : "from-background";
-  const textColor = variant === "dark" ? "text-white" : "text-foreground";
   return (
-    <div className={`relative overflow-hidden py-2 ${textColor}`}>
-      <div className={`pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r ${edgeFrom} to-transparent`} />
-      <div className={`pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l ${edgeFrom} to-transparent`} />
+    <div className="relative overflow-hidden py-2 text-neutral-900 dark:text-neutral-50">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-background to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-background to-transparent" />
       <div className="animate-marquee flex w-max items-center gap-14">
         {track.map((Logo, i) => (
           <Logo key={i} className="opacity-60 grayscale transition duration-200 hover:opacity-100 hover:grayscale-0" />

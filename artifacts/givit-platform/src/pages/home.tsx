@@ -25,7 +25,7 @@ export default function HomePage() {
   return (
     <div className="pb-12">
       {/* Hero — minimal, relationship-first, no product wall */}
-      <section className="relative overflow-hidden bg-black">
+      <section className="relative overflow-hidden border-b border-border/50 bg-card">
         <div className="pointer-events-none absolute -top-32 right-0 h-[600px] w-[600px] rounded-full bg-givit-ember/25 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-givit-coral/20 blur-3xl" />
         {FLOATING_ICONS.map(({ Icon, className, duration, delay }, i) => (
@@ -41,23 +41,23 @@ export default function HomePage() {
             <div className="pointer-events-none mx-auto mb-2 flex h-14 items-center justify-center">
               <GiftBox3D size={56} />
             </div>
-            <p className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-bold uppercase tracking-widest text-givit-coral">
+            <p className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-bold uppercase tracking-widest text-givit-coral">
               <Sparkles className="h-3.5 w-3.5" /> Your AI gifting agent
             </p>
-            <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-white md:text-5xl">
+            <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-foreground md:text-5xl">
               Never send a bad gift again.
             </h1>
-            <p className="mt-4 text-base leading-7 text-white/70">
+            <p className="mt-4 text-base leading-7 text-muted-foreground">
               GIVIT remembers everyone you care about, reasons about what they'd actually love, and lines it up before you approve it.
             </p>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-              <Button asChild className="h-12 rounded-full bg-white px-6 text-sm font-bold text-black hover:bg-white/90">
+              <Button asChild className="h-12 rounded-full bg-foreground px-6 text-sm font-bold text-background hover:bg-foreground/90">
                 <Link href="/people">
                   Add Your First Relationship <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-12 rounded-full border-white/25 bg-white/5 px-6 text-sm font-semibold text-white hover:bg-white/10">
+              <Button asChild variant="outline" className="h-12 rounded-full px-6 text-sm font-semibold">
                 <Link href="/gift">
                   <Sparkles className="h-4 w-4" /> Talk to GIVIT
                 </Link>
@@ -109,15 +109,15 @@ export default function HomePage() {
       {/* Footer CTA */}
       <Reveal variant="triangle">
         <section className="container mt-4">
-          <div className="relative overflow-hidden rounded-xl bg-black px-8 py-10 text-white md:px-12">
-            <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
+          <div className="relative overflow-hidden rounded-xl border border-border/50 bg-card px-8 py-10 text-foreground md:px-12">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-givit-ember/10" />
             <div className="relative max-w-2xl">
               <h2 className="font-serif text-2xl font-bold md:text-3xl">Every AI conversation starts from zero. GIVIT starts with years of context.</h2>
-              <p className="mt-3 mb-6 text-sm leading-7 text-white/65">
+              <p className="mt-3 mb-6 text-sm leading-7 text-muted-foreground">
                 {user
                   ? "AutoGift reminds you early and handles fulfillment once you approve."
                   : (
-                    <><Link href="/login" className="underline text-white/80 hover:text-white">Sign in</Link> to let AutoGift remind you early and handle fulfillment once you approve.</>
+                    <><Link href="/login" className="givit-link underline">Sign in</Link> to let AutoGift remind you early and handle fulfillment once you approve.</>
                   )}
               </p>
               {user ? (
