@@ -65,3 +65,47 @@ export async function markNotificationStatus(id, status) {
     body: JSON.stringify(body),
   });
 }
+
+// PostgREST can't do a partial JSONB merge in one PATCH, so this reads the
+// row's current metadata and writes it back with the new key added rather
+// than overwriting whatever else (recipientName, occasion, ...) was already
+// stored there.
+async function mergeNotificationMetadata(id, patch) {
+  const rows = await restFetch(`gift_notifications?id=eq.${id}&select=metadata`);
+  const existing = rows?.[0]?.metadata ?? {};
+  await restFetch(`gift_notifications?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ metadata: { ...existing, ...patch } }),
+  });
+}
+
+// Called from the tracking-pixel endpoint. Idempotent by construction
+// (fetch-then-write), and a pixel can legitimately fire more than once
+// (email client prefetching, the recipient reopening the email) without
+// that being a problem here.
+export async function markNotificationOpened(id) {
+  await mergeNotificationMetadata(id, { opened_at: new Date().toISOString() });
+}
+
+export async function markFollowupSent(id) {
+  await mergeNotificationMetadata(id, { followup_sent_at: new Date().toISOString() });
+}
+
+// Reminder emails that were sent but never opened, and haven't already
+// gotten a follow-up nudge — the actual "send it again if they ignored it"
+// signal the dispatch-followups cron acts on.
+export async function fetchUnopenedEmailNotifications(olderThanHours, limit = 200) {
+  const cutoff = new Date(Date.now() - olderThanHours * 3600000).toISOString();
+  const params = new URLSearchParams({
+    select: "*",
+    status: "eq.sent",
+    channel: "eq.email",
+    sent_at: `lte.${cutoff}`,
+    "metadata->>opened_at": "is.null",
+    "metadata->>followup_sent_at": "is.null",
+    order: "sent_at.asc",
+    limit: String(limit),
+  });
+  return restFetch(`gift_notifications?${params.toString()}`);
+}

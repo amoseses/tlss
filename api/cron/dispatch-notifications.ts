@@ -8,12 +8,18 @@ import { fetchDueNotifications, fetchProfilesByIds, fetchPushSubscriptions, mark
 import { sendEmail } from "../_lib/email.mjs";
 import { sendPushToSubscription } from "../_lib/push.mjs";
 
-function emailBody(title: string, body: string) {
+function emailBody(title: string, body: string, notificationId?: string) {
+  // Invisible 1x1 pixel so dispatch-followups.ts can tell whether this
+  // specific reminder was ever opened before deciding to nudge again.
+  const pixel = notificationId
+    ? `<img src="https://givit.site/api/track/open?id=${encodeURIComponent(notificationId)}" width="1" height="1" alt="" style="display:none" />`
+    : "";
   const html = `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
     <p style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#c2542a">Givit</p>
     <h1 style="font-size:20px;margin:8px 0">${title}</h1>
     <p style="font-size:14px;line-height:1.6;color:#444">${body}</p>
     <a href="https://givit.site/concierge" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#c2542a;color:#fff;border-radius:999px;text-decoration:none;font-size:13px;font-weight:600">Open AutoGift</a>
+    ${pixel}
   </div>`;
   return { html, text: `${title}\n\n${body}\n\nOpen AutoGift: https://givit.site/concierge` };
 }
@@ -50,7 +56,7 @@ export default async function handler(req: any, res: any) {
             results.failed++;
             continue;
           }
-          const { html, text } = emailBody(notification.title, notification.body);
+          const { html, text } = emailBody(notification.title, notification.body, notification.id);
           await sendEmail({ to, subject: notification.title, html, text });
           await markNotificationStatus(notification.id, "sent");
           results.sent++;
