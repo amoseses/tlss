@@ -23,13 +23,22 @@ export function GiftBox3D({ size = 56, className = "" }: { size?: number; classN
     backfaceVisibility: "hidden",
   };
 
+  // Literal light/dark classes rather than a CSS-variable-based token: this
+  // whole component sits inside a continuously-running CSS transform
+  // animation (animate-rotate-3d), and elements in a continuously-animated
+  // (separately composited) subtree don't reliably repaint custom-property-
+  // derived colors when the theme toggles, even though the same token
+  // resolves fine on static content elsewhere on the page.
+  const ribbonColor = "bg-black dark:bg-white/90";
+  const ribbonBorderColor = "border-black dark:border-white/90";
+
   const verticalRibbon = (
-    <div className="absolute inset-y-0 bg-white/90" style={{ left: half - ribbonWidth / 2, width: ribbonWidth }} />
+    <div className={`absolute inset-y-0 ${ribbonColor}`} style={{ left: half - ribbonWidth / 2, width: ribbonWidth }} />
   );
   const crossRibbon = (
     <>
-      <div className="absolute inset-x-0 bg-white/90" style={{ top: half - ribbonWidth / 2, height: ribbonWidth }} />
-      <div className="absolute inset-y-0 bg-white/90" style={{ left: half - ribbonWidth / 2, width: ribbonWidth }} />
+      <div className={`absolute inset-x-0 ${ribbonColor}`} style={{ top: half - ribbonWidth / 2, height: ribbonWidth }} />
+      <div className={`absolute inset-y-0 ${ribbonColor}`} style={{ left: half - ribbonWidth / 2, width: ribbonWidth }} />
     </>
   );
 
@@ -56,11 +65,11 @@ export function GiftBox3D({ size = 56, className = "" }: { size?: number; classN
             edge and tilted up/out so it reads as a loop standing off the
             box, not a flat spoke lying on the surface */}
         <div
-          className="absolute rounded-full"
+          className={`absolute rounded-full border-solid ${ribbonBorderColor}`}
           style={{
             left: half - loopSize, top: half - loopSize / 2,
             width: loopSize, height: loopSize,
-            border: `${loopBorder}px solid white`,
+            borderWidth: loopBorder,
             background: "transparent",
             transform: "translateZ(6px) rotateY(38deg) rotateZ(-14deg)",
             transformOrigin: "100% 50%",
@@ -68,18 +77,18 @@ export function GiftBox3D({ size = 56, className = "" }: { size?: number; classN
         />
         {/* right loop (mirrored) */}
         <div
-          className="absolute rounded-full"
+          className={`absolute rounded-full border-solid ${ribbonBorderColor}`}
           style={{
             left: half, top: half - loopSize / 2,
             width: loopSize, height: loopSize,
-            border: `${loopBorder}px solid white`,
+            borderWidth: loopBorder,
             background: "transparent",
             transform: "translateZ(6px) rotateY(-38deg) rotateZ(14deg)",
             transformOrigin: "0% 50%",
           }}
         />
         <div
-          className="absolute rounded-full bg-white shadow-sm"
+          className={`absolute rounded-full shadow-sm ${ribbonColor}`}
           style={{ left: half - knotSize / 2, top: half - knotSize / 2, width: knotSize, height: knotSize, transform: "translateZ(10px)" }}
         />
       </div>
