@@ -12,10 +12,10 @@ type TeamMember = { name: string; title: string; photo: string; zoom?: number };
 // code change needed. Falls back to a generated avatar until then so a
 // missing file never shows a broken image.
 const TEAM: TeamMember[] = [
-  { name: "Atticus Moes", title: "Chief Executive Officer", photo: "/team/atticus.jpeg" },
-  { name: "Abhiram Kaakarla", title: "Co-Chief Executive Officer", photo: "/team/abhiram.jpeg" },
-  { name: "Swanith Vuppalapati", title: "Chief Technology Officer", photo: "/team/swanith.jpeg" },
-  { name: "Revant Palivela", title: "Chief Marketing Officer", photo: "/team/revant.jpeg" },
+  { name: "Atticus Moes", title: "Chief Executive Officer", photo: "/team/atticus.jpg" },
+  { name: "Abhiram Kaakarla", title: "Co-Chief Executive Officer", photo: "/team/abhiram.jpg" },
+  { name: "Swanith Vuppalapati", title: "Chief Technology Officer", photo: "/team/swanith.jpg" },
+  { name: "Revant Palivela", title: "Chief Marketing Officer", photo: "/team/revant.jpg" },
 ];
 
 function TeamPhoto({ member }: { member: TeamMember }) {
