@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { ArrowRight, Bell, Flower2, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
+import { ArrowRight, Bell, CalendarPlus, Flower2, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -10,6 +10,7 @@ import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
 import { nextOccurrenceDate } from "@/lib/date-utils";
 import { trackEvent } from "@/lib/supabase/db";
+import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
@@ -652,10 +653,131 @@ function CancelRecipientModal({ name, onConfirm, onClose }: { name: string; onCo
   );
 }
 
+type ImportRow = ParsedCalendarEvent & { selected: boolean; name: string; occasion: string };
+
+// A real Google/Apple Calendar-linked auto-import needs a registered OAuth
+// app with client credentials, which isn't something to fabricate without
+// the user setting that up externally. A .ics import gets the same
+// end result (birthdays/anniversaries pulled from whatever calendar the
+// person already uses) with zero external accounts -- every major calendar
+// app can export one.
+function CalendarImportModal({
+  recipients,
+  onImportNew,
+  onAddOccasionToExisting,
+  onClose,
+}: {
+  recipients: Recipient[];
+  onImportNew: (recipients: Recipient[]) => void;
+  onAddOccasionToExisting: (recipientId: string, occasions: Occasion[]) => void;
+  onClose: () => void;
+}) {
+  const [rows, setRows] = useState<ImportRow[] | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function handleFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const events = parseIcs(String(reader.result || ""));
+      if (events.length === 0) {
+        toast.error("No events found in that file.");
+        return;
+      }
+      setRows(events.map((e) => ({ ...e, selected: e.guessedOccasion !== "Other", name: e.guessedName, occasion: e.guessedOccasion })));
+    };
+    reader.readAsText(file);
+  }
+
+  function updateRow(i: number, updates: Partial<ImportRow>) {
+    setRows((prev) => (prev ? prev.map((r, idx) => (idx === i ? { ...r, ...updates } : r)) : prev));
+  }
+
+  async function handleImport() {
+    if (!rows) return;
+    const selected = rows.filter((r) => r.selected && r.name.trim());
+    if (selected.length === 0) { onClose(); return; }
+    setImporting(true);
+    try {
+      const newRecipients: Recipient[] = [];
+      for (const row of selected) {
+        const occasion: Occasion = { label: row.occasion, date: row.date };
+        const existing = recipients.find((r) => r.name.trim().toLowerCase() === row.name.trim().toLowerCase());
+        if (existing) {
+          const already = existing.occasions.some((o) => o.label === occasion.label && o.date === occasion.date);
+          if (!already) onAddOccasionToExisting(existing.id, [...existing.occasions, occasion]);
+        } else {
+          const dup = newRecipients.find((r) => r.name.trim().toLowerCase() === row.name.trim().toLowerCase());
+          if (dup) dup.occasions.push(occasion);
+          else newRecipients.push({ id: crypto.randomUUID(), name: row.name.trim(), relationship: "", occasions: [occasion], interests: [], avoidTerms: [] });
+        }
+      }
+      if (newRecipients.length > 0) onImportNew(newRecipients);
+      toast.success(`Imported ${selected.length} date${selected.length !== 1 ? "s" : ""}`);
+      onClose();
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
+      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border p-5">
+          <h2 className="font-serif text-xl font-bold text-givit-ink">Import from calendar</h2>
+          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {!rows ? (
+          <div className="space-y-4 p-5">
+            <p className="text-sm text-muted-foreground">
+              Export a .ics file from Google Calendar, Apple Calendar, or Outlook (most have a "Birthdays" calendar you can export separately) and drop it here. It's parsed right in your browser, nothing is uploaded anywhere else.
+            </p>
+            <input ref={fileRef} type="file" accept=".ics,text/calendar" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} className="hidden" />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-10 text-center transition hover:border-givit-ember/40 hover:bg-givit-sand/40"
+            >
+              <CalendarPlus className="h-6 w-6 text-givit-ember" />
+              <span className="text-sm font-semibold text-givit-ink">Choose a .ics file</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3 p-5">
+            <p className="text-sm text-muted-foreground">Found {rows.length} event{rows.length !== 1 ? "s" : ""}. Uncheck anything you don't want, and fix any names GIVIT guessed wrong.</p>
+            <div className="max-h-[45vh] space-y-2 overflow-y-auto">
+              {rows.map((row, i) => (
+                <div key={i} className={`flex items-center gap-2 rounded-md border p-2 ${row.selected ? "border-border" : "border-border/40 opacity-60"}`}>
+                  <input type="checkbox" checked={row.selected} onChange={(e) => updateRow(i, { selected: e.target.checked })} className="accent-givit-ember" />
+                  <input value={row.name} onChange={(e) => updateRow(i, { name: e.target.value })} className="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-sm outline-none" />
+                  <select value={row.occasion} onChange={(e) => updateRow(i, { occasion: e.target.value })} className="h-8 rounded-md border border-border bg-background px-1.5 text-xs outline-none">
+                    {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                  <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">{new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={onClose} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
+              <Button onClick={handleImport} disabled={importing} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+                {importing ? "Importing…" : `Import ${rows.filter((r) => r.selected).length}`}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PeoplePage() {
   const { user, loading } = useAuth();
   const { recipients, localReady, saveRecipients, deleteRecipient, updateRecipient, updateOccasions, toggleAutomation } = useRecipients(user);
   const [showModal, setShowModal] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const editingRecipient = editingId ? recipients.find((r) => r.id === editingId) : null;
@@ -724,15 +846,29 @@ export default function PeoplePage() {
         />
       )}
 
+      {showImport && (
+        <CalendarImportModal
+          recipients={recipients}
+          onImportNew={(added) => void saveRecipients([...recipients, ...added])}
+          onAddOccasionToExisting={(id, occasions) => void updateOccasions(id, occasions)}
+          onClose={() => setShowImport(false)}
+        />
+      )}
+
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">People</p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">The people you care about</h1>
           <p className="mt-1 text-sm text-muted-foreground">Interests, budgets, and dates: saved once, remembered by Your Gift AI every time.</p>
         </div>
-        <Button onClick={() => setShowModal(true)} className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
-          <Plus className="h-4 w-4" /> Add person
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setShowImport(true)} variant="outline" className="rounded-full">
+            <CalendarPlus className="h-4 w-4" /> Import from calendar
+          </Button>
+          <Button onClick={() => setShowModal(true)} className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
+            <Plus className="h-4 w-4" /> Add person
+          </Button>
+        </div>
       </div>
 
       {recipients.length === 0 ? (
