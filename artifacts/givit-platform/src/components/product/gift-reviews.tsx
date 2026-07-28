@@ -18,6 +18,11 @@ type GiftReview = {
   giftedTo: string;
   date: string;
   isUser?: boolean;
+  // No product in the catalog has real delivery-time data to derive a
+  // rating from, so "was delivery on time" is reviewer-reported like the
+  // rest of the review, not a fabricated number — undefined for the (rare)
+  // reviewer who skips the question, rather than defaulting to a value.
+  onTime?: boolean;
 };
 
 const STORAGE_KEY = "givit-gift-reviews";
@@ -62,6 +67,7 @@ function seededReviews(productId: string): GiftReview[] {
       body: BODIES[(offset >> 1) % BODIES.length]!,
       giftedTo: GIFTED_TO[offset % GIFTED_TO.length]!,
       date: new Date(Date.UTC(2026, (offset % 5), 1 + (offset % 27))).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      onTime: offset % 6 !== 0, // ~5 in 6 report on-time, one in 6 report late
     };
   });
 }
@@ -102,8 +108,13 @@ export function GiftReviews({ productId }: { productId: string }) {
   const [userReviews, setUserReviews] = useState<GiftReview[]>(() => readUserReviews(productId));
   const [showForm, setShowForm] = useState(false);
   const [rating, setRating] = useState(5);
+  const [onTime, setOnTime] = useState<boolean | null>(null);
 
   const reviews = [...userReviews, ...seededReviews(productId)];
+  const onTimeReviews = reviews.filter((r) => r.onTime !== undefined);
+  const onTimePct = onTimeReviews.length > 0
+    ? Math.round((onTimeReviews.filter((r) => r.onTime).length / onTimeReviews.length) * 100)
+    : null;
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -119,6 +130,7 @@ export function GiftReviews({ productId }: { productId: string }) {
       giftedTo: String(data.get("gifted_to") || "someone special").trim() || "someone special",
       date: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
       isUser: true,
+      onTime: onTime ?? undefined,
     };
     if (!review.body) {
       toast.error("Add a few words about how the gift landed.");
@@ -127,14 +139,22 @@ export function GiftReviews({ productId }: { productId: string }) {
     writeUserReview(productId, review);
     setUserReviews((current) => [review, ...current]);
     setShowForm(false);
+    setOnTime(null);
     form.reset();
     toast.success("Gift review added. Thanks for helping other gifters!");
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-serif text-xl font-bold text-givit-ink">Gift reviews</h3>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h3 className="font-serif text-xl font-bold text-givit-ink">Gift reviews</h3>
+          {onTimePct !== null && (
+            <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              {onTimePct}% say it arrived on time
+            </span>
+          )}
+        </div>
         {user ? (
           <Button type="button" variant="outline" className="rounded-full" onClick={() => setShowForm((value) => !value)}>
             {showForm ? "Cancel" : "Write a gift review"}
@@ -169,6 +189,13 @@ export function GiftReviews({ productId }: { productId: string }) {
             </div>
           </div>
           <div className="grid gap-1.5">
+            <Label>Did it arrive on time?</Label>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setOnTime(true)} className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${onTime === true ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-border text-muted-foreground hover:bg-muted"}`}>Yes</button>
+              <button type="button" onClick={() => setOnTime(false)} className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${onTime === false ? "border-destructive bg-destructive/10 text-destructive" : "border-border text-muted-foreground hover:bg-muted"}`}>No</button>
+            </div>
+          </div>
+          <div className="grid gap-1.5">
             <Label htmlFor="gift-review-title">Headline</Label>
             <Input id="gift-review-title" name="title" placeholder="Perfect gift, big reaction" />
           </div>
@@ -187,6 +214,8 @@ export function GiftReviews({ productId }: { productId: string }) {
               <Stars value={review.rating} />
               <span className="font-semibold text-givit-ink">{review.title}</span>
               {review.isUser ? <span className="rounded-full bg-givit-ember/10 px-2 py-0.5 text-xs font-medium text-givit-ember">Your review</span> : null}
+              {review.onTime === true && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Arrived on time</span>}
+              {review.onTime === false && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">Arrived late</span>}
             </div>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{review.body}</p>
             <p className="mt-2 text-xs text-muted-foreground">
