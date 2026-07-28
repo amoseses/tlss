@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { ArrowRight, Bell, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
+import { ArrowRight, Bell, Flower2, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
 import { nextOccurrenceDate } from "@/lib/date-utils";
+import { trackEvent } from "@/lib/supabase/db";
 import { initials } from "@/lib/utils";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
@@ -137,6 +138,32 @@ function OccasionDateInput({ label, value, onChange }: { label: string; value: s
   );
 }
 
+const LEAD_TIME_OPTIONS = [7, 14, 21, 35, 56];
+
+// How far ahead AutoGift reminds you for this occasion. Shorter windows are
+// offered because some people want them, but they genuinely narrow what's
+// deliverable in time -- surfaced here rather than hidden, so a 1-week
+// reminder for a gift that needs 2 weeks to ship isn't a silent failure.
+function LeadTimeSelect({ value, onChange }: { value: number; onChange: (days: number) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <label className="text-xs text-muted-foreground">Remind me</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="h-7 rounded-md border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+      >
+        {LEAD_TIME_OPTIONS.map((days) => (
+          <option key={days} value={days}>{days % 7 === 0 ? `${days / 7} week${days === 7 ? "" : "s"}` : `${days} days`} before</option>
+        ))}
+      </select>
+      {value < 14 && (
+        <span className="text-xs text-muted-foreground">— may limit delivery options</span>
+      )}
+    </div>
+  );
+}
+
 function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]) => void; onClose: () => void }) {
   type PersonForm = { name: string; relationship: string; occasions: Occasion[]; aboutText: string };
   const emptyPerson = (): PersonForm => ({ name: "", relationship: "", occasions: [{ label: "Birthday", date: "" }], aboutText: "" });
@@ -163,7 +190,7 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
     setPeople((prev) => prev.map((p, idx) => (idx === personIndex ? { ...p, occasions: p.occasions.filter((_, oi) => oi !== occIndex) } : p)));
   }
 
-  function updateOccasion(personIndex: number, occIndex: number, field: keyof Occasion, value: string) {
+  function updateOccasion(personIndex: number, occIndex: number, field: keyof Occasion, value: string | number) {
     setPeople((prev) => prev.map((p, idx) => {
       if (idx !== personIndex) return p;
       const occasions = [...p.occasions];
@@ -246,16 +273,19 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
                 </div>
                 {person.occasions.map((occ, i) => {
                   return (
-                  <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
-                    <select value={occ.label} onChange={(e) => updateOccasion(personIndex, i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
-                      {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
-                    </select>
-                    <OccasionDateInput label={occ.label} value={occ.date} onChange={(iso) => updateOccasion(personIndex, i, "date", iso)} />
-                    {person.occasions.length > 1 && (
-                      <button type="button" onClick={() => removeOccasion(personIndex, i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                  <div key={i} className="space-y-1.5">
+                    <div className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
+                      <select value={occ.label} onChange={(e) => updateOccasion(personIndex, i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
+                        {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
+                      </select>
+                      <OccasionDateInput label={occ.label} value={occ.date} onChange={(iso) => updateOccasion(personIndex, i, "date", iso)} />
+                      {person.occasions.length > 1 && (
+                        <button type="button" onClick={() => removeOccasion(personIndex, i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <LeadTimeSelect value={occ.leadDays ?? 35} onChange={(days) => updateOccasion(personIndex, i, "leadDays", days)} />
                   </div>
                   );
                 })}
@@ -329,7 +359,7 @@ function EditRecipientModal({
   function removeOccasion(i: number) {
     setOccasions((prev) => prev.filter((_, idx) => idx !== i));
   }
-  function updateOccasion(i: number, field: keyof Occasion, value: string) {
+  function updateOccasion(i: number, field: keyof Occasion, value: string | number) {
     setOccasions((prev) => prev.map((o, idx) => {
       if (idx !== i) return o;
       const next = { ...o, [field]: value };
@@ -413,16 +443,19 @@ function EditRecipientModal({
             </div>
             {occasions.map((occ, i) => {
               return (
-              <div key={occ.id ?? `new-${i}`} className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
-                <select value={occ.label} onChange={(e) => updateOccasion(i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
-                  {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
-                </select>
-                <OccasionDateInput label={occ.label} value={occ.date} onChange={(iso) => updateOccasion(i, "date", iso)} />
-                {occasions.length > 1 && (
-                  <button type="button" onClick={() => removeOccasion(i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
+              <div key={occ.id ?? `new-${i}`} className="space-y-1.5">
+                <div className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
+                  <select value={occ.label} onChange={(e) => updateOccasion(i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
+                    {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                  <OccasionDateInput label={occ.label} value={occ.date} onChange={(iso) => updateOccasion(i, "date", iso)} />
+                  {occasions.length > 1 && (
+                    <button type="button" onClick={() => removeOccasion(i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <LeadTimeSelect value={occ.leadDays ?? 35} onChange={(days) => updateOccasion(i, "leadDays", days)} />
               </div>
               );
             })}
@@ -568,12 +601,65 @@ function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: 
   );
 }
 
+const CANCEL_REASONS = ["No longer close", "Passed away", "Other"] as const;
+
+// A silent delete loses real signal (are people actually drifting apart, or
+// is this AutoGift misfiring?) and, for a loss, is a jarring way for the
+// product to just shrug. Asking why costs one extra click and lets the
+// passed-away case offer something more useful than nothing.
+function CancelRecipientModal({ name, onConfirm, onClose }: { name: string; onConfirm: (reason: string) => void; onClose: () => void }) {
+  const [reason, setReason] = useState<string>(CANCEL_REASONS[0]);
+  const [, navigate] = useLocation();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
+      <div className="w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-2xl">
+        <div className="flex items-center justify-between">
+          <h2 className="font-serif text-lg font-bold text-givit-ink">Remove {name}?</h2>
+          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">Mind sharing why? It helps us get AutoGift right.</p>
+        <div className="mt-3 space-y-1.5">
+          {CANCEL_REASONS.map((r) => (
+            <label key={r} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm has-[:checked]:border-givit-ember has-[:checked]:bg-givit-ember/5">
+              <input type="radio" name="cancel-reason" value={r} checked={reason === r} onChange={() => setReason(r)} className="accent-givit-ember" />
+              {r}
+            </label>
+          ))}
+        </div>
+
+        {reason === "Passed away" && (
+          <div className="mt-3 rounded-md border border-border bg-muted/40 p-3">
+            <p className="text-xs leading-5 text-muted-foreground">We're sorry for your loss. If it helps, we can point you to a sympathy gift instead.</p>
+            <button
+              type="button"
+              onClick={() => { onConfirm(reason); navigate("/products?q=sympathy%20gift"); }}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-givit-ember hover:underline"
+            >
+              <Flower2 className="h-3.5 w-3.5" /> Find a sympathy gift
+            </button>
+          </div>
+        )}
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
+          <button type="button" onClick={() => onConfirm(reason)} className="rounded-md bg-destructive px-3 py-1.5 text-sm font-semibold text-white hover:bg-destructive/90">Remove</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PeoplePage() {
   const { user, loading } = useAuth();
   const { recipients, localReady, saveRecipients, deleteRecipient, updateRecipient, updateOccasions, toggleAutomation } = useRecipients(user);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
   const editingRecipient = editingId ? recipients.find((r) => r.id === editingId) : null;
+  const cancelingRecipient = cancelingId ? recipients.find((r) => r.id === cancelingId) : null;
 
   if (loading && !localReady) {
     return (
@@ -616,6 +702,19 @@ export default function PeoplePage() {
         />
       )}
 
+      {cancelingRecipient && (
+        <CancelRecipientModal
+          name={cancelingRecipient.name}
+          onConfirm={(reason) => {
+            void trackEvent("recipient_removed", { reason, recipientId: cancelingRecipient.id });
+            void deleteRecipient(cancelingRecipient.id);
+            toast.success(`${cancelingRecipient.name} removed`);
+            setCancelingId(null);
+          }}
+          onClose={() => setCancelingId(null)}
+        />
+      )}
+
       {editingRecipient && (
         <EditRecipientModal
           recipient={editingRecipient}
@@ -653,7 +752,7 @@ export default function PeoplePage() {
             <PersonProfileCard
               key={r.id}
               recipient={r}
-              onDelete={() => void deleteRecipient(r.id)}
+              onDelete={() => setCancelingId(r.id)}
               onEdit={() => setEditingId(r.id)}
               onToggleAutomation={() => void toggleAutomation(r.id, r.automationEnabled === false)}
             />

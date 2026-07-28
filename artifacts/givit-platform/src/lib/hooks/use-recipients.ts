@@ -5,7 +5,7 @@ import type { User } from "@supabase/supabase-js";
 
 export { nextOccurrenceDate };
 
-export type Occasion = { id?: string; label: string; date: string };
+export type Occasion = { id?: string; label: string; date: string; leadDays?: number };
 export type Recipient = {
   id: string;
   name: string;
@@ -19,7 +19,8 @@ export type Recipient = {
 };
 
 const NOTIFICATION_KEY = "givit-notifications";
-const NOTIFICATION_LEAD_DAYS = 35; // 5 weeks before
+const NOTIFICATION_LEAD_DAYS = 35; // 5 weeks before -- default when an occasion doesn't set its own
+export const MIN_LEAD_DAYS = 7; // 1 week -- below this, standard shipping usually can't make the date
 
 export type ConciergeNotification = {
   id: string;
@@ -41,9 +42,9 @@ function saveStoredNotifications(notifications: ConciergeNotification[]) {
   window.localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
 }
 
-function scheduledSurveySendAt(occasionDate: string) {
+function scheduledSurveySendAt(occasionDate: string, leadDays: number) {
   const date = nextOccurrenceDate(occasionDate);
-  date.setDate(date.getDate() - NOTIFICATION_LEAD_DAYS);
+  date.setDate(date.getDate() - leadDays);
   date.setUTCHours(15, 0, 0, 0);
   return date;
 }
@@ -58,7 +59,8 @@ async function scheduleOccasionNotifications(
   recipientName: string,
   occasion: Occasion,
 ) {
-  const scheduledFor = scheduledSurveySendAt(occasion.date).toISOString();
+  const leadDays = occasion.leadDays ?? NOTIFICATION_LEAD_DAYS;
+  const scheduledFor = scheduledSurveySendAt(occasion.date, leadDays).toISOString();
   await createNotification({
     user_id: userId,
     recipient_id: recipientId,
@@ -95,7 +97,8 @@ function generateNotifications(recipients: Recipient[]): ConciergeNotification[]
       if (existingKeys.has(key)) continue;
       const occDate = nextOccurrenceDate(o.date, now);
       const daysUntil = Math.ceil((occDate.getTime() - now.getTime()) / 86400000);
-      if (daysUntil > 0 && daysUntil <= NOTIFICATION_LEAD_DAYS + 7) {
+      const leadDays = o.leadDays ?? NOTIFICATION_LEAD_DAYS;
+      if (daysUntil > 0 && daysUntil <= leadDays + 7) {
         newNotifications.push({
           id: crypto.randomUUID(),
           recipientName: r.name,
@@ -136,7 +139,7 @@ export function useRecipients(user: User | null | undefined) {
               id: row.id,
               name: row.name,
               relationship: row.relationship || "",
-              occasions: (row.gift_occasions ?? []).map((occ: any) => ({ id: occ.id, label: occ.occasion, date: occ.occasion_date })),
+              occasions: (row.gift_occasions ?? []).map((occ: any) => ({ id: occ.id, label: occ.occasion, date: occ.occasion_date, leadDays: occ.approval_lead_days ?? NOTIFICATION_LEAD_DAYS })),
               interests: row.interests ?? [],
               avoidTerms: row.avoid_terms ?? [],
               budgetCents: row.default_budget_cents ?? null,
@@ -185,15 +188,16 @@ export function useRecipients(user: User | null | undefined) {
       });
       const recipientId = data?.id ?? recipient.id;
       for (const occasion of recipient.occasions.filter((item) => item.date)) {
+        const leadDays = occasion.leadDays ?? NOTIFICATION_LEAD_DAYS;
         const { data: savedOccasion } = await saveGiftOccasion({
           user_id: user.id,
           recipient_id: recipientId,
           occasion: occasion.label,
           occasion_date: occasion.date,
           repeats_yearly: true,
-          approval_lead_days: 35,
+          approval_lead_days: leadDays,
         });
-        await scheduleOccasionNotifications(user.id, recipientId, recipient.name, { id: savedOccasion?.id, label: occasion.label, date: occasion.date });
+        await scheduleOccasionNotifications(user.id, recipientId, recipient.name, { id: savedOccasion?.id, label: occasion.label, date: occasion.date, leadDays });
       }
     }
   }
@@ -269,12 +273,14 @@ export function useRecipients(user: User | null | undefined) {
       if (!occ.date) continue;
       if (!user) { saved.push(occ); continue; }
 
-      // A brand-new occasion, or an existing one whose date actually
-      // changed, needs a fresh reminder scheduled — an unchanged occasion
-      // being re-saved (e.g. editing an unrelated field on the same form)
-      // should NOT get a duplicate notification row created every time.
+      // A brand-new occasion, or an existing one whose date or lead time
+      // actually changed, needs a fresh reminder scheduled — an unchanged
+      // occasion being re-saved (e.g. editing an unrelated field on the
+      // same form) should NOT get a duplicate notification row created
+      // every time.
       const previous = occ.id ? recipient.occasions.find((o) => o.id === occ.id) : undefined;
-      const isNewOrChanged = !occ.id || !previous || previous.date !== occ.date;
+      const leadDays = occ.leadDays ?? NOTIFICATION_LEAD_DAYS;
+      const isNewOrChanged = !occ.id || !previous || previous.date !== occ.date || (previous.leadDays ?? NOTIFICATION_LEAD_DAYS) !== leadDays;
 
       const payload: Record<string, unknown> = {
         user_id: user.id,
@@ -282,7 +288,7 @@ export function useRecipients(user: User | null | undefined) {
         occasion: occ.label,
         occasion_date: occ.date,
         repeats_yearly: true,
-        approval_lead_days: 35,
+        approval_lead_days: leadDays,
       };
       if (occ.id) payload.id = occ.id;
       const { data, error } = await saveGiftOccasion(payload);
@@ -291,7 +297,7 @@ export function useRecipients(user: User | null | undefined) {
         saved.push(occ);
         continue;
       }
-      const resolved: Occasion = { id: data?.id ?? occ.id, label: occ.label, date: occ.date };
+      const resolved: Occasion = { id: data?.id ?? occ.id, label: occ.label, date: occ.date, leadDays };
       saved.push(resolved);
 
       if (isNewOrChanged) {
