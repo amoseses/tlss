@@ -298,7 +298,7 @@ export default function AccountPage() {
 
         {user && (
           <div className="lg:col-span-2">
-            <NotificationSettingsCard userId={user.id} />
+            <NotificationSettingsCard userId={user.id} defaultLeadDays={profile?.default_reminder_lead_days ?? 35} />
           </div>
         )}
       </div>

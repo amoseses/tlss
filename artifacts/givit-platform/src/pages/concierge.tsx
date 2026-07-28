@@ -13,7 +13,7 @@ import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
 
 export default function ConciergePage() {
   const { user, profile, loading } = useAuth();
-  const { recipients, notifications, activeNotifications, localReady, dismissNotification } = useRecipients(user);
+  const { recipients, notifications, activeNotifications, localReady, dismissNotification } = useRecipients(user, profile?.default_reminder_lead_days ?? undefined);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);

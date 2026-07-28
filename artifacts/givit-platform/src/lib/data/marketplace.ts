@@ -8,6 +8,10 @@ export type MarketplaceProduct = Product & {
   retailer: string;
   brand: string;
   price_range: string;
+  // Only ever set from a real source (retailer page text via the admin
+  // import AI extraction) -- never a guess, so this is undefined for the
+  // seed catalog until each product's real page has actually been checked.
+  ships_in_days?: number | null;
   rank: number;
   category_rank: number;
   gift_match_score: number;
@@ -59,6 +63,7 @@ type SeedProduct = {
   badge: string;
   salePrice?: number;
   dealBadge?: string;
+  shipsInDays?: number;
 };
 
 const img = (id: string) => `https://images.unsplash.com/${id}?w=1100&q=86&auto=format&fit=crop`;
@@ -442,6 +447,7 @@ export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = ALL_SEED_PRODUCTS.map(
     rank: seed.rank!,
     category_rank: ALL_SEED_PRODUCTS.filter((candidate) => candidate.category === seed.category && (candidate.rank ?? 0) <= seed.rank!).length,
     gift_match_score: seed.score!,
+    ships_in_days: seed.shipsInDays ?? null,
     tested_badge: seed.badge,
     sale_price_cents: seed.salePrice,
     deal_badge: seed.dealBadge,

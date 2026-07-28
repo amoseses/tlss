@@ -85,7 +85,7 @@ async function scheduleOccasionNotifications(
   });
 }
 
-function generateNotifications(recipients: Recipient[]): ConciergeNotification[] {
+function generateNotifications(recipients: Recipient[], defaultLeadDays = NOTIFICATION_LEAD_DAYS): ConciergeNotification[] {
   const existing = getStoredNotifications();
   const existingKeys = new Set(existing.map((n) => `${n.recipientName}-${n.occasion}-${n.date}`));
   const now = new Date();
@@ -97,7 +97,7 @@ function generateNotifications(recipients: Recipient[]): ConciergeNotification[]
       if (existingKeys.has(key)) continue;
       const occDate = nextOccurrenceDate(o.date, now);
       const daysUntil = Math.ceil((occDate.getTime() - now.getTime()) / 86400000);
-      const leadDays = o.leadDays ?? NOTIFICATION_LEAD_DAYS;
+      const leadDays = o.leadDays ?? defaultLeadDays;
       if (daysUntil > 0 && daysUntil <= leadDays + 7) {
         newNotifications.push({
           id: crypto.randomUUID(),
@@ -123,7 +123,7 @@ function generateNotifications(recipients: Recipient[]): ConciergeNotification[]
  * reminders) so both pages read the same real Supabase data instead of
  * each maintaining its own copy.
  */
-export function useRecipients(user: User | null | undefined) {
+export function useRecipients(user: User | null | undefined, defaultLeadDays: number = NOTIFICATION_LEAD_DAYS) {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [notifications, setNotifications] = useState<ConciergeNotification[]>([]);
   const [localReady, setLocalReady] = useState(false);
@@ -139,7 +139,7 @@ export function useRecipients(user: User | null | undefined) {
               id: row.id,
               name: row.name,
               relationship: row.relationship || "",
-              occasions: (row.gift_occasions ?? []).map((occ: any) => ({ id: occ.id, label: occ.occasion, date: occ.occasion_date, leadDays: occ.approval_lead_days ?? NOTIFICATION_LEAD_DAYS })),
+              occasions: (row.gift_occasions ?? []).map((occ: any) => ({ id: occ.id, label: occ.occasion, date: occ.occasion_date, leadDays: occ.approval_lead_days ?? defaultLeadDays })),
               interests: row.interests ?? [],
               avoidTerms: row.avoid_terms ?? [],
               budgetCents: row.default_budget_cents ?? null,
@@ -147,7 +147,7 @@ export function useRecipients(user: User | null | undefined) {
               automationEnabled: row.automation_enabled ?? true,
             })) as Recipient[];
             setRecipients(mapped);
-            setNotifications(generateNotifications(mapped));
+            setNotifications(generateNotifications(mapped, defaultLeadDays));
             setLocalReady(true);
             return;
           }
@@ -156,7 +156,7 @@ export function useRecipients(user: User | null | undefined) {
         if (saved && !cancelled) {
           const parsed = JSON.parse(saved) as Recipient[];
           setRecipients(parsed);
-          setNotifications(generateNotifications(parsed));
+          setNotifications(generateNotifications(parsed, defaultLeadDays));
         }
       } catch (err) {
         console.error("Failed to load AutoGift recipients:", err);
@@ -166,7 +166,7 @@ export function useRecipients(user: User | null | undefined) {
     }
     load();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, defaultLeadDays]);
 
   async function saveRecipients(list: Recipient[]) {
     setRecipients(list);
@@ -188,7 +188,7 @@ export function useRecipients(user: User | null | undefined) {
       });
       const recipientId = data?.id ?? recipient.id;
       for (const occasion of recipient.occasions.filter((item) => item.date)) {
-        const leadDays = occasion.leadDays ?? NOTIFICATION_LEAD_DAYS;
+        const leadDays = occasion.leadDays ?? defaultLeadDays;
         const { data: savedOccasion } = await saveGiftOccasion({
           user_id: user.id,
           recipient_id: recipientId,
@@ -279,8 +279,8 @@ export function useRecipients(user: User | null | undefined) {
       // same form) should NOT get a duplicate notification row created
       // every time.
       const previous = occ.id ? recipient.occasions.find((o) => o.id === occ.id) : undefined;
-      const leadDays = occ.leadDays ?? NOTIFICATION_LEAD_DAYS;
-      const isNewOrChanged = !occ.id || !previous || previous.date !== occ.date || (previous.leadDays ?? NOTIFICATION_LEAD_DAYS) !== leadDays;
+      const leadDays = occ.leadDays ?? defaultLeadDays;
+      const isNewOrChanged = !occ.id || !previous || previous.date !== occ.date || (previous.leadDays ?? defaultLeadDays) !== leadDays;
 
       const payload: Record<string, unknown> = {
         user_id: user.id,

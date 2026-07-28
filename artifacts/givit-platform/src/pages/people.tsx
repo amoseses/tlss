@@ -165,7 +165,7 @@ function LeadTimeSelect({ value, onChange }: { value: number; onChange: (days: n
   );
 }
 
-function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]) => void; onClose: () => void }) {
+function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipients: Recipient[]) => void; onClose: () => void; defaultLeadDays: number }) {
   type PersonForm = { name: string; relationship: string; occasions: Occasion[]; aboutText: string };
   const emptyPerson = (): PersonForm => ({ name: "", relationship: "", occasions: [{ label: "Birthday", date: "" }], aboutText: "" });
   const [people, setPeople] = useState<PersonForm[]>([emptyPerson()]);
@@ -286,7 +286,7 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (recipients: Recipient[]
                         </button>
                       )}
                     </div>
-                    <LeadTimeSelect value={occ.leadDays ?? 35} onChange={(days) => updateOccasion(personIndex, i, "leadDays", days)} />
+                    <LeadTimeSelect value={occ.leadDays ?? defaultLeadDays} onChange={(days) => updateOccasion(personIndex, i, "leadDays", days)} />
                   </div>
                   );
                 })}
@@ -337,11 +337,13 @@ function EditRecipientModal({
   onSave,
   onSaveOccasions,
   onClose,
+  defaultLeadDays,
 }: {
   recipient: Recipient;
   onSave: (updates: Partial<Recipient>) => Promise<{ error: unknown }>;
   onSaveOccasions: (occasions: Occasion[]) => Promise<{ error: unknown }>;
   onClose: () => void;
+  defaultLeadDays: number;
 }) {
   const [name, setName] = useState(recipient.name);
   const [relationship, setRelationship] = useState(recipient.relationship || "");
@@ -353,12 +355,20 @@ function EditRecipientModal({
   const [occasions, setOccasions] = useState<Occasion[]>(recipient.occasions.length > 0 ? recipient.occasions : [{ label: "Birthday", date: "" }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancelingOccasionIndex, setCancelingOccasionIndex] = useState<number | null>(null);
 
   function addOccasion() {
     setOccasions((prev) => [...prev, { label: "Birthday", date: "" }]);
   }
   function removeOccasion(i: number) {
     setOccasions((prev) => prev.filter((_, idx) => idx !== i));
+  }
+  // A freshly-added row with no id yet is just an unsaved draft -- removing
+  // it is "never mind", not "cancelling" anything, so only an existing
+  // (already-saved) occasion gets the reason prompt.
+  function requestRemoveOccasion(i: number) {
+    if (occasions[i]?.id) setCancelingOccasionIndex(i);
+    else removeOccasion(i);
   }
   function updateOccasion(i: number, field: keyof Occasion, value: string | number) {
     setOccasions((prev) => prev.map((o, idx) => {
@@ -451,15 +461,27 @@ function EditRecipientModal({
                   </select>
                   <OccasionDateInput label={occ.label} value={occ.date} onChange={(iso) => updateOccasion(i, "date", iso)} />
                   {occasions.length > 1 && (
-                    <button type="button" onClick={() => removeOccasion(i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+                    <button type="button" onClick={() => requestRemoveOccasion(i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
                       <X className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
-                <LeadTimeSelect value={occ.leadDays ?? 35} onChange={(days) => updateOccasion(i, "leadDays", days)} />
+                <LeadTimeSelect value={occ.leadDays ?? defaultLeadDays} onChange={(days) => updateOccasion(i, "leadDays", days)} />
               </div>
               );
             })}
+
+            {cancelingOccasionIndex !== null && (
+              <CancelRecipientModal
+                name={`${occasions[cancelingOccasionIndex]?.label} for ${recipient.name}`}
+                onConfirm={(reason) => {
+                  void trackEvent("occasion_removed", { reason, recipientId: recipient.id, occasionId: occasions[cancelingOccasionIndex]?.id, label: occasions[cancelingOccasionIndex]?.label });
+                  removeOccasion(cancelingOccasionIndex);
+                  setCancelingOccasionIndex(null);
+                }}
+                onClose={() => setCancelingOccasionIndex(null)}
+              />
+            )}
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Interests</label>
@@ -774,8 +796,9 @@ function CalendarImportModal({
 }
 
 export default function PeoplePage() {
-  const { user, loading } = useAuth();
-  const { recipients, localReady, saveRecipients, deleteRecipient, updateRecipient, updateOccasions, toggleAutomation } = useRecipients(user);
+  const { user, profile, loading } = useAuth();
+  const defaultLeadDays = profile?.default_reminder_lead_days ?? 35;
+  const { recipients, localReady, saveRecipients, deleteRecipient, updateRecipient, updateOccasions, toggleAutomation } = useRecipients(user, defaultLeadDays);
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -821,6 +844,7 @@ export default function PeoplePage() {
         <AddRecipientModal
           onAdd={(added) => void saveRecipients([...recipients, ...added])}
           onClose={() => setShowModal(false)}
+          defaultLeadDays={defaultLeadDays}
         />
       )}
 
@@ -843,6 +867,7 @@ export default function PeoplePage() {
           onSave={(updates) => updateRecipient(editingRecipient.id, updates)}
           onSaveOccasions={(occasions) => updateOccasions(editingRecipient.id, occasions)}
           onClose={() => setEditingId(null)}
+          defaultLeadDays={defaultLeadDays}
         />
       )}
 

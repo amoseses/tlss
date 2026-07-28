@@ -47,6 +47,7 @@ function dbProductToMarketplaceProduct(p: any, fallbackRank: number): Marketplac
     rank,
     category_rank: categoryRank,
     gift_match_score: p.gift_match_score ?? 82,
+    ships_in_days: typeof p.metadata?.ships_in_days === "number" ? p.metadata.ships_in_days : null,
     tested_badge: "Admin added",
     interests: p.interests ?? [],
     occasions: p.occasions?.length ? p.occasions : ["birthday", "holiday"],

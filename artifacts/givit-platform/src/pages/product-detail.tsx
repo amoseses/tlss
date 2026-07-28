@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useLocation } from "wouter";
-import { ExternalLink, Play, Share2, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { ExternalLink, Play, Share2, ShieldCheck, Sparkles, Trophy, Truck } from "lucide-react";
 
 import { Breadcrumbs, PageShell } from "@/components/layout/page-shell";
 import { ProductGrid } from "@/components/product/product-grid";
@@ -130,6 +130,11 @@ export default function ProductDetailPage() {
               ) : null}
               {product.brand ? <span className="text-sm text-muted-foreground">by {product.brand}</span> : null}
             </div>
+            {product.ships_in_days ? (
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Truck className="h-3.5 w-3.5" /> Ships in ~{product.ships_in_days} day{product.ships_in_days === 1 ? "" : "s"}
+              </p>
+            ) : null}
           </div>
 
           <div className="rounded-2xl bg-givit-sand/60 p-4">

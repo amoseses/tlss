@@ -187,7 +187,7 @@ export default function AdminPage() {
           ai_summary: extracted.description || `Admin-imported ${extracted.category} gift.`,
           why_we_picked_it: "Added via admin link import, curated for the GIVIT marketplace.",
           images: extracted.imageUrl ? [{ storage_path: extracted.imageUrl, sort_order: 0 }] : [],
-          metadata: { category: extracted.category, source: "admin_bulk_import", importedAt: new Date().toISOString() },
+          metadata: { category: extracted.category, source: "admin_bulk_import", importedAt: new Date().toISOString(), ships_in_days: extracted.shipsInDays },
         });
         // Supabase reports failures via { error }, not a thrown exception —
         // without this check a blocked RLS insert would still mark "done".

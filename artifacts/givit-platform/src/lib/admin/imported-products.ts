@@ -33,6 +33,7 @@ type StoredProduct = {
   rank?: number;
   categoryRank?: number;
   giftMatchScore?: number;
+  shipsInDays?: number | null;
 };
 
 function slugSafe(value: string) {
@@ -134,7 +135,7 @@ export function extractProductFromUrl(url: string, hints?: Partial<ImportedProdu
  * secret key); the normalization pass itself runs client-side via Groq
  * using the browser-exposed Vite Groq key.
  */
-export async function extractProductWithAI(url: string, hints?: Partial<ImportedProductRow>): Promise<Omit<ImportedProductRow, "status"> & { aiPowered: boolean; giftMatchScore: number }> {
+export async function extractProductWithAI(url: string, hints?: Partial<ImportedProductRow>): Promise<Omit<ImportedProductRow, "status"> & { aiPowered: boolean; giftMatchScore: number; shipsInDays: number | null }> {
   const fallback = extractProductFromUrl(url, hints);
   try {
     const metaRes = await fetch(`/api/metadata?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(8000) });
@@ -146,6 +147,7 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
       `If the price isn't in the metadata, make a reasonable estimate based on the category and note it's estimated. ` +
       `Categories must be exactly one of: ${EXTRACT_CATEGORIES.join(", ")}. ` +
       `Also rate how strong a gift this item is on a 60-97 scale (giftMatchScore): weigh broad appeal, giftability (not too personal/perishable/sizing-dependent unless clearly a known crowd-pleaser), and perceived quality for the price. Score honestly — most reasonable products land 75-90, reserve 90+ for genuinely exceptional gifts and under 75 for niche or risky picks. ` +
+      `If the page metadata states an actual shipping/delivery estimate (e.g. "ships in 2 days", "arrives in 5-7 business days"), extract it as shipsInDays — a single integer, the upper end of any range. If no real estimate is stated, shipsInDays must be null. Never guess a number that wasn't actually on the page. ` +
       `Return strict JSON only, matching the requested shape, with no markdown code fences.`;
 
     const user = JSON.stringify({
@@ -160,6 +162,7 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
         priceIsEstimate: "boolean",
         description: "string, 1-2 sentences, warm gift-shop tone, no filler",
         giftMatchScore: "integer 60-97",
+        shipsInDays: "integer or null, only if a real shipping estimate was in the metadata",
       },
     });
 
@@ -176,6 +179,7 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
     const giftMatchScore = typeof ai?.giftMatchScore === "number"
       ? Math.min(97, Math.max(60, Math.round(ai.giftMatchScore)))
       : 80;
+    const shipsInDays = typeof ai?.shipsInDays === "number" && ai.shipsInDays > 0 ? Math.round(ai.shipsInDays) : null;
 
     return {
       url: normalizeProductUrl(url),
@@ -189,9 +193,10 @@ export async function extractProductWithAI(url: string, hints?: Partial<Imported
       imageUrl: hints?.imageUrl || fallback.imageUrl,
       aiPowered: true,
       giftMatchScore,
+      shipsInDays,
     };
   } catch {
-    return { ...fallback, aiPowered: false, giftMatchScore: 80 };
+    return { ...fallback, aiPowered: false, giftMatchScore: 80, shipsInDays: null };
   }
 }
 

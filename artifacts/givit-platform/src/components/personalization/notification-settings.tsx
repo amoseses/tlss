@@ -1,12 +1,25 @@
 import { useEffect, useState } from "react";
 import { Bell, BellOff, BellRing, Loader2 } from "lucide-react";
 import { isPushSupported, isSubscribedToPush, subscribeToPush, unsubscribeFromPush, sendTestPush } from "@/lib/push/subscribe";
+import { updateProfile } from "@/lib/supabase/db";
 
-export function NotificationSettingsCard({ userId }: { userId: string }) {
+const LEAD_TIME_OPTIONS = [7, 14, 21, 35, 56];
+
+export function NotificationSettingsCard({ userId, defaultLeadDays }: { userId: string; defaultLeadDays: number }) {
   const [supported, setSupported] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [leadDays, setLeadDays] = useState(defaultLeadDays);
+  const [savingLeadDays, setSavingLeadDays] = useState(false);
+
+  async function saveLeadDays(days: number) {
+    setLeadDays(days);
+    setSavingLeadDays(true);
+    const { error } = await updateProfile(userId, { default_reminder_lead_days: days });
+    setSavingLeadDays(false);
+    if (error) setMessage("Couldn't save that. Try again.");
+  }
 
   useEffect(() => {
     setSupported(isPushSupported());
@@ -42,6 +55,25 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
         <Bell className="h-4 w-4 text-givit-ember" />
         <h2 className="font-semibold text-givit-ink">Notifications</h2>
       </div>
+
+      <div className="mb-4 space-y-1.5 border-b border-border/60 pb-4">
+        <label className="text-sm text-muted-foreground">Default reminder timing</label>
+        <div className="flex items-center gap-2">
+          <select
+            value={leadDays}
+            onChange={(e) => void saveLeadDays(Number(e.target.value))}
+            disabled={savingLeadDays}
+            className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+          >
+            {LEAD_TIME_OPTIONS.map((days) => (
+              <option key={days} value={days}>{days % 7 === 0 ? `${days / 7} week${days === 7 ? "" : "s"}` : `${days} days`} before</option>
+            ))}
+          </select>
+          {leadDays < 14 && <span className="text-xs text-muted-foreground">— may limit delivery options</span>}
+        </div>
+        <p className="text-xs text-muted-foreground">Applies to new occasions. Any occasion can still be set individually on its Person page.</p>
+      </div>
+
       {!supported ? (
         <p className="text-sm text-muted-foreground">This browser doesn't support push notifications. Email reminders still work.</p>
       ) : (
