@@ -67,8 +67,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <p className="container py-6 text-center text-xl font-bold tracking-tight text-foreground md:text-2xl">
-        Never forget a birthday or anniversary again.
+      <p className="container py-6 text-center font-sans text-xl font-bold tracking-tight text-foreground md:text-2xl">
+        Never forget an important date again.
       </p>
 
       {/* How it works — explains the mechanism before showing it in action below */}

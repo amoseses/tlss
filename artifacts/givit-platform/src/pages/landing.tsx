@@ -143,7 +143,7 @@ export default function LandingPage() {
       <div className="slide-up mt-14 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/40" style={{ animationDelay: "260ms" }}>
         <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> No brand deals in rankings</span>
         <span className="flex items-center gap-1.5"><Gift className="h-3.5 w-3.5" /> Real gifts, real reasons</span>
-        <span className="flex items-center gap-1.5"><Bell className="h-3.5 w-3.5" /> Never forget a birthday or anniversary again</span>
+        <span className="flex items-center gap-1.5"><Bell className="h-3.5 w-3.5" /> Never forget an important date again</span>
       </div>
     </div>
   );
