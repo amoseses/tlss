@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { ArrowRight, Bell, CalendarPlus, Flower2, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
@@ -10,6 +10,7 @@ import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
 import { nextOccurrenceDate } from "@/lib/date-utils";
 import { trackEvent } from "@/lib/supabase/db";
+import { createClient } from "@/lib/supabase/client";
 import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
 
@@ -677,12 +678,96 @@ function CancelRecipientModal({ name, onConfirm, onClose }: { name: string; onCo
 
 type ImportRow = ParsedCalendarEvent & { selected: boolean; name: string; occasion: string };
 
-// A real Google/Apple Calendar-linked auto-import needs a registered OAuth
-// app with client credentials, which isn't something to fabricate without
-// the user setting that up externally. A .ics import gets the same
-// end result (birthdays/anniversaries pulled from whatever calendar the
-// person already uses) with zero external accounts -- every major calendar
-// app can export one.
+async function authedFetch(path: string, init?: RequestInit) {
+  const { data } = await createClient().auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not signed in.");
+  return fetch(path, {
+    ...init,
+    headers: { ...(init?.headers ?? {}), Authorization: `Bearer ${token}` },
+  });
+}
+
+// Google Calendar OAuth is live (see api/auth/google-calendar/*) — this is
+// the "reconnect any time" path once a person's actually granted access.
+// The .ics upload below stays as the zero-account fallback for Apple/Outlook
+// users, or for anyone who'd rather not connect an account at all.
+function GoogleCalendarConnect() {
+  const [status, setStatus] = useState<"loading" | "connected" | "disconnected">("loading");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    authedFetch("/api/calendar/status")
+      .then((res) => res.json())
+      .then((data) => { if (!cancelled) setStatus(data.connected ? "connected" : "disconnected"); })
+      .catch(() => { if (!cancelled) setStatus("disconnected"); });
+    return () => { cancelled = true; };
+  }, []);
+
+  async function connect() {
+    setBusy(true);
+    try {
+      const res = await authedFetch("/api/auth/google-calendar/start", { method: "POST" });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else throw new Error(data.error || "Couldn't start connect.");
+    } catch (err: any) {
+      toast.error(err.message || "Couldn't connect Google Calendar.");
+      setBusy(false);
+    }
+  }
+
+  async function disconnect() {
+    setBusy(true);
+    try {
+      await authedFetch("/api/auth/google-calendar/disconnect", { method: "POST" });
+      setStatus("disconnected");
+      toast.success("Google Calendar disconnected.");
+    } catch {
+      toast.error("Couldn't disconnect. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function syncNow() {
+    setBusy(true);
+    try {
+      const res = await authedFetch("/api/calendar/sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Sync failed.");
+      toast.success(`Synced: ${data.peopleCreated} new ${data.peopleCreated === 1 ? "person" : "people"}, ${data.occasionsAdded} date${data.occasionsAdded === 1 ? "" : "s"} added.`);
+      window.setTimeout(() => window.location.reload(), 1200);
+    } catch (err: any) {
+      toast.error(err.message || "Sync failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (status === "loading") return null;
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-givit-ink">Google Calendar</p>
+          <p className="text-xs text-muted-foreground">{status === "connected" ? "Connected — stays in sync until you disconnect." : "Connect once, sync any time."}</p>
+        </div>
+        {status === "connected" ? (
+          <div className="flex shrink-0 gap-2">
+            <Button onClick={() => void syncNow()} disabled={busy} size="sm" className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">Sync now</Button>
+            <Button onClick={() => void disconnect()} disabled={busy} variant="outline" size="sm" className="rounded-full">Disconnect</Button>
+          </div>
+        ) : (
+          <Button onClick={() => void connect()} disabled={busy} size="sm" className="shrink-0 rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">Connect</Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CalendarImportModal({
   recipients,
   onImportNew,
@@ -754,6 +839,12 @@ function CalendarImportModal({
 
         {!rows ? (
           <div className="space-y-4 p-5">
+            <GoogleCalendarConnect />
+
+            <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+            </div>
+
             <p className="text-sm text-muted-foreground">
               Export a .ics file from Google Calendar, Apple Calendar, or Outlook (most have a "Birthdays" calendar you can export separately) and drop it here. It's parsed right in your browser, nothing is uploaded anywhere else.
             </p>
@@ -805,6 +896,19 @@ export default function PeoplePage() {
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const editingRecipient = editingId ? recipients.find((r) => r.id === editingId) : null;
   const cancelingRecipient = cancelingId ? recipients.find((r) => r.id === cancelingId) : null;
+
+  // Landing back here is how the Google OAuth redirect (api/auth/google-
+  // calendar/callback) reports success/failure -- there's no other channel
+  // back to the SPA from a full-page redirect Google itself controls.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("calendar");
+    if (!result) return;
+    if (result === "connected") { setShowImport(true); toast.success("Google Calendar connected. Hit \"Sync now\" to pull in birthdays."); }
+    else if (result === "denied") toast("Google Calendar wasn't connected.");
+    else if (result === "error") toast.error("Couldn't connect Google Calendar. Try again.");
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   if (loading && !localReady) {
     return (
