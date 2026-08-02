@@ -46,7 +46,7 @@ export async function fetchDueNotifications(limit = 200) {
 export async function fetchProfilesByIds(userIds) {
   if (userIds.length === 0) return [];
   const params = new URLSearchParams({
-    select: "id,email,full_name",
+    select: "id,email,full_name,phone",
     id: `in.(${userIds.join(",")})`,
   });
   return restFetch(`profiles?${params.toString()}`);
