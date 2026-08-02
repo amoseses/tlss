@@ -7,6 +7,7 @@ import { GIFT_COLLECTIONS, MARKETPLACE_PRODUCTS, MARKETPLACE_RATINGS } from "@/l
 import { ProductCard } from "@/components/product/product-card";
 import { resolveProductImageSrc } from "@/lib/product-photo";
 import { useAuth } from "@/lib/auth/use-auth";
+import { uploadFileToS3 } from "@/lib/upload";
 import {
   mergeBoardLikes,
   readUserBoards,
@@ -105,13 +106,23 @@ function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; o
   const [caption, setCaption] = useState("");
   const [description, setDescription] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => { setUrl(ev.target?.result as string); };
-    reader.readAsDataURL(file);
+    setUploading(true);
+    setUploadError("");
+    try {
+      const { url } = await uploadFileToS3(file, "board-images");
+      setUrl(url);
+    } catch (error) {
+      console.error("Board image upload failed:", error);
+      setUploadError("Couldn't upload that image. Try again or paste an image URL.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   function submit(e: React.FormEvent) {
@@ -133,9 +144,10 @@ function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; o
             <label className="text-sm font-semibold">Upload from device</label>
             <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
             <button type="button" onClick={() => fileRef.current?.click()} className="flex h-24 w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border text-sm text-muted-foreground hover:border-givit-ember/40 hover:text-givit-ember transition">
-              <Camera className="h-5 w-5" /> Click to upload
+              <Camera className="h-5 w-5" /> {uploading ? "Uploading..." : "Click to upload"}
             </button>
-            {url && url.startsWith("data:") && <img src={url} alt="preview" className="mt-1 h-24 w-full rounded-lg object-cover" />}
+            {uploadError && <p className="text-xs font-medium text-destructive">{uploadError}</p>}
+            {url && <img src={url} alt="preview" className="mt-1 h-24 w-full rounded-lg object-cover" />}
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Or paste product image URL</label>
@@ -151,7 +163,7 @@ function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; o
           </div>
           <div className="flex gap-2 pt-1">
             <Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={!url.trim()} className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">Add product</Button>
+            <Button type="submit" disabled={!url.trim() || uploading} className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">Add product</Button>
           </div>
         </form>
       </div>
