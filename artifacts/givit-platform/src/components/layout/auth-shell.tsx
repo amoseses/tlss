@@ -1,5 +1,3 @@
-"use client";
-
 import { FadeInHero } from "@/components/motion/reveal";
 import { cn } from "@/lib/utils";
 

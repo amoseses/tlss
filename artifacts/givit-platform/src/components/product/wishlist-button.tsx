@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Bookmark, Check, Mail, Share2 } from "lucide-react";
