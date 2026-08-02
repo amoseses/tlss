@@ -23,6 +23,7 @@ import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import AuthCallbackPage from "@/pages/auth-callback";
 import ConciergePage from "@/pages/concierge";
+import CalendarPage from "@/pages/calendar";
 import PeoplePage from "@/pages/people";
 import BoardsPage from "@/pages/boards";
 import FeedbackPage from "@/pages/feedback";
@@ -117,6 +118,7 @@ function Router() {
           <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/auth-callback" component={AuthCallbackPage} />
           <Route path="/concierge" component={ConciergePage} />
+          <Route path="/calendar" component={CalendarPage} />
           <Route path="/people" component={PeoplePage} />
           <Route path="/boards" component={BoardsPage} />
           <Route path="/feedback" component={FeedbackPage} />

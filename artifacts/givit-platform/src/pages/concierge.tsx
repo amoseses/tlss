@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { Bell, Calendar, CalendarDays, Gift, Sparkles, UserRound, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -18,7 +18,6 @@ export default function ConciergePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarPersonId, setCalendarPersonId] = useState<string | null>(null);
-  const [wouterLocation] = useLocation();
   // useAuth() re-validates the session (and flips loading back to true)
   // whenever the tab regains focus — without this, the full-page spinner
   // below would unmount the whole page, including an in-progress
@@ -28,17 +27,6 @@ export default function ConciergePage() {
   useEffect(() => {
     if (!loading) setHasLoadedOnce(true);
   }, [loading]);
-  // The header's "Calendar" nav item links here with ?view=calendar so it
-  // opens straight into the calendar instead of landing on the general
-  // AutoGift overview first. Depends on wouter's tracked location (not a
-  // mount-only read of window.location.search) because clicking that nav
-  // item while already on /concierge (e.g. from AutoGift) only changes the
-  // query string -- the component never remounts, so a mount-only effect
-  // would silently never fire.
-  useEffect(() => {
-    const search = wouterLocation.includes("?") ? wouterLocation.split("?")[1] : window.location.search.slice(1);
-    if (new URLSearchParams(search).get("view") === "calendar") setShowCalendar(true);
-  }, [wouterLocation]);
   const [surveyNotification, setSurveyNotification] = useState<ConciergeNotification | null>(null);
   const onboardingComplete = Boolean((profile as any)?.concierge_onboarding_completed) || window.localStorage.getItem("givit-autogift-onboarded") === "1";
 

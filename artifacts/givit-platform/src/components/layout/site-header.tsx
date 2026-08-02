@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { href: "/people", label: "People", icon: UserRound },
   { href: "/gift", label: "Your Gift AI", icon: Sparkles },
   { href: "/products", label: "Marketplace", icon: null },
-  { href: "/concierge?view=calendar", label: "Calendar", icon: CalendarDays, matchPath: "/concierge", matchSearch: "view=calendar" },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/concierge", label: "AutoGift", icon: Bell, accent: true },
 ];
 

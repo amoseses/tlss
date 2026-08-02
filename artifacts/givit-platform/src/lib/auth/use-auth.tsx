@@ -42,8 +42,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function load(initial = false) {
-    setLoading(true);
+  async function load(initial = false, silent = false) {
+    if (!silent) setLoading(true);
     try {
       const supabase = createClient();
       const sessionResult = await withTimeout(supabase.auth.getSession());
@@ -93,9 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Re-fetch the profile when the tab regains focus so changes made
     // elsewhere (e.g. flipping a role in the Supabase dashboard) show up
-    // without requiring a full sign-out/sign-in.
+    // without requiring a full sign-out/sign-in. Silent: this fires on
+    // every tab/window focus change, and flipping `loading` back to true
+    // for it was making content across the site (homepage, people,
+    // relationship graph, everything gated on `loading`) blink out and
+    // back in on every alt-tab.
     function onVisible() {
-      if (document.visibilityState === "visible") void load();
+      if (document.visibilityState === "visible") void load(false, true);
     }
     document.addEventListener("visibilitychange", onVisible);
 
