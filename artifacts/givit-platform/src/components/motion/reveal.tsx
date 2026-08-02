@@ -1,5 +1,3 @@
-"use client";
-
 import { motion, type HTMLMotionProps } from "motion/react";
 
 type FadeInProps = HTMLMotionProps<"div"> & {
