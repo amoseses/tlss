@@ -7,8 +7,8 @@
 // already-sent notifications by open status, not scheduled ones by time,
 // a different enough query that keeping them apart is clearer than
 // branching one handler on two unrelated conditions.
-import { fetchUnopenedEmailNotifications, fetchProfilesByIds, markFollowupSent } from "../_lib/notifications.mjs";
-import { sendEmail } from "../_lib/email.mjs";
+import { fetchUnopenedEmailNotifications, fetchProfilesByIds, markFollowupSent } from "../../server/api-lib/notifications.mjs";
+import { sendEmail } from "../../server/api-lib/email.mjs";
 
 const UNOPENED_AFTER_HOURS = 72;
 

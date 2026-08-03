@@ -4,10 +4,10 @@
 // just sat in the table forever with status='scheduled' and nothing ever
 // dispatched them. Vercel Cron hits this on a schedule (see vercel.json);
 // it can also be triggered manually with the same bearer token for testing.
-import { fetchDueNotifications, fetchProfilesByIds, fetchPushSubscriptions, markNotificationStatus } from "../_lib/notifications.mjs";
-import { sendEmail } from "../_lib/email.mjs";
-import { sendPushToSubscription } from "../_lib/push.mjs";
-import { sendSms } from "../_lib/sms.mjs";
+import { fetchDueNotifications, fetchProfilesByIds, fetchPushSubscriptions, markNotificationStatus } from "../../server/api-lib/notifications.mjs";
+import { sendEmail } from "../../server/api-lib/email.mjs";
+import { sendPushToSubscription } from "../../server/api-lib/push.mjs";
+import { sendSms } from "../../server/api-lib/sms.mjs";
 
 function emailBody(title: string, body: string, notificationId?: string) {
   // Invisible 1x1 pixel so dispatch-followups.ts can tell whether this
