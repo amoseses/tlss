@@ -3,7 +3,7 @@
 // does nothing when the visitor has no default mail client configured —
 // this actually sends the email server-side via Resend instead, reusing
 // the same integration built for AutoGift reminders.
-import { sendEmail } from "../_lib/email.mjs";
+import { sendEmail } from "../../server/api-lib/email.mjs";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_ITEMS_LENGTH = 4000;

@@ -3,9 +3,9 @@
 // start/callback/disconnect in one Vercel Function prevents Hobby-plan
 // deployments from exceeding the 12 Serverless Function limit while
 // preserving the existing public API paths.
-import { getUserFromRequest, signState, verifyState } from "../../_lib/auth.mjs";
-import { deleteConnection, saveConnection } from "../../_lib/calendar-connections.mjs";
-import { buildAuthUrl, exchangeCodeForTokens } from "../../_lib/google-calendar.mjs";
+import { getUserFromRequest, signState, verifyState } from "../../../server/api-lib/auth.mjs";
+import { deleteConnection, saveConnection } from "../../../server/api-lib/calendar-connections.mjs";
+import { buildAuthUrl, exchangeCodeForTokens } from "../../../server/api-lib/google-calendar.mjs";
 
 function redirect(res: any, path: string) {
   res.writeHead(302, { Location: `https://givit.site${path}` });

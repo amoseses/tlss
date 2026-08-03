@@ -1,6 +1,6 @@
 /// <reference path="../mjs-modules.d.ts" />
 import { randomUUID } from "node:crypto";
-import { getUploadUrl } from "../_lib/s3.mjs";
+import { getUploadUrl } from "../../server/api-lib/s3.mjs";
 
 const MAX_FILE_NAME_LENGTH = 160;
 

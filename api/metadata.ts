@@ -1,5 +1,5 @@
 /// <reference path="./mjs-modules.d.ts" />
-import { fetchPageMetadata } from "./_lib/metadata.mjs";
+import { fetchPageMetadata } from "../server/api-lib/metadata.mjs";
 
 export default async function handler(req: any, res: any) {
   const pageUrl = req.query?.url;
