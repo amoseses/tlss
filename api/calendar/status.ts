@@ -1,6 +1,6 @@
 /// <reference path="../mjs-modules.d.ts" />
-import { getUserFromRequest } from "../_lib/auth.mjs";
-import { getConnection } from "../_lib/calendar-connections.mjs";
+import { getUserFromRequest } from "../../server/api-lib/auth.mjs";
+import { getConnection } from "../../server/api-lib/calendar-connections.mjs";
 
 export default async function handler(req: any, res: any) {
   const user = await getUserFromRequest(req);

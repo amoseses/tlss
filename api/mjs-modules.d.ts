@@ -1,4 +1,4 @@
-// The _lib/*.mjs helper modules are plain JS on purpose (see api/_lib/*.mjs
+// The server/api-lib/*.mjs helper modules are plain JS on purpose (see server/api-lib/*.mjs
 // comments) so Node can import them directly without a build step. This
 // tells TypeScript to treat them as untyped modules instead of erroring
 // with "implicitly has an 'any' type" under noImplicitAny — which Vercel's

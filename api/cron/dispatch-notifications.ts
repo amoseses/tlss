@@ -4,9 +4,10 @@
 // just sat in the table forever with status='scheduled' and nothing ever
 // dispatched them. Vercel Cron hits this on a schedule (see vercel.json);
 // it can also be triggered manually with the same bearer token for testing.
-import { fetchDueNotifications, fetchProfilesByIds, fetchPushSubscriptions, markNotificationStatus } from "../_lib/notifications.mjs";
-import { sendEmail } from "../_lib/email.mjs";
-import { sendPushToSubscription } from "../_lib/push.mjs";
+import { fetchDueNotifications, fetchProfilesByIds, fetchPushSubscriptions, markNotificationStatus } from "../../server/api-lib/notifications.mjs";
+import { sendEmail } from "../../server/api-lib/email.mjs";
+import { sendPushToSubscription } from "../../server/api-lib/push.mjs";
+import { sendSms } from "../../server/api-lib/sms.mjs";
 
 function emailBody(title: string, body: string, notificationId?: string) {
   // Invisible 1x1 pixel so dispatch-followups.ts can tell whether this
@@ -46,6 +47,7 @@ export default async function handler(req: any, res: any) {
     const userIds = Array.from(new Set(due.map((n: any) => n.user_id).filter(Boolean)));
     const profiles = await fetchProfilesByIds(userIds);
     const emailByUserId = new Map(profiles.map((p: any) => [p.id, p.email]));
+    const phoneByUserId = new Map(profiles.map((p: any) => [p.id, p.phone]));
 
     for (const notification of due) {
       try {
@@ -58,6 +60,16 @@ export default async function handler(req: any, res: any) {
           }
           const { html, text } = emailBody(notification.title, notification.body, notification.id);
           await sendEmail({ to, subject: notification.title, html, text });
+          await markNotificationStatus(notification.id, "sent");
+          results.sent++;
+        } else if (notification.channel === "sms") {
+          const phone = phoneByUserId.get(notification.user_id);
+          if (!phone) {
+            await markNotificationStatus(notification.id, "failed");
+            results.failed++;
+            continue;
+          }
+          await sendSms(phone, `${notification.title} — ${notification.body}`);
           await markNotificationStatus(notification.id, "sent");
           results.sent++;
         } else if (notification.channel === "push" || notification.channel === "in_app") {

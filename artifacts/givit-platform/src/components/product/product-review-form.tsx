@@ -1,5 +1,3 @@
-"use client";
-
 import { useTransition } from "react";
 import { toast } from "sonner";
 

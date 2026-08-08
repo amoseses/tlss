@@ -3,7 +3,7 @@
 // so dispatch-followups.ts can tell "sent but ignored" apart from "sent and
 // read" — without this, a follow-up nudge would have no real signal to act
 // on and would just be a second copy of the same email on a timer.
-import { markNotificationOpened } from "../_lib/notifications.mjs";
+import { markNotificationOpened } from "../../server/api-lib/notifications.mjs";
 
 // Smallest valid transparent GIF — a real image response, so this loads
 // silently as the intended 1x1 pixel instead of a broken-image icon on mail

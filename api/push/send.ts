@@ -1,5 +1,5 @@
 /// <reference path="../mjs-modules.d.ts" />
-import { sendPushToSubscription } from "../_lib/push.mjs";
+import { sendPushToSubscription } from "../../server/api-lib/push.mjs";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {

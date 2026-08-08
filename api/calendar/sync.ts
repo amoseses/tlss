@@ -4,11 +4,11 @@
 // on-demand (a "Sync now" button) rather than a background cron for this
 // first pass -- keeps the token-refresh and write logic in one place we can
 // verify actually works before wiring it to run unattended on a schedule.
-import { getUserFromRequest } from "../_lib/auth.mjs";
-import { getConnection, deleteConnection, markSynced } from "../_lib/calendar-connections.mjs";
-import { refreshAccessToken, fetchCalendarList, fetchEvents } from "../_lib/google-calendar.mjs";
-import { guessName, guessOccasion, eventDateIso } from "../_lib/calendar-parse.mjs";
-import { mergeCalendarEvents } from "../_lib/gift-sync.mjs";
+import { getUserFromRequest } from "../../server/api-lib/auth.mjs";
+import { getConnection, deleteConnection, markSynced } from "../../server/api-lib/calendar-connections.mjs";
+import { refreshAccessToken, fetchCalendarList, fetchEvents } from "../../server/api-lib/google-calendar.mjs";
+import { guessName, guessOccasion, eventDateIso } from "../../server/api-lib/calendar-parse.mjs";
+import { mergeCalendarEvents } from "../../server/api-lib/gift-sync.mjs";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {

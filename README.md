@@ -30,7 +30,8 @@ Copy `artifacts/givit-platform/.env.example` to `artifacts/givit-platform/.env.l
 | `VITE_VAPID_PUBLIC_KEY` | Same value as `VAPID_PUBLIC_KEY`, but `VITE_`-prefixed so the browser can subscribe. This one is meant to be public. | same as above |
 | `SUPABASE_URL` | Same project URL as `VITE_SUPABASE_URL`, without the `VITE_` prefix (used server-side by the notification cron). | `https://your-project.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key (Project Settings → API). Bypasses RLS — server-only, never expose to the client. | `eyJhbGci...` |
-| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Resend (resend.com) API key and a from-address on a domain verified in the Resend dashboard. Used to actually send AutoGift reminder emails. | see §4 |
+| `AWS_REGION` / `AWS_S3_BUCKET` | AWS region and S3 bucket used to mint 5-minute presigned upload URLs so browsers can upload files directly to S3. | `us-east-1`, `your-bucket` |
+| `SES_FROM_EMAIL` | SES verified from-address for transactional email. AWS credentials are resolved server-side by the AWS SDK. | `Givit <notifications@yourdomain.com>` |
 | `CRON_SECRET` | Shared secret the notification-dispatch cron checks on its `Authorization: Bearer` header. | any long random string |
 
 Givit AI needs `VITE_GROQ_API_KEY` — see §5.
@@ -72,8 +73,9 @@ VITE_VAPID_PUBLIC_KEY=...          (same value as VAPID_PUBLIC_KEY)
 ```
 SUPABASE_URL=https://zbhumepxaywxnluapcbs.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
-RESEND_API_KEY=...
-RESEND_FROM_EMAIL=Givit <notifications@yourdomain.com>
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your-upload-bucket
+SES_FROM_EMAIL=Givit <notifications@yourdomain.com>
 CRON_SECRET=...
 ```
 
@@ -111,7 +113,7 @@ The AutoGift system works in 4 stages:
 7. Admin reviews and charges card on file (Stripe integration needed)
 8. Admin sources items, writes card, arranges shipping
 
-**Actually sending the reminders:** adding a recipient/occasion writes rows into `gift_notifications` with `status='scheduled'`, but writing the row was never the same as sending it — nothing dispatched those until `api/cron/dispatch-notifications.ts` was added. It finds every notification whose `scheduled_for` has passed, emails the `email`-channel ones via Resend and pushes the `push`-channel ones via the existing Web Push setup, then marks each `sent` or `failed`. It needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL` set in Vercel (see §1/§3) — without them it 500s harmlessly (nothing gets marked sent, so it'll retry next run) rather than silently doing nothing.
+**Actually sending the reminders:** adding a recipient/occasion writes rows into `gift_notifications` with `status='scheduled'`, but writing the row was never the same as sending it — nothing dispatched those until `api/cron/dispatch-notifications.ts` was added. It finds every notification whose `scheduled_for` has passed, emails the `email`-channel ones via AWS SES and pushes the `push`-channel ones via the existing Web Push setup, then marks each `sent` or `failed`. It needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `AWS_REGION`, and `SES_FROM_EMAIL` set in Vercel (see §1/§3) — without them it 500s harmlessly (nothing gets marked sent, so it'll retry next run) rather than silently doing nothing.
 
 **Scheduling it:** this deliberately does *not* use Vercel's own Cron Jobs feature (the `vercel.json` `"crons"` field) — on a Hobby account without a verified payment method on file, Vercel can reject the entire deployment over a `crons` entry, which is what broke an earlier deploy. Instead, use a free external scheduler to hit the endpoint once a day:
 
