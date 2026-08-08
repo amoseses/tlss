@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useLocation } from "wouter";
 import { X, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Lock } from "lucide-react";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 import { createNotification, saveGiftOccasion, saveGiftRecipient, saveUserAddress, saveUserPaymentMethod, updateProfile } from "@/lib/supabase/db";
 import { SPECIAL_DATES } from "@/lib/data/special-dates";
+import { getStripePromise } from "@/lib/stripe/client";
+import { createClient } from "@/lib/supabase/client";
 
 type Step = "welcome" | "address" | "payment" | "recipient" | "done";
 
@@ -39,6 +42,49 @@ const DRAFT_KEY = "givit-autogift-onboarding-draft";
 type Draft = { step: Step; addresses: typeof INITIAL_ADDRESS[]; recipients: RecipientDraft[] };
 const INITIAL_ADDRESS = { label: "", line1: "", city: "", state: "", zip: "", country: "US" };
 
+async function authedFetch(path: string, init?: RequestInit) {
+  const { data } = await createClient().auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not signed in.");
+  return fetch(path, {
+    ...init,
+    headers: { ...(init?.headers ?? {}), Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  });
+}
+
+type ConfirmedPaymentMethod = { id: string; brand: string; last4: string };
+type PaymentFormHandle = { submit: () => Promise<{ ok: true; method: ConfirmedPaymentMethod } | { ok: false; error: string }> };
+
+// Card fields never touch GIVIT's own state or servers -- Stripe's
+// PaymentElement runs inside Stripe's own iframe, and confirmSetup() only
+// ever hands this component back an opaque payment_method ID.
+const PaymentElementForm = forwardRef<PaymentFormHandle>(function PaymentElementForm(_props, ref) {
+  const stripe = useStripe();
+  const elements = useElements();
+
+  useImperativeHandle(ref, () => ({
+    async submit() {
+      if (!stripe || !elements) return { ok: false, error: "Payment form is still loading." };
+      const { error: submitError } = await elements.submit();
+      if (submitError) return { ok: false, error: submitError.message || "Enter valid card details." };
+      const { error, setupIntent } = await stripe.confirmSetup({ elements, redirect: "if_required" });
+      if (error) return { ok: false, error: error.message || "Card couldn't be saved." };
+      const paymentMethodId = typeof setupIntent?.payment_method === "string" ? setupIntent.payment_method : setupIntent?.payment_method?.id;
+      if (!paymentMethodId) return { ok: false, error: "Card couldn't be saved." };
+      try {
+        const res = await authedFetch("/api/stripe/payment-method-summary", { method: "POST", body: JSON.stringify({ paymentMethodId }) });
+        const data = await res.json();
+        if (!res.ok) return { ok: false, error: data.error || "Card was saved, but details couldn't be confirmed." };
+        return { ok: true, method: { id: paymentMethodId, brand: data.brand, last4: data.last4 } };
+      } catch (err: any) {
+        return { ok: false, error: err.message || "Card was saved, but details couldn't be confirmed." };
+      }
+    },
+  }));
+
+  return <PaymentElement options={{ layout: "tabs" }} />;
+});
+
 function readDraft(): Partial<Draft> {
   try {
     const raw = window.localStorage.getItem(DRAFT_KEY);
@@ -58,20 +104,35 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 
   // Address
   const [addresses, setAddresses] = useState(savedDraft.addresses?.length ? savedDraft.addresses : [INITIAL_ADDRESS]);
-  // Payment (simplified - in production use Stripe Elements) — intentionally
-  // not persisted, see DRAFT_KEY comment above.
-  const [cardName, setCardName] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvc, setCardCvc] = useState("");
+  // Payment via real Stripe Elements — intentionally not persisted to the
+  // draft, see DRAFT_KEY comment above. clientSecret is fetched fresh each
+  // time the payment step is reached; confirmedMethod holds the real
+  // Stripe-issued payment_method id + brand/last4 once confirmSetup succeeds.
+  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
+  const [paymentFetching, setPaymentFetching] = useState(false);
+  const [confirmedMethod, setConfirmedMethod] = useState<ConfirmedPaymentMethod | null>(null);
+  const paymentFormRef = useRef<PaymentFormHandle>(null);
   // Recipients
   const [recipients, setRecipients] = useState<RecipientDraft[]>(savedDraft.recipients?.length ? savedDraft.recipients : [emptyRecipient()]);
+
+  useEffect(() => {
+    if (step !== "payment" || paymentClientSecret || paymentFetching) return;
+    setPaymentFetching(true);
+    authedFetch("/api/stripe/setup-intent", { method: "POST" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.clientSecret) setPaymentClientSecret(data.clientSecret);
+        else setError(data.error || "Couldn't load the payment form.");
+      })
+      .catch((err: any) => setError(err.message || "Couldn't load the payment form."))
+      .finally(() => setPaymentFetching(false));
+  }, [step]);
 
   useEffect(() => {
     window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, addresses, recipients }));
   }, [step, addresses, recipients]);
 
-  function next() {
+  async function next() {
     setError("");
     if (step === "welcome") setStep("address");
     else if (step === "address") {
@@ -81,11 +142,18 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
       }
       setStep("payment");
     } else if (step === "payment") {
-      const digits = cardNumber.replace(/\D/g, "");
-      if (!cardName.trim() || digits.length < 13 || !/^\d{2}\/?\d{2}$/.test(cardExpiry.replace(/\s/g, "")) || cardCvc.replace(/\D/g, "").length < 3) {
-        setError("Enter the full cardholder name, card number, expiration, and CVC. In production these fields are submitted through Stripe Elements so raw card data never touches GIVIT servers.");
+      if (!paymentFormRef.current) {
+        setError("Payment form is still loading.");
         return;
       }
+      setSaving(true);
+      const result = await paymentFormRef.current.submit();
+      setSaving(false);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setConfirmedMethod(result.method);
       setStep("recipient");
     } else if (step === "recipient") {
       if (!recipients.some((r) => r.name.trim() && r.occasionDate)) {
@@ -139,16 +207,12 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
         });
       }
       window.localStorage.setItem("givit-autogift-addresses", JSON.stringify(validAddresses));
-      const cardDigits = cardNumber.replace(/\D/g, "");
-      if (cardName.trim() && cardDigits.length >= 13) {
+      if (confirmedMethod) {
         await saveUserPaymentMethod({
           user_id: user.id,
-          // Random id, not derived from the real card number — storing any
-          // more than the last 4 digits (card_last4 below) has no purpose
-          // here and is exactly the kind of over-retention PCI DSS forbids.
-          stripe_payment_method_id: `pm_demo_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
-          card_brand: detectCardBrand(cardNumber),
-          card_last4: cardDigits.slice(-4),
+          stripe_payment_method_id: confirmedMethod.id,
+          card_brand: confirmedMethod.brand,
+          card_last4: confirmedMethod.last4,
           is_default: true,
         });
       }
@@ -260,28 +324,19 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 
           {step === "payment" && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">You'll approve each purchase before any charge. Collect the full card details now so Stripe can tokenize and save the payment method for AutoGift.</p>
-              <div className="grid gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Name on card</label>
-                <input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="Jane Customer" autoComplete="cc-name" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
-              </div>
-              <div className="grid gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Card number</label>
-                <input value={cardNumber} onChange={(e) => setCardNumber(formatCardNumber(e.target.value))} placeholder="4242 4242 4242 4242" inputMode="numeric" autoComplete="cc-number" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground">Expiration</label>
-                  <input value={cardExpiry} onChange={(e) => setCardExpiry(formatExpiry(e.target.value))} placeholder="MM/YY" inputMode="numeric" autoComplete="cc-exp" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
+              <p className="text-sm text-muted-foreground">You'll approve each purchase before any charge. Card details are handled directly by Stripe — they never touch GIVIT's own servers.</p>
+              {paymentFetching && !paymentClientSecret ? (
+                <div className="flex h-32 items-center justify-center rounded-lg border border-border/60">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-givit-ember border-t-transparent" />
                 </div>
-                <div className="grid gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground">CVC</label>
-                  <input value={cardCvc} onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="123" inputMode="numeric" autoComplete="cc-csc" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" />
-                </div>
-              </div>
+              ) : paymentClientSecret ? (
+                <Elements stripe={getStripePromise()} options={{ clientSecret: paymentClientSecret }}>
+                  <PaymentElementForm ref={paymentFormRef} />
+                </Elements>
+              ) : null}
               <div className="flex gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span>We only keep your card type and last 4 digits on file, never the full card number. You'll approve every charge before it happens.</span>
+                <span>Powered by Stripe. GIVIT only ever stores your card type and last 4 digits, never the full card number. You'll approve every charge before it happens.</span>
               </div>
             </div>
           )}
@@ -355,8 +410,8 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                 </button>
               )}
               {step !== "done" ? (
-                <Button onClick={next} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
-                  Continue <ArrowRight className="ml-1 h-4 w-4" />
+                <Button onClick={next} disabled={saving || (step === "payment" && !paymentClientSecret)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+                  {saving ? "Saving..." : <>Continue <ArrowRight className="ml-1 h-4 w-4" /></>}
                 </Button>
               ) : (
                 <Button onClick={finish} disabled={saving} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
@@ -370,24 +425,6 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
     </div>
   );
 }
-function formatCardNumber(value: string) {
-  return value.replace(/\D/g, "").slice(0, 19).replace(/(.{4})/g, "$1 ").trim();
-}
-
-function formatExpiry(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 4);
-  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
-}
-
-function detectCardBrand(value: string) {
-  const digits = value.replace(/\D/g, "");
-  if (/^4/.test(digits)) return "Visa";
-  if (/^(5[1-5]|2[2-7])/.test(digits)) return "Mastercard";
-  if (/^3[47]/.test(digits)) return "Amex";
-  if (/^6/.test(digits)) return "Discover";
-  return "Card";
-}
-
 function occasionDateHelp(label: string) {
   const lower = label.toLowerCase();
   if (lower.includes("birthday")) return "Date of birth: AI calculates age each year";

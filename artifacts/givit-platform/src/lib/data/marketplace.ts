@@ -405,11 +405,17 @@ function productPageImageFor(seed: SeedProduct) {
   // scale (706 simultaneous lookups thundering-herd the photo API and each
   // other). Live per-URL resolution (api/photo.ts) is reserved for one-at-a-
   // time real submissions — see imported-products.ts — where exactly one
-  // lookup happens per user action.
-  return seed.image;
+  // lookup happens per user action. RESOLVED_PRODUCT_IMAGES is the batch
+  // equivalent: real retailer-hosted photos looked up once and baked in
+  // here, checked first so a product with a real photo on file never shows
+  // its generic stock fallback.
+  return RESOLVED_PRODUCT_IMAGES[seed.slug] || seed.image;
 }
 
 function marketplaceImageFor(seed: SeedProduct) {
+  const resolved = RESOLVED_PRODUCT_IMAGES[seed.slug];
+  if (resolved) return resolved;
+
   if (!usedMarketplaceImages.has(seed.image)) {
     usedMarketplaceImages.add(seed.image);
     return seed.image;

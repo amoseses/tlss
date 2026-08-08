@@ -21,6 +21,7 @@ type Message = {
   loading?: boolean;
   needsFollowUp?: boolean;
   generalQuestion?: boolean;
+  confirmRecipient?: { recipientId: string; recipientName: string; pendingText: string };
 };
 
 type Questionnaire = {
@@ -122,6 +123,20 @@ function buildRecallAnswer(r: SavedRecipient): string {
   if (r.notes?.trim()) parts.push(`Notes: ${r.notes.trim()}`);
   parts.push(`Want to add more? Edit ${r.name}'s profile on the People page.`);
   return parts.join(" ");
+}
+
+// Before searching on a recognized saved recipient, show what's actually on
+// file rather than rushing straight to results with whatever's there -- her
+// interests/budget are often blank or stale since those fields are optional,
+// so this gives a chance to confirm or add detail first instead of silently
+// searching against gaps.
+function buildConfirmSummary(r: SavedRecipient): string {
+  const known: string[] = [];
+  if (r.interests?.length) known.push(`likes ${r.interests.join(", ")}`);
+  if (r.default_budget_cents) known.push(`budget ${formatMoneyLocal(r.default_budget_cents)}`);
+  if (r.avoid_terms?.length) known.push(`avoid ${r.avoid_terms.join(", ")}`);
+  const detail = known.length ? known.join(", ") : "no interests or budget saved yet";
+  return `Quick check before I search -- here's what I have for ${r.name}: ${detail}. Still accurate?`;
 }
 
 // Silently folds a matched recipient's known interests/avoid-list/budget
@@ -284,6 +299,10 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   // Ids already shown, so "Not yet" can ask for a genuinely different set
   // instead of just acknowledging and stopping.
   const shownIdsRef = useRef<Set<string>>(new Set());
+  // Recipients who've already gone through the "here's what I have, still
+  // accurate?" confirm step this session -- so a follow-up message that
+  // mentions them again doesn't ask a second time.
+  const confirmedRecipientIdsRef = useRef<Set<string>>(new Set());
   // Starts with the static seed catalog (available instantly, no network
   // wait) and upgrades in the background to the Supabase-merged catalog, so
   // admin-added products become real, recommendable candidates instead of
@@ -360,9 +379,42 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       }
     }
 
+    // Before searching against a recognized saved recipient for the first
+    // time this session, confirm what's on file rather than rushing
+    // straight into results with whatever's there (often blank/stale,
+    // since those fields are optional). Skipped on regenerate/"Not yet"
+    // retries so those don't re-ask about someone already confirmed.
+    if (!isRegenerate) {
+      const matched = findSavedRecipient(trimmed, savedRecipients);
+      if (matched && !confirmedRecipientIdsRef.current.has(matched.id)) {
+        setLastQuery(trimmed);
+        setMessages((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), role: "user", content: trimmed },
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: buildConfirmSummary(matched),
+            confirmRecipient: { recipientId: matched.id, recipientName: matched.name, pendingText: trimmed },
+          },
+        ]);
+        setInput("");
+        focusInput();
+        return;
+      }
+    }
+
+    await runSearch(trimmed, isRegenerate, excludeIds);
+  }
+
+  async function runSearch(trimmed: string, isRegenerate = false, excludeIds: string[] = [], skipUserBubble = false) {
     if (!isRegenerate) setLastQuery(trimmed);
     const replyId = crypto.randomUUID();
-    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", content: trimmed }, { id: replyId, role: "assistant", content: "", loading: true }]);
+    setMessages((prev) => [
+      ...prev,
+      ...(skipUserBubble ? [] : [{ id: crypto.randomUUID(), role: "user" as const, content: trimmed }]),
+      { id: replyId, role: "assistant", content: "", loading: true },
+    ]);
     setInput("");
     setLoading(true);
 
@@ -426,6 +478,17 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       setLoading(false);
       focusInput();
     }
+  }
+
+  function confirmRecipientAndSearch(confirm: NonNullable<Message["confirmRecipient"]>) {
+    confirmedRecipientIdsRef.current.add(confirm.recipientId);
+    void runSearch(confirm.pendingText, false, [], true);
+  }
+
+  function elaborateRecipient(confirm: NonNullable<Message["confirmRecipient"]>) {
+    confirmedRecipientIdsRef.current.add(confirm.recipientId);
+    setInput(`${confirm.pendingText}, `);
+    focusInput();
   }
 
   function handleFeedback(results: GiftResult[], satisfied: boolean) {
@@ -566,6 +629,16 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-givit-ember"><Sparkles className="h-3.5 w-3.5 text-white" /></div>
                       {msg.content && <div className="chat-bubble-ai max-w-[85%] text-sm leading-relaxed">{msg.content}</div>}
                     </div>
+                    {msg.confirmRecipient && (
+                      <div className="ml-11 flex flex-wrap gap-2">
+                        <button type="button" disabled={loading} onClick={() => confirmRecipientAndSearch(msg.confirmRecipient!)} className="inline-flex items-center gap-1 rounded-full bg-givit-ember px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40">
+                          Yep, find gifts
+                        </button>
+                        <button type="button" disabled={loading} onClick={() => elaborateRecipient(msg.confirmRecipient!)} className="inline-flex items-center gap-1 rounded-full border border-border/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40">
+                          Let me add details
+                        </button>
+                      </div>
+                    )}
                     {msg.results && msg.results.length > 0 && (
                       <div className="ml-0 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         {msg.results.map((result, idx) => <GiftCard key={result.id} result={result} index={idx} onItemFeedback={handleItemFeedback} />)}

@@ -73,6 +73,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
+    "@stripe/react-stripe-js": "^6.8.0",
+    "@stripe/stripe-js": "^9.13.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1"
   }

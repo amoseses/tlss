@@ -61,10 +61,8 @@ export function SiteHeader() {
         <div className={isDark ? "border-t border-white/8 bg-white/5" : "border-t border-border bg-givit-sand/40"}>
           <div className="container flex items-center gap-1.5 overflow-x-auto py-2 scrollbar-none">
             {NAV_ITEMS.map((item) => {
-              const [itemPath, itemSearch] = item.href.split("?");
-              const isActive = item.matchPath
-                ? path === item.matchPath && search === item.matchSearch
-                : path === itemPath && (item.matchPath || !search);
+              const [itemPath] = item.href.split("?");
+              const isActive = path === itemPath;
               const Icon = item.icon;
               const isAutoGift = item.accent;
               return (
