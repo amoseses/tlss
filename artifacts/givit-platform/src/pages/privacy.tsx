@@ -19,8 +19,14 @@ export default function PrivacyPage() {
           <p className="mt-3 text-sm leading-7 text-muted-foreground">We do not sell or rent this data to third parties, ever.</p>
         </section>
         <section>
-          <h2 className="font-serif text-xl font-bold text-givit-ink">Where it's stored and who processes it</h2>
-          <p className="mt-2 text-sm leading-7 text-muted-foreground">Account and recipient data lives in our database, hosted by Supabase, and access is restricted by row-level security so only your own account can read your data (our servers use a separate, tightly scoped key for background jobs like reminder emails). The site itself is hosted on Vercel. A handful of specialized processors handle specific tasks on our behalf and only see what's needed for that task: Stripe for payment tokenization, Google for Calendar sync (if you connect it) and for the AI models that power Your Gift AI and AutoGift's recommendations, and our email provider for reminder and receipt emails. None of these processors are permitted to use your data for their own purposes.</p>
+          <h2 className="font-serif text-xl font-bold text-givit-ink">Where it's stored, and integrations</h2>
+          <p className="mt-2 text-sm leading-7 text-muted-foreground">Account and recipient data lives in our database, hosted by Supabase, and access is restricted by row-level security so only your own account can read your data (our servers use a separate, tightly scoped key for background jobs like reminder emails). The site itself is hosted on Vercel. Beyond that, a handful of specialized integrations handle specific tasks on our behalf and only ever see what's needed for that task:</p>
+          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm leading-7 text-muted-foreground">
+            <li><strong className="text-foreground">Stripe:</strong> tokenizes and stores your card for AutoGift charges; we never see the full card number.</li>
+            <li><strong className="text-foreground">Google:</strong> Calendar sync, if you connect it, and the Gemini models that power Your Gift AI and AutoGift's recommendations.</li>
+            <li><strong className="text-foreground">Amazon Web Services (S3, SES, SNS):</strong> S3 stores images you upload (e.g. to a board); SES sends reminder, receipt, and notification emails; SNS sends SMS notifications if you opt in.</li>
+          </ul>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">None of these integrations are permitted to use your data for their own purposes, and we don't add a new one without a real feature that needs it.</p>
         </section>
         <section>
           <h2 className="font-serif text-xl font-bold text-givit-ink">AI and your data</h2>
