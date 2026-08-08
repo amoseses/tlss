@@ -1,21 +1,19 @@
 /// <reference path="../mjs-modules.d.ts" />
-// Single catch-all handler for the AutoGift Stripe flow (setup-intent +
-// payment-method-summary) -- same reasoning as api/auth/google-calendar/
-// [action].ts: keeps this under Vercel's Hobby-plan 12 Serverless Function
-// limit while preserving the existing public API paths.
+// Both AutoGift Stripe actions live in one Vercel Function, differentiated
+// by HTTP method rather than a path segment -- same reasoning as
+// api/auth/google-calendar/callback.ts: a [action].ts bracket route
+// doesn't actually get served by Vercel for this project (confirmed live:
+// requests fall through to the SPA rewrite instead of the function), and
+// staying under the Hobby-plan 12 Function limit means this can't just be
+// two separate files either.
+// POST = start a SetupIntent so Stripe Elements can collect a card.
+// GET (?paymentMethodId=) = look up the resulting card's brand/last4 --
+// Stripe.js deliberately never hands that back to the browser itself.
 import { getUserFromRequest } from "../../server/api-lib/auth.mjs";
 import { getOrCreateStripeCustomer, getPaymentMethodSummary } from "../../server/api-lib/payments.mjs";
 import { getStripe } from "../../server/api-lib/stripe.mjs";
 
-// Starts a real Stripe SetupIntent so the AutoGift onboarding wizard can
-// collect a card via Stripe Elements -- raw card data goes straight to
-// Stripe from the browser and never touches this server at all.
-async function setupIntent(req: any, res: any) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
+async function startSetupIntent(req: any, res: any) {
   try {
     const user = await getUserFromRequest(req);
     if (!user) {
@@ -38,17 +36,7 @@ async function setupIntent(req: any, res: any) {
   }
 }
 
-// After the client confirms a SetupIntent, it only gets back a
-// payment_method ID -- Stripe.js deliberately doesn't hand back card
-// details in the browser. This looks the card up server-side (secret key)
-// so the wizard can show/store a real brand and last 4 instead of ones
-// computed client-side from a raw, untokenized number.
 async function paymentMethodSummary(req: any, res: any) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
   try {
     const user = await getUserFromRequest(req);
     if (!user) {
@@ -56,7 +44,7 @@ async function paymentMethodSummary(req: any, res: any) {
       return;
     }
 
-    const paymentMethodId = req.body?.paymentMethodId;
+    const paymentMethodId = req.query?.paymentMethodId;
     if (!paymentMethodId || typeof paymentMethodId !== "string") {
       res.status(400).json({ error: "Missing paymentMethodId." });
       return;
@@ -70,10 +58,7 @@ async function paymentMethodSummary(req: any, res: any) {
 }
 
 export default async function handler(req: any, res: any) {
-  const action = Array.isArray(req.query?.action) ? req.query.action[0] : req.query?.action;
-
-  if (action === "setup-intent") return setupIntent(req, res);
-  if (action === "payment-method-summary") return paymentMethodSummary(req, res);
-
-  res.status(404).json({ error: "Stripe route not found." });
+  if (req.method === "POST") return startSetupIntent(req, res);
+  if (req.method === "GET") return paymentMethodSummary(req, res);
+  res.status(405).json({ error: "Method not allowed" });
 }

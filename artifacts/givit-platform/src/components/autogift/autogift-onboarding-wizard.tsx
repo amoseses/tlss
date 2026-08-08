@@ -72,7 +72,7 @@ const PaymentElementForm = forwardRef<PaymentFormHandle>(function PaymentElement
       const paymentMethodId = typeof setupIntent?.payment_method === "string" ? setupIntent.payment_method : setupIntent?.payment_method?.id;
       if (!paymentMethodId) return { ok: false, error: "Card couldn't be saved." };
       try {
-        const res = await authedFetch("/api/stripe/payment-method-summary", { method: "POST", body: JSON.stringify({ paymentMethodId }) });
+        const res = await authedFetch(`/api/stripe/setup-intent?paymentMethodId=${encodeURIComponent(paymentMethodId)}`, { method: "GET" });
         const data = await res.json();
         if (!res.ok) return { ok: false, error: data.error || "Card was saved, but details couldn't be confirmed." };
         return { ok: true, method: { id: paymentMethodId, brand: data.brand, last4: data.last4 } };

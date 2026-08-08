@@ -708,7 +708,7 @@ function GoogleCalendarConnect() {
   async function connect() {
     setBusy(true);
     try {
-      const res = await authedFetch("/api/auth/google-calendar/start", { method: "POST" });
+      const res = await authedFetch("/api/auth/google-calendar/callback", { method: "POST" });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
       else throw new Error(data.error || "Couldn't start connect.");
@@ -721,7 +721,7 @@ function GoogleCalendarConnect() {
   async function disconnect() {
     setBusy(true);
     try {
-      await authedFetch("/api/auth/google-calendar/disconnect", { method: "POST" });
+      await authedFetch("/api/auth/google-calendar/callback", { method: "DELETE" });
       setStatus("disconnected");
       toast.success("Google Calendar disconnected.");
     } catch {

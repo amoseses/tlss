@@ -1,8 +1,15 @@
 /// <reference path="../../mjs-modules.d.ts" />
-// Single catch-all style handler for Google Calendar auth routes. Keeping
-// start/callback/disconnect in one Vercel Function prevents Hobby-plan
-// deployments from exceeding the 12 Serverless Function limit while
-// preserving the existing public API paths.
+// All three Google Calendar auth actions (start / callback / disconnect)
+// live in one Vercel Function to stay under the Hobby-plan 12 Function
+// limit. This can't use a [action].ts bracket route the way it briefly
+// did -- Vercel's build for this project doesn't serve bracket dynamic
+// segments under api/ (requests to them fall through to the SPA rewrite
+// and 405/index.html instead of reaching the function, confirmed live).
+// So this stays on the one path Google actually calls back to --
+// registered as the OAuth client's redirect_uri in Google Cloud Console,
+// and NOT something that can move without updating that registration --
+// and differentiates the other two actions by HTTP method instead:
+// GET = Google's OAuth redirect, POST = start, DELETE = disconnect.
 import { getUserFromRequest, signState, verifyState } from "../../../server/api-lib/auth.mjs";
 import { deleteConnection, saveConnection } from "../../../server/api-lib/calendar-connections.mjs";
 import { buildAuthUrl, exchangeCodeForTokens } from "../../../server/api-lib/google-calendar.mjs";
@@ -13,11 +20,6 @@ function redirect(res: any, path: string) {
 }
 
 async function start(req: any, res: any) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
   try {
     const user = await getUserFromRequest(req);
     if (!user) {
@@ -60,10 +62,6 @@ async function callback(req: any, res: any) {
 }
 
 async function disconnect(req: any, res: any) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
   const user = await getUserFromRequest(req);
   if (!user) {
     res.status(401).json({ error: "Not signed in." });
@@ -78,11 +76,8 @@ async function disconnect(req: any, res: any) {
 }
 
 export default async function handler(req: any, res: any) {
-  const action = Array.isArray(req.query?.action) ? req.query.action[0] : req.query?.action;
-
-  if (action === "start") return start(req, res);
-  if (action === "callback") return callback(req, res);
-  if (action === "disconnect") return disconnect(req, res);
-
-  res.status(404).json({ error: "Google Calendar route not found." });
+  if (req.method === "GET") return callback(req, res);
+  if (req.method === "POST") return start(req, res);
+  if (req.method === "DELETE") return disconnect(req, res);
+  res.status(405).json({ error: "Method not allowed" });
 }
