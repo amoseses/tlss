@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { PageShell } from "@/components/layout/page-shell";
+import { SponsorMarquee } from "@/components/marketing/sponsor-marquee";
 import { Reveal } from "@/components/ui/reveal";
 import { generatedProfilePhotoUrl } from "@/lib/avatar";
 
@@ -63,6 +64,13 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
+        </section>
+      </Reveal>
+
+      <Reveal variant="triangle">
+        <section className="border-t border-border/50 pb-16 pt-10">
+          <p className="mb-5 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">Backed by</p>
+          <SponsorMarquee />
         </section>
       </Reveal>
     </PageShell>
