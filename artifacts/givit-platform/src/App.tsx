@@ -97,17 +97,21 @@ function usePageTransition(location: string) {
 
 function Router() {
   const [location] = useLocation();
-  const { displayLocation, opacity } = usePageTransition(location);
+  const routePath = location.split("?")[0] || "/";
+  const { displayLocation, opacity } = usePageTransition(routePath);
   const isLanding = displayLocation === "/";
+  const isBetaTesting = displayLocation === "/beta";
 
   return (
     <div className="flex min-h-screen flex-col">
+      {isBetaTesting && <BetaTestingBanner />}
       {!isLanding && <SiteHeader />}
       {!isLanding && <UrgentOccasionBanner />}
       <main className="flex-1" style={{ opacity, transition: "opacity 150ms ease-in-out" }}>
         <Switch location={displayLocation}>
           <Route path="/" component={LandingPage} />
           <Route path="/home" component={HomePage} />
+          <Route path="/beta" component={HomePage} />
           <Route path="/products" component={ProductsPage} />
           <Route path="/products/:slug" component={ProductDetailPage} />
           <Route path="/gift" component={GiftFinderPage} />
@@ -134,8 +138,16 @@ function Router() {
         </Switch>
       </main>
       {!isLanding && <SiteFooter />}
-      {!isLanding && <LoginPrompt />}
-      <BetaFeedbackWidget />
+      {!isLanding && !isBetaTesting && <LoginPrompt />}
+      <BetaFeedbackWidget betaMode={isBetaTesting} />
+    </div>
+  );
+}
+
+function BetaTestingBanner() {
+  return (
+    <div className="sticky top-0 z-50 border-b border-amber-700/30 bg-[#d6a21f] px-4 py-2 text-center text-sm font-extrabold uppercase tracking-[0.22em] text-black shadow-sm">
+      Beta Testing Version. Free Access.
     </div>
   );
 }
