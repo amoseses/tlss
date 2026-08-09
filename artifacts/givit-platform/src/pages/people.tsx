@@ -709,9 +709,17 @@ function GoogleCalendarConnect() {
     setBusy(true);
     try {
       const res = await authedFetch("/api/auth/google-calendar/callback", { method: "POST" });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else throw new Error(data.error || "Couldn't start connect.");
+      // Read as text first, not res.json() directly -- if the server ever
+      // returns something that isn't valid JSON (a platform-level crash
+      // page rather than our own handled error response), res.json()
+      // throws a generic "Unexpected token" parse error that hides
+      // whatever the server actually said. This guarantees the real
+      // response body shows up in the toast either way.
+      const raw = await res.text();
+      let data: any = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch { /* not JSON, handled below */ }
+      if (data.url) { window.location.href = data.url; return; }
+      throw new Error(data.error || (raw ? raw.slice(0, 200) : `Request failed (${res.status}).`));
     } catch (err: any) {
       toast.error(err.message || "Couldn't connect Google Calendar.");
       setBusy(false);
