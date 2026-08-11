@@ -17,11 +17,13 @@ const REACTIONS = [
  * main friction stopping people from actually leaving feedback; typing
  * more detail is still there as an optional next step, not the default.
  */
-export function BetaFeedbackWidget() {
+export function BetaFeedbackWidget({ betaMode = false }: { betaMode?: boolean }) {
   const { profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [reaction, setReaction] = useState<(typeof REACTIONS)[number] | null>(null);
   const [message, setMessage] = useState("");
+  const [email, setEmail] = useState("");
+  const [betaTesterId, setBetaTesterId] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -29,12 +31,25 @@ export function BetaFeedbackWidget() {
   const [addingDetail, setAddingDetail] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tester = params.get("tester") || params.get("beta_tester") || params.get("ref") || window.localStorage.getItem("givit-beta-tester-id") || "";
+    if (tester) {
+      window.localStorage.setItem("givit-beta-tester-id", tester);
+      setBetaTesterId(tester);
+    }
+
+    if (betaMode) {
+      setOpen(true);
+      setShowNudge(true);
+      return;
+    }
+
     const storageKey = "givit-beta-feedback-nudge-dismissed";
     if (window.localStorage.getItem(storageKey) === "true") return;
 
     const nudgeTimer = window.setTimeout(() => setShowNudge(true), 900);
     return () => window.clearTimeout(nudgeTimer);
-  }, []);
+  }, [betaMode]);
 
   function dismissNudge() {
     setShowNudge(false);
@@ -46,7 +61,9 @@ export function BetaFeedbackWidget() {
     setError("");
     try {
       const supabase = createClient();
-      const fullMessage = profile?.email ? `Email: ${profile.email}\n\n${body}` : body;
+      const contactEmail = email.trim() || profile?.email || "";
+      const tracking = betaTesterId ? `Beta tester link id: ${betaTesterId}\n` : "";
+      const fullMessage = `${tracking}${contactEmail ? `Email: ${contactEmail}\n\n` : ""}${body}`;
       const { error: dbError } = await supabase.from("feedback").insert({ subject, message: fullMessage || subject });
       if (dbError) throw dbError;
       setSent(true);
@@ -74,7 +91,7 @@ export function BetaFeedbackWidget() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!message.trim()) return;
-    await submitFeedback(reaction?.label ?? "Corner widget note", message.trim());
+    await submitFeedback(betaMode ? "Beta testing survey" : reaction?.label ?? "Corner widget note", message.trim());
   }
 
   function close() {
@@ -92,7 +109,7 @@ export function BetaFeedbackWidget() {
       {open && (
         <div className="slide-up w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
           <div className="flex items-center justify-between border-b border-border/60 bg-black px-4 py-3">
-            <p className="text-sm font-semibold text-white">Beta feedback</p>
+            <p className="text-sm font-semibold text-white">{betaMode ? "Beta testing survey" : "Beta feedback"}</p>
             <button type="button" onClick={close} aria-label="Close feedback" className="rounded-full p-1 text-white/60 hover:bg-white/10 hover:text-white">
               <X className="h-4 w-4" />
             </button>
@@ -111,7 +128,37 @@ export function BetaFeedbackWidget() {
             </div>
           ) : (
             <div className="p-4">
-              <p className="mb-3 text-xs leading-5 text-muted-foreground">One tap, no need to sign in.</p>
+              <p className="mb-3 text-xs leading-5 text-muted-foreground">{betaMode ? "Free access — no login needed. Share your email and one general note so we can track beta feedback." : "One tap, no need to sign in."}</p>
+              {betaMode ? (
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email for follow-up"
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <textarea
+                    autoFocus
+                    required
+                    rows={4}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="General notes, bugs, confusing spots, or ideas…"
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  {betaTesterId && <p className="text-[11px] text-muted-foreground">Tracking beta tester: {betaTesterId}</p>}
+                  {error && <p className="text-xs text-destructive">{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={sending || !message.trim()}
+                    className="flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-givit-ember text-xs font-semibold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Send className="h-3.5 w-3.5" /> {sending ? "Sending…" : "Send beta feedback"}
+                  </button>
+                </form>
+              ) : (
+              <>
               <div className="grid grid-cols-3 gap-2">
                 {REACTIONS.map((r) => (
                   <button
@@ -159,6 +206,8 @@ export function BetaFeedbackWidget() {
                   + Add a note instead
                 </button>
               )}
+              </>
+              )}
             </div>
           )}
         </div>
@@ -174,9 +223,9 @@ export function BetaFeedbackWidget() {
           >
             <X className="h-3.5 w-3.5" />
           </button>
-          <p className="text-sm font-semibold text-givit-ink">Beta testers: quick feedback lives here.</p>
+          <p className="text-sm font-semibold text-givit-ink">Beta testing survey — leave feedback here.</p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Tap the corner widget anytime to share bugs, confusing moments, or ideas while you browse.
+            {betaMode ? "This beta link is tracked for tester feedback. No login is needed to browse and try features." : "Tap the corner widget anytime to share bugs, confusing moments, or ideas while you browse."}
           </p>
           <button
             type="button"
