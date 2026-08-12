@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, Bell, Gift, Heart, PartyPopper, ShieldCheck, Sparkles, Star } from "lucide-react";
+import { ArrowRight, Bell, CheckCircle2, Gift, Heart, PartyPopper, ShieldCheck, Sparkles, Star, UserRound, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
+import { GiftBox3D } from "@/components/ui/gift-box-3d";
+import { useScrollProgress } from "@/lib/hooks/use-scroll-progress";
 
 const ROTATING_PROMPTS = [
   "a mom who loves gardening and cozy nights in",
@@ -23,6 +25,79 @@ const FLOATING_ICONS = [
   { Icon: PartyPopper, className: "left-[6%] top-[55%] h-6 w-6 text-givit-ember/20", duration: "7.5s", delay: "1.6s" },
   { Icon: Sparkles, className: "right-[7%] top-[50%] h-5 w-5 text-givit-coral/20", duration: "6.8s", delay: "0.9s" },
 ];
+
+const STORY_STEPS = [
+  {
+    Icon: UserRound,
+    title: "Save someone once",
+    body: "Names, dates, interests — the details you'd normally have to hold in your head, or worse, forget.",
+  },
+  {
+    Icon: Sparkles,
+    title: "Your Gift AI remembers",
+    body: "Every birthday, every anniversary, every offhand mention of what they're into. It never resets to a blank page.",
+  },
+  {
+    Icon: Wand2,
+    title: "AutoGift reasons through it",
+    body: "35 days out, it proposes a real bundle — gift, card, flowers — with a stated reason for each pick, not a guess.",
+  },
+  {
+    Icon: CheckCircle2,
+    title: "You approve, it ships",
+    body: "Nothing charges or ships without your yes. The agent does the thinking; you keep the final say.",
+  },
+];
+
+// A pinned scroll narrative: the section is several viewport-heights tall,
+// the inner content stays sticky at the top of the viewport the whole
+// time, and scroll position (not a timer) drives which step is showing
+// and how far the gift box has turned -- the section itself never moves,
+// scrolling through it just advances the story, the same technique behind
+// the "things morph as you scroll" feeling on sites like Convexia.
+function StoryScroll() {
+  const { ref, progress } = useScrollProgress<HTMLDivElement>();
+  const activeStep = Math.min(STORY_STEPS.length - 1, Math.floor(progress * STORY_STEPS.length));
+  const step = STORY_STEPS[activeStep]!;
+  const Icon = step.Icon;
+  // Just under two full turns across the whole section -- enough motion to
+  // read as continuous, not so much it spins faster than the eye can track.
+  const rotationY = 8 + progress * 620;
+
+  return (
+    <section ref={ref} className="relative bg-black" style={{ height: `${STORY_STEPS.length * 120}vh` }}>
+      <div className="sticky top-0 flex h-screen items-center overflow-hidden">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-givit-ember/10 blur-3xl" />
+        <div className="container relative grid items-center gap-10 md:grid-cols-2 md:gap-16">
+          <div className="order-2 flex min-h-[220px] flex-col justify-center text-center md:order-1 md:text-left">
+            <div key={activeStep} className="slide-up mx-auto md:mx-0">
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl givit-gradient md:mx-0">
+                <Icon className="h-5 w-5 text-white" />
+              </div>
+              <p className="mt-4 text-xs font-bold uppercase tracking-widest text-givit-coral">
+                Step {activeStep + 1} of {STORY_STEPS.length}
+              </p>
+              <h3 className="mt-1 font-serif text-3xl font-bold text-white md:text-4xl">{step.title}</h3>
+              <p className="mx-auto mt-3 max-w-sm text-base leading-relaxed text-white/60 md:mx-0">{step.body}</p>
+            </div>
+          </div>
+          <div className="order-1 flex items-center justify-center md:order-2">
+            <GiftBox3D size={150} rotation={{ x: 8, y: rotationY }} glow={0.5 + progress * 0.5} />
+          </div>
+        </div>
+        <div className="absolute bottom-10 left-1/2 flex -translate-x-1/2 gap-2">
+          {STORY_STEPS.map((_, i) => (
+            <div
+              key={i}
+              className="h-1.5 w-6 rounded-full transition-colors duration-300"
+              style={{ backgroundColor: i === activeStep ? "var(--givit-ember)" : "rgba(255,255,255,0.15)" }}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 // Classic startup-site typewriter: types a phrase out, holds it, deletes it,
 // then moves to the next. Driven by (text, deleting, phraseIndex) rather than
@@ -65,6 +140,7 @@ export default function LandingPage() {
   if (loading) return null;
 
   return (
+    <div className="bg-black">
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 py-16 text-center text-white">
       <div className="pointer-events-none absolute -left-24 top-0 h-[420px] w-[420px] animate-drift rounded-full bg-givit-ember/25 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-0 h-[420px] w-[420px] animate-drift-slow rounded-full bg-givit-coral/20 blur-3xl" />
@@ -145,6 +221,22 @@ export default function LandingPage() {
         <span className="flex items-center gap-1.5"><Gift className="h-3.5 w-3.5" /> Real gifts, real reasons</span>
         <span className="flex items-center gap-1.5"><Bell className="h-3.5 w-3.5" /> Never forget an important date again</span>
       </div>
+    </div>
+
+    <StoryScroll />
+
+    <div className="relative flex flex-col items-center gap-5 bg-black px-6 py-24 text-center text-white">
+      <h2 className="font-serif text-3xl font-bold md:text-4xl">Ready to never send a bad gift again?</h2>
+      {user ? (
+        <Button asChild className="h-12 rounded-md givit-gradient px-7 text-sm font-bold text-white shadow-lg givit-glow transition-transform hover:-translate-y-0.5 hover:brightness-110">
+          <Link href="/home">Go to Dashboard <ArrowRight className="h-4 w-4" /></Link>
+        </Button>
+      ) : (
+        <Button asChild className="h-12 rounded-md givit-gradient px-7 text-sm font-bold text-white shadow-lg givit-glow transition-transform hover:-translate-y-0.5 hover:brightness-110">
+          <Link href="/signup?next=/home">Create free account <ArrowRight className="h-4 w-4" /></Link>
+        </Button>
+      )}
+    </div>
     </div>
   );
 }

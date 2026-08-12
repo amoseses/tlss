@@ -8,7 +8,22 @@
  * instead of just being a flat pattern painted on the top face. Every
  * face uses the site's own ember/coral palette, no generic black/gray.
  */
-export function GiftBox3D({ size = 56, className = "" }: { size?: number; className?: string }) {
+export function GiftBox3D({
+  size = 56,
+  className = "",
+  rotation,
+  glow = 0,
+}: {
+  size?: number;
+  className?: string;
+  /** Explicit {x, y} degrees — overrides the default continuous CSS spin
+   *  so a scroll position (or anything else) can drive rotation directly
+   *  instead of the box spinning on its own fixed timer. */
+  rotation?: { x: number; y: number };
+  /** 0-1 — blends in a soft ember glow behind the box; purely additive,
+   *  the box geometry itself never changes shape. */
+  glow?: number;
+}) {
   const half = size / 2;
   const ribbonWidth = Math.max(4, Math.round(size * 0.16));
   const loopSize = size * 0.4;
@@ -42,8 +57,20 @@ export function GiftBox3D({ size = 56, className = "" }: { size?: number; classN
     </>
   );
 
+  const controlledStyle: React.CSSProperties | undefined = rotation
+    ? { transform: `perspective(600px) rotateY(${rotation.y}deg) rotateX(${rotation.x}deg)`, transformStyle: "preserve-3d" }
+    : undefined;
+
   return (
-    <div className={`animate-rotate-3d relative ${className}`} style={{ width: size, height: size }}>
+    <div className="relative" style={{ width: size, height: size }}>
+      {glow > 0 && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute rounded-full bg-givit-ember blur-2xl"
+          style={{ inset: -size * 0.6, opacity: glow * 0.45, transition: "opacity 200ms linear" }}
+        />
+      )}
+      <div className={`relative ${rotation ? "" : "animate-rotate-3d"} ${className}`} style={{ width: size, height: size, ...controlledStyle }}>
       {/* front */}
       <div className="givit-gradient rounded-md shadow-md" style={{ ...faceBase, transform: `translateZ(${half}px)` }}>
         {verticalRibbon}
@@ -94,6 +121,7 @@ export function GiftBox3D({ size = 56, className = "" }: { size?: number; classN
       </div>
       {/* bottom */}
       <div className="bg-givit-ember-hover rounded-md" style={{ ...faceBase, transform: `rotateX(-90deg) translateZ(${half}px)` }} />
+      </div>
     </div>
   );
 }
