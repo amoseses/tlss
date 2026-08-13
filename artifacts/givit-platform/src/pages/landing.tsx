@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, Bell, CheckCircle2, Gift, Heart, PartyPopper, ShieldCheck, Sparkles, Star, UserRound, Wand2 } from "lucide-react";
+import { ArrowRight, Bell, CheckCircle2, ChevronDown, Gift, Heart, PartyPopper, ShieldCheck, Sparkles, Star, UserRound, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
@@ -220,6 +220,15 @@ export default function LandingPage() {
         <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> No brand deals in rankings</span>
         <span className="flex items-center gap-1.5"><Gift className="h-3.5 w-3.5" /> Real gifts, real reasons</span>
         <span className="flex items-center gap-1.5"><Bell className="h-3.5 w-3.5" /> Never forget an important date again</span>
+      </div>
+
+      {/* The hero is a full viewport tall, so the story section right
+          below it is otherwise invisible until someone happens to scroll --
+          this makes it explicit there's more, rather than the page reading
+          as if it ends here. */}
+      <div className="slide-up animate-float absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 text-white/40" style={{ animationDelay: "320ms" }}>
+        <span className="text-[11px] font-semibold uppercase tracking-widest">See how it works</span>
+        <ChevronDown className="h-4 w-4" />
       </div>
     </div>
 
