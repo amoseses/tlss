@@ -9,6 +9,58 @@ import { Button } from "@/components/ui/button";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
 import { Reveal } from "@/components/ui/reveal";
 import { useAuth } from "@/lib/auth/use-auth";
+import { useScrollProgress } from "@/lib/hooks/use-scroll-progress";
+
+const HOW_IT_WORKS_STEPS = [
+  { icon: Sparkles, title: "Add someone, once", desc: "Name, interests, budget, dates to avoid — about 30 seconds." },
+  { icon: Bell, title: "The agent watches the calendar", desc: "Reminders 5–6 weeks before every important date." },
+  { icon: PackageCheck, title: "You approve, GIVIT handles it", desc: "Gift proposed with a reason, then ordered and shipped once you say go." },
+];
+
+// Same pinned-scroll technique as the landing page's story section, in the
+// app's own light/card palette instead of the marketing page's black --
+// scroll position through the section drives which step is active and how
+// far the gift box has turned, rather than a static 3-up grid.
+function HowItWorksScroll() {
+  const { ref, progress } = useScrollProgress<HTMLDivElement>();
+  const activeStep = Math.min(HOW_IT_WORKS_STEPS.length - 1, Math.floor(progress * HOW_IT_WORKS_STEPS.length));
+  const step = HOW_IT_WORKS_STEPS[activeStep]!;
+  const Icon = step.icon;
+  const rotationY = 8 + progress * 460;
+
+  return (
+    <section ref={ref} className="relative border-y border-border/50 bg-givit-sand/40" style={{ height: `${HOW_IT_WORKS_STEPS.length * 110}vh` }}>
+      <div className="sticky top-0 flex h-screen items-center overflow-hidden">
+        <div className="container grid items-center gap-10 md:grid-cols-[1fr_auto]">
+          <div className="order-2 flex min-h-[180px] flex-col items-center text-center md:order-1 md:items-start md:text-left">
+            <div key={activeStep} className="slide-up">
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-border/60 bg-card shadow-sm md:mx-0">
+                <Icon className="h-5 w-5 text-givit-ember" />
+              </div>
+              <p className="mt-4 text-xs font-bold uppercase tracking-widest text-givit-ember">
+                Step {activeStep + 1} of {HOW_IT_WORKS_STEPS.length}
+              </p>
+              <h3 className="mt-1 font-serif text-2xl font-bold text-foreground md:text-3xl">{step.title}</h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground md:mx-0">{step.desc}</p>
+            </div>
+          </div>
+          <div className="order-1 flex items-center justify-center md:order-2">
+            <GiftBox3D size={110} rotation={{ x: 8, y: rotationY }} glow={0.3 + progress * 0.4} />
+          </div>
+        </div>
+        <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 gap-2">
+          {HOW_IT_WORKS_STEPS.map((_, i) => (
+            <div
+              key={i}
+              className="h-1.5 w-6 rounded-full transition-colors duration-300"
+              style={{ backgroundColor: i === activeStep ? "var(--givit-ember)" : "var(--border)" }}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 // Same ambient-motion pattern as the landing splash — kept low-opacity and
 // pointer-events-none so it reads as atmosphere, not clutter, and never
@@ -72,27 +124,7 @@ export default function HomePage() {
       </p>
 
       {/* How it works — explains the mechanism before showing it in action below */}
-      <Reveal variant="triangle">
-        <section className="border-y border-border/50 bg-givit-sand/40">
-          <div className="stagger-children container grid gap-6 py-8 sm:grid-cols-3">
-            {[
-              { icon: Sparkles, title: "Add someone, once", desc: "Name, interests, budget, dates to avoid — about 30 seconds." },
-              { icon: Bell, title: "The agent watches the calendar", desc: "Reminders 5–6 weeks before every important date." },
-              { icon: PackageCheck, title: "You approve, GIVIT handles it", desc: "Gift proposed with a reason, then ordered and shipped once you say go." },
-            ].map((item) => (
-              <div key={item.title} className="slide-up flex gap-4 opacity-0">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card shadow-sm transition-transform hover:scale-110">
-                  <item.icon className="h-5 w-5 text-givit-ember" />
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">{item.title}</p>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </Reveal>
+      <HowItWorksScroll />
 
       {/* People dashboard — the actual front door for returning, logged-in users */}
       <PeopleDashboard />
