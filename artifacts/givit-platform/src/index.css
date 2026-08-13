@@ -171,6 +171,11 @@
   }
   body {
     @apply bg-givit-page text-foreground antialiased;
+    /* Previously unset here -- only headings had an explicit font-family,
+       so body copy was silently falling back to the browser's default
+       OS font (Segoe UI / San Francisco / Roboto) instead of the site's
+       actual chosen typeface. Everything reads consistent now. */
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     background-attachment: fixed;
     background-repeat: no-repeat;
   }
