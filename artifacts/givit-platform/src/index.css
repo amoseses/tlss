@@ -194,12 +194,17 @@
 }
 
 @layer utilities {
+  /* Softer than a plain bordered box on purpose -- this class (or
+     givit-section below) is what nearly every card sitewide is built
+     from, so a heavy border + flat shadow here is what reads as
+     "boxes everywhere" at the whole-site level. Lighter border, more
+     shadow-driven elevation, slightly bigger radius. */
   .givit-panel {
-    @apply rounded-lg border border-border/60 bg-card shadow-sm shadow-black/30;
+    @apply rounded-xl border border-border/40 bg-card shadow-md shadow-black/[0.04] dark:shadow-black/25;
   }
 
   .givit-section {
-    @apply rounded-lg border border-border/60 bg-card p-4 shadow-sm shadow-black/30 md:p-6;
+    @apply rounded-xl border border-border/40 bg-card p-4 shadow-md shadow-black/[0.04] dark:shadow-black/25 md:p-6;
   }
 
   .givit-gradient {

@@ -10,6 +10,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { LoginPrompt } from "@/components/personalization/login-prompt";
 import { BetaFeedbackWidget } from "@/components/feedback/beta-feedback-widget";
 import { UrgentOccasionBanner } from "@/components/personalization/urgent-occasion-banner";
+import { AmbientScrollBackground } from "@/components/layout/ambient-scroll-background";
 
 import LandingPage from "@/pages/landing";
 import HomePage from "@/pages/home";
@@ -104,6 +105,7 @@ function Router() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <AmbientScrollBackground />
       {isBetaTesting && <BetaTestingBanner />}
       {!isLanding && <SiteHeader />}
       {!isLanding && <UrgentOccasionBanner />}
