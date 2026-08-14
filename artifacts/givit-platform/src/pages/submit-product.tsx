@@ -281,7 +281,7 @@ export default function SubmitProductPage() {
         {/* Live preview */}
         <div className="lg:sticky lg:top-24 lg:self-start">
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">Card preview</p>
-          <div className="overflow-hidden rounded-lg border border-border/60 bg-card p-2 shadow-sm">
+          <div className="overflow-hidden rounded-lg border border-border/40 bg-card p-2 shadow-sm">
             <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-givit-sand">
               {previewImage ? (
                 <img src={previewImage} alt="" className="h-full w-full object-cover" />

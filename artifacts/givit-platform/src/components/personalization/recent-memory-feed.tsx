@@ -57,7 +57,7 @@ export function RecentMemoryFeed() {
       </div>
       <div className="stagger-children grid gap-4 sm:grid-cols-2">
         {entries.map((entry) => (
-          <div key={entry.id} className="slide-up flex items-start gap-4 rounded-2xl border border-border/60 bg-card p-5 opacity-0">
+          <div key={entry.id} className="slide-up flex items-start gap-4 rounded-2xl border border-border/40 bg-card p-5 opacity-0">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full givit-gradient text-base font-bold text-white">
               {initials(entry.name)}
             </div>

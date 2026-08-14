@@ -76,7 +76,7 @@ export function RelationshipInsights() {
       </div>
 
       <div className="stagger-children grid gap-4 sm:grid-cols-3">
-        <div className="slide-up flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 opacity-0">
+        <div className="slide-up flex items-center gap-4 rounded-2xl border border-border/40 bg-card p-5 opacity-0">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-givit-sand">
             <UserRound className="h-6 w-6 text-givit-ember" />
           </div>
@@ -85,7 +85,7 @@ export function RelationshipInsights() {
             <p className="text-sm text-muted-foreground">{insight.peopleCount === 1 ? "person" : "people"} remembered</p>
           </div>
         </div>
-        <div className="slide-up flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 opacity-0">
+        <div className="slide-up flex items-center gap-4 rounded-2xl border border-border/40 bg-card p-5 opacity-0">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-givit-sand">
             <Brain className="h-6 w-6 text-givit-ember" />
           </div>
@@ -94,7 +94,7 @@ export function RelationshipInsights() {
             <p className="text-sm text-muted-foreground">interests known</p>
           </div>
         </div>
-        <div className="slide-up flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 opacity-0">
+        <div className="slide-up flex items-center gap-4 rounded-2xl border border-border/40 bg-card p-5 opacity-0">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-givit-sand">
             <Heart className="h-6 w-6 text-givit-ember" />
           </div>
@@ -106,7 +106,7 @@ export function RelationshipInsights() {
       </div>
 
       {insight.upcoming.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-border/60 bg-card p-5">
+        <div className="mt-4 rounded-2xl border border-border/40 bg-card p-5">
           <p className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-givit-ember">
             <Bell className="h-3.5 w-3.5" /> Coming up
           </p>

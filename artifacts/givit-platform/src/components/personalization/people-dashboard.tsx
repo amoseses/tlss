@@ -44,7 +44,7 @@ function PersonCard({ person }: { person: Person }) {
     <button
       type="button"
       onClick={() => navigate(`/gift?q=${encodeURIComponent(buildShopQuery(person, upcoming))}`)}
-      className="slide-up group flex flex-col items-start gap-4 rounded-2xl border border-border/60 bg-card p-5 text-left opacity-0 transition-all hover:-translate-y-0.5 hover:border-givit-ember/30 hover:shadow-lg sm:p-6"
+      className="slide-up group flex flex-col items-start gap-4 rounded-2xl border border-border/40 bg-card p-5 text-left opacity-0 transition-all hover:-translate-y-0.5 hover:border-givit-ember/30 hover:shadow-lg sm:p-6"
     >
       <div className="flex w-full items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full givit-gradient text-lg font-bold text-white">

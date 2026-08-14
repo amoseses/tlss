@@ -634,7 +634,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                         <button type="button" disabled={loading} onClick={() => confirmRecipientAndSearch(msg.confirmRecipient!)} className="inline-flex items-center gap-1 rounded-full bg-givit-ember px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40">
                           Yep, find gifts
                         </button>
-                        <button type="button" disabled={loading} onClick={() => elaborateRecipient(msg.confirmRecipient!)} className="inline-flex items-center gap-1 rounded-full border border-border/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40">
+                        <button type="button" disabled={loading} onClick={() => elaborateRecipient(msg.confirmRecipient!)} className="inline-flex items-center gap-1 rounded-full border border-border/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40">
                           Let me add details
                         </button>
                       </div>
@@ -642,7 +642,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                     {msg.results && msg.results.length > 0 && (
                       <div className="ml-0 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         {msg.results.map((result, idx) => <GiftCard key={result.id} result={result} index={idx} onItemFeedback={handleItemFeedback} />)}
-                        <div className="rounded-2xl border border-border/60 bg-card p-3 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">
+                        <div className="rounded-2xl border border-border/40 bg-card p-3 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">
                           <div className="mb-2 font-semibold text-givit-ink">Did these feel right?</div>
                           <div className="flex flex-wrap gap-2">
                             <button type="button" onClick={() => handleFeedback(msg.results ?? [], true)} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700 transition hover:bg-emerald-100"><ThumbsUp className="h-3.5 w-3.5" /> Satisfied</button>
@@ -666,7 +666,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
               </div>
             ))}
           </div>
-          <div className="border-t border-border/60 p-3">
+          <div className="border-t border-border/40 p-3">
             <div className="flex items-end gap-2">
               <textarea
                 ref={inputRef}
@@ -675,7 +675,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
                 placeholder="Tell me more, adjust the budget, or ask for different ideas..."
                 rows={1}
-                className="flex-1 resize-none rounded-xl border border-border/60 bg-muted/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="flex-1 resize-none rounded-xl border border-border/40 bg-muted/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                 style={{ maxHeight: "120px" }}
               />
               <button onClick={() => sendMessage(input)} disabled={!input.trim() || loading} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-givit-ember text-white transition-all hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40">

@@ -108,7 +108,7 @@ export function BetaFeedbackWidget({ betaMode = false }: { betaMode?: boolean })
     <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
       {open && (
         <div className="slide-up w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-          <div className="flex items-center justify-between border-b border-border/60 bg-black px-4 py-3">
+          <div className="flex items-center justify-between border-b border-border/40 bg-black px-4 py-3">
             <p className="text-sm font-semibold text-white">{betaMode ? "Beta testing survey" : "Beta feedback"}</p>
             <button type="button" onClick={close} aria-label="Close feedback" className="rounded-full p-1 text-white/60 hover:bg-white/10 hover:text-white">
               <X className="h-4 w-4" />

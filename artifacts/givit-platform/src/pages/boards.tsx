@@ -173,7 +173,7 @@ function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; o
 
 function BoardCard({ board, onOpen, onDelete }: { board: UserBoard; onOpen: () => void; onDelete?: () => void }) {
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-card shadow-sm border border-border/60 transition-all hover:-translate-y-1 hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-xl bg-card shadow-sm border border-border/40 transition-all hover:-translate-y-1 hover:shadow-md">
       <button type="button" onClick={onOpen} className="block w-full text-left">
         <div className="aspect-[4/3] overflow-hidden bg-givit-sand">
           {board.coverImage ? (
@@ -685,7 +685,7 @@ export default function BoardsPage() {
                       <Sparkles className="h-4 w-4" /> Add products
                     </button>
                     <button type="button" onClick={() => setShowAddImage(true)}
-                      className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/60 px-4 py-3 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
+                      className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/40 px-4 py-3 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
                     >
                       <ImagePlus className="h-4 w-4" /> Add custom product
                     </button>
@@ -708,7 +708,7 @@ export default function BoardsPage() {
                   <button
                     type="button"
                     onClick={() => setShowCreateBoard(true)}
-                    className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/60 py-12 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
+                    className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/40 py-12 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
                   >
                     <Plus className="h-6 w-6" />
                     New board

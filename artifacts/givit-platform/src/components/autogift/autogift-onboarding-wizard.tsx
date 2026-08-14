@@ -310,7 +310,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">Add one or more shipping addresses. If you add more than one, the survey asks which one to use.</p>
               {addresses.map((address, index) => (
-                <div key={index} className="space-y-3 rounded-lg border border-border/60 p-3">
+                <div key={index} className="space-y-3 rounded-lg border border-border/40 p-3">
                   <div className="flex items-center justify-between"><p className="text-sm font-semibold text-givit-ink">Address {index + 1}</p>{addresses.length > 1 && <button type="button" onClick={() => setAddresses((prev) => prev.filter((_, i) => i !== index))} className="text-xs text-destructive">Remove</button>}</div>
                   <div className="grid gap-1.5"><label className="text-xs font-semibold text-muted-foreground">Label</label><input value={address.label} onChange={(e) => setAddresses((prev) => prev.map((item, i) => i === index ? { ...item, label: e.target.value } : item))} placeholder="Home" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" /></div>
                   <div className="grid gap-1.5"><label className="text-xs font-semibold text-muted-foreground">Address</label><input value={address.line1} onChange={(e) => setAddresses((prev) => prev.map((item, i) => i === index ? { ...item, line1: e.target.value } : item))} placeholder="123 Main St" className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm" /></div>
@@ -326,7 +326,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">You'll approve each purchase before any charge. Card details are handled directly by Stripe — they never touch GIVIT's own servers.</p>
               {paymentFetching && !paymentClientSecret ? (
-                <div className="flex h-32 items-center justify-center rounded-lg border border-border/60">
+                <div className="flex h-32 items-center justify-center rounded-lg border border-border/40">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-givit-ember border-t-transparent" />
                 </div>
               ) : paymentClientSecret ? (
@@ -345,7 +345,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Add one or more people. Use the date field for the occasion date, then add age, year, or relationship context below only when it helps the AI.</p>
               {recipients.map((r, index) => (
-                <div key={index} className="space-y-3 rounded-lg border border-border/60 p-3">
+                <div key={index} className="space-y-3 rounded-lg border border-border/40 p-3">
                   <div className="flex items-center justify-between"><p className="text-sm font-semibold text-givit-ink">Recipient {index + 1}</p>{recipients.length > 1 && <button type="button" onClick={() => setRecipients((prev) => prev.filter((_, i) => i !== index))} className="text-xs text-destructive">Remove</button>}</div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <input value={r.name} onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, name: e.target.value } : item))} placeholder="Full name" className="h-9 rounded-md border border-border bg-background px-3 text-sm" />

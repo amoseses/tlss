@@ -34,7 +34,7 @@ function HowItWorksScroll() {
         <div className="container grid items-center gap-10 md:grid-cols-[1fr_auto]">
           <div className="order-2 flex min-h-[180px] flex-col items-center text-center md:order-1 md:items-start md:text-left">
             <div key={activeStep} className="slide-up">
-              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-border/60 bg-card shadow-sm md:mx-0">
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-border/40 bg-card shadow-sm md:mx-0">
                 <Icon className="h-5 w-5 text-givit-ember" />
               </div>
               <p className="mt-4 text-xs font-bold uppercase tracking-widest text-givit-ember">

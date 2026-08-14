@@ -268,7 +268,7 @@ export default function AccountPage() {
             <MapPin className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Saved Addresses</h2>
           </div>
-          <form onSubmit={handleAddressSave} className="mb-4 grid gap-3 rounded-lg border border-border/60 p-4">
+          <form onSubmit={handleAddressSave} className="mb-4 grid gap-3 rounded-lg border border-border/40 p-4">
             <div className="grid gap-3 sm:grid-cols-2"><input value={addressForm.label} onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })} placeholder="Label" className="h-10 rounded-md border border-border bg-background px-3 text-sm" /><input value={addressForm.line1} onChange={(e) => setAddressForm({ ...addressForm, line1: e.target.value })} placeholder="Street address" required className="h-10 rounded-md border border-border bg-background px-3 text-sm" /></div>
             <div className="grid gap-3 sm:grid-cols-3"><input value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} placeholder="City" required className="h-10 rounded-md border border-border bg-background px-3 text-sm" /><input value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} placeholder="State" required className="h-10 rounded-md border border-border bg-background px-3 text-sm" /><input value={addressForm.zip} onChange={(e) => setAddressForm({ ...addressForm, zip: e.target.value })} placeholder="ZIP" required className="h-10 rounded-md border border-border bg-background px-3 text-sm" /></div>
             <Button type="submit" size="sm" className="w-fit rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">Add address</Button>
@@ -284,7 +284,7 @@ export default function AccountPage() {
             <CreditCard className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Payment Methods</h2>
           </div>
-          <form onSubmit={handlePaymentSave} className="mb-4 grid gap-3 rounded-lg border border-border/60 p-4 sm:grid-cols-2">
+          <form onSubmit={handlePaymentSave} className="mb-4 grid gap-3 rounded-lg border border-border/40 p-4 sm:grid-cols-2">
             <input value={cardForm.name} onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })} placeholder="Name on card" className="h-10 rounded-md border border-border bg-background px-3 text-sm sm:col-span-2" />
             <input value={cardForm.number} onChange={(e) => setCardForm({ ...cardForm, number: formatCardNumber(e.target.value) })} placeholder="Card number" inputMode="numeric" className="h-10 rounded-md border border-border bg-background px-3 text-sm sm:col-span-2" />
             <input value={cardForm.expiry} onChange={(e) => setCardForm({ ...cardForm, expiry: formatExpiry(e.target.value) })} placeholder="MM/YY" inputMode="numeric" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />

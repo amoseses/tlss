@@ -256,7 +256,7 @@ export function WishlistRail() {
     <div className="space-y-3">
       <WishlistSharePanel />
       {items.slice(0, 6).map((item) => (
-        <a key={item.slug} href={item.href} className="block rounded-2xl border border-border/60 bg-card p-3 transition hover:border-givit-ember/40 hover:shadow-sm">
+        <a key={item.slug} href={item.href} className="block rounded-2xl border border-border/40 bg-card p-3 transition hover:border-givit-ember/40 hover:shadow-sm">
           <p className="line-clamp-1 text-sm font-semibold text-givit-ink">{item.name}</p>
           <p className="mt-1 text-xs text-muted-foreground">{item.price ?? "Saved gift"}</p>
         </a>

@@ -419,7 +419,7 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground">
                 A <code className="rounded bg-muted px-1 py-0.5 text-xs">product_url</code> column is all you need: GIVIT AI reads each page and fills in name, brand, category, and price. Add <code className="rounded bg-muted px-1 py-0.5 text-xs">name</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">brand</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">price</code>, or <code className="rounded bg-muted px-1 py-0.5 text-xs">category</code> columns to override the AI for specific rows.
               </p>
-              <div className="rounded-lg border-2 border-dashed border-border/60 p-6 text-center">
+              <div className="rounded-lg border-2 border-dashed border-border/40 p-6 text-center">
                 <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
                 <Upload className="mx-auto h-8 w-8 text-muted-foreground/50" />
                 <p className="mt-2 text-sm font-medium text-muted-foreground">Drop a CSV or spreadsheet here</p>

@@ -443,7 +443,7 @@ export default function ProductsPage() {
                   name="sort"
                   defaultValue={sortVal}
                   onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                  className="h-8 rounded-full border border-border/60 bg-card px-3 text-xs font-medium text-foreground outline-none"
+                  className="h-8 rounded-full border border-border/40 bg-card px-3 text-xs font-medium text-foreground outline-none"
                 >
                   <option value="ranked">GIVIT ranked</option>
                   <option value="popular">Gift match score</option>
@@ -463,7 +463,7 @@ export default function ProductsPage() {
                 <a
                   key={tag.label}
                   href={`/products?q=${encodeURIComponent(tag.q)}`}
-                  className="inline-flex items-center rounded-full border border-border/60 bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-givit-ember/40 hover:bg-givit-sand hover:text-givit-ember"
+                  className="inline-flex items-center rounded-full border border-border/40 bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-givit-ember/40 hover:bg-givit-sand hover:text-givit-ember"
                 >
                   # {tag.label}
                 </a>
@@ -475,7 +475,7 @@ export default function ProductsPage() {
             {awaitingPersonalization ? (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="animate-pulse space-y-2 rounded-2xl border border-border/60 bg-card p-3">
+                  <div key={i} className="animate-pulse space-y-2 rounded-2xl border border-border/40 bg-card p-3">
                     <div className="aspect-square rounded-xl bg-muted" />
                     <div className="h-3 w-3/4 rounded bg-muted" />
                     <div className="h-3 w-1/2 rounded bg-muted" />

@@ -251,7 +251,7 @@
   }
 
   .chat-bubble-ai {
-    @apply rounded-lg rounded-bl-sm bg-card border border-border/60 px-4 py-3;
+    @apply rounded-lg rounded-bl-sm bg-card border border-border/40 px-4 py-3;
   }
 
   .tag-pill {

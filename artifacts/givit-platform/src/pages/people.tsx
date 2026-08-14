@@ -246,7 +246,7 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
         </div>
         <form onSubmit={submit} className="space-y-5 p-5">
           {people.map((person, personIndex) => (
-            <div key={personIndex} className="space-y-3 rounded-lg border border-border/60 p-4">
+            <div key={personIndex} className="space-y-3 rounded-lg border border-border/40 p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-givit-ink">Person {personIndex + 1}</p>
                 {people.length > 1 && (
@@ -308,7 +308,7 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
             </div>
           ))}
 
-          <button type="button" onClick={addPerson} className="flex w-full items-center justify-center gap-2 rounded-md border-2 border-dashed border-border/60 py-3 text-sm font-semibold text-givit-ember transition hover:border-givit-ember/40">
+          <button type="button" onClick={addPerson} className="flex w-full items-center justify-center gap-2 rounded-md border-2 border-dashed border-border/40 py-3 text-sm font-semibold text-givit-ember transition hover:border-givit-ember/40">
             <Plus className="h-4 w-4" /> Add another person
           </button>
 
@@ -538,7 +538,7 @@ function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: 
   const daysUntil = upcoming ? Math.ceil((upcoming.parsed.getTime() - today.getTime()) / 86400000) : null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5">
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/40 bg-card p-5">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full givit-gradient text-base font-bold text-white">
@@ -1033,7 +1033,7 @@ export default function PeoplePage() {
           <button
             type="button"
             onClick={() => setShowModal(true)}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/60 py-8 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/40 py-8 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
           >
             <Plus className="h-6 w-6" />
             Add person

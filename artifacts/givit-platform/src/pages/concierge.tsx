@@ -244,7 +244,7 @@ export default function ConciergePage() {
                       return (
                         <div
                           key={r.id}
-                          className="flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3 transition hover:border-givit-ember/40 hover:shadow-sm"
+                          className="flex items-center gap-3 rounded-xl border border-border/40 bg-card p-3 transition hover:border-givit-ember/40 hover:shadow-sm"
                         >
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
                             {initials(r.name)}
@@ -294,7 +294,7 @@ export default function ConciergePage() {
                     <button
                       type="button"
                       onClick={() => setShowCalendar((v) => !v)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border/40 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
                     >
                       <CalendarDays className="h-3.5 w-3.5" /> {showCalendar ? "Hide calendar" : "View calendar"}
                     </button>

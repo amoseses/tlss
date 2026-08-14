@@ -65,7 +65,7 @@ export function RecentlyViewedRail({ compact = false }: { compact?: boolean }) {
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {items.slice(0, 6).map((item) => (
-          <Link key={item.slug} href={item.href} className="group rounded-2xl border border-border/60 bg-card p-2 transition hover:border-givit-ember/40 hover:shadow-sm">
+          <Link key={item.slug} href={item.href} className="group rounded-2xl border border-border/40 bg-card p-2 transition hover:border-givit-ember/40 hover:shadow-sm">
             <div className="relative aspect-square overflow-hidden rounded-xl bg-givit-sand">
               {item.image ? (
                 <img src={item.image} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
