@@ -69,7 +69,7 @@ export function RelationshipGraph() {
   if (people.length === 0) {
     return (
       <section className="container py-8 md:py-12">
-        <div className="mb-5 flex items-center gap-2 border-b border-border/40 pb-4">
+        <div className="mb-5 flex items-center gap-2">
           <Share2 className="h-4 w-4 text-givit-ember" />
           <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Your memory graph</h2>
         </div>
@@ -94,7 +94,7 @@ export function RelationshipGraph() {
 
   return (
     <section className="container py-8 md:py-12">
-      <div className="mb-5 flex items-center justify-between gap-3 border-b border-border/40 pb-4">
+      <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Share2 className="h-4 w-4 text-givit-ember" />
           <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Your memory graph</h2>

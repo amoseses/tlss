@@ -11,7 +11,11 @@ export function PageShell({ children, className, narrow, wide }: Props) {
   return (
     <div
       className={cn(
-        "container w-full py-4 md:py-6",
+        // Previously py-4 md:py-6 -- cramped enough that nearly every page
+        // read as content packed edge-to-edge against its own header. This
+        // one wrapper backs almost every functional page, so more breathing
+        // room here alone lifts the whole site's density.
+        "container w-full py-6 md:py-10",
         narrow && "max-w-xl",
         wide && "max-w-full",
         className,
@@ -45,9 +49,9 @@ export function PageHeader({
       )}
     >
       <div>
-        <h1 className="text-2xl font-bold text-givit-ink md:text-3xl">{title}</h1>
+        <h1 className="font-serif text-2xl font-bold text-givit-ink md:text-3xl">{title}</h1>
         {description ? (
-          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{description}</p>
+          <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{description}</p>
         ) : null}
       </div>
       {children}

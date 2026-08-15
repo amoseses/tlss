@@ -56,7 +56,7 @@ export function NotificationSettingsCard({ userId, defaultLeadDays }: { userId: 
         <h2 className="font-semibold text-givit-ink">Notifications</h2>
       </div>
 
-      <div className="mb-4 space-y-1.5 border-b border-border/40 pb-4">
+      <div className="mb-4 space-y-1.5">
         <label className="text-sm text-muted-foreground">Default reminder timing</label>
         <div className="flex items-center gap-2">
           <select

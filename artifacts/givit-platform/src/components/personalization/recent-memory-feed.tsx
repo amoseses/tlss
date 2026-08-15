@@ -51,7 +51,7 @@ export function RecentMemoryFeed() {
 
   return (
     <section className="container py-8 md:py-12">
-      <div className="mb-5 flex items-center gap-2 border-b border-border/40 pb-4">
+      <div className="mb-5 flex items-center gap-2">
         <Brain className="h-4 w-4 text-givit-ember" />
         <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">What GIVIT remembers</h2>
       </div>
