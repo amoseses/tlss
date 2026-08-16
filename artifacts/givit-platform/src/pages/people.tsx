@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ArrowRight, Bell, CalendarPlus, Flower2, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
@@ -550,22 +551,17 @@ function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: 
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={onToggleAutomation}
+          <label
             title={`AutoGift is ${recipient.automationEnabled !== false ? "on" : "off"} for ${recipient.name}`}
-            aria-pressed={recipient.automationEnabled !== false}
-            className="group flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-1 transition hover:bg-muted"
+            className="flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-1"
           >
             <Zap className={`h-3.5 w-3.5 transition-colors ${recipient.automationEnabled !== false ? "fill-emerald-500 text-emerald-500" : "text-muted-foreground"}`} />
-            <span className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${recipient.automationEnabled !== false ? "bg-emerald-500" : "bg-border group-hover:bg-muted-foreground/40"}`}>
-              <span
-                className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
-                  recipient.automationEnabled !== false ? "translate-x-3.5" : "translate-x-0.5"
-                }`}
-              />
-            </span>
-          </button>
+            <Switch
+              checked={recipient.automationEnabled !== false}
+              onCheckedChange={() => onToggleAutomation()}
+              className="data-[state=unchecked]:bg-muted-foreground/40 data-[state=checked]:bg-emerald-500"
+            />
+          </label>
           <button type="button" onClick={onEdit} aria-label={`Edit ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
             <Pencil className="h-3.5 w-3.5" />
           </button>
