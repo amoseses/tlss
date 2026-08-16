@@ -669,8 +669,19 @@ export function recommendGifts(
   // admin-added products are real, recommendable candidates too — not just
   // items sitting in the admin dashboard.
   const catalog = options.catalog ?? getAllMarketplaceProducts();
-  const scoredCandidates = catalog
-    .filter((product) => !excludeIds.has(product.id))
+  const availableCandidates = catalog.filter((product) => !excludeIds.has(product.id));
+  // Budget previously only nudged scoreProduct's numeric score (soft), which
+  // a strong interest/tag match could easily overwhelm -- a $160 item could
+  // still win a slot against a $15 budget because its non-price factors
+  // scored high enough to compensate. This is the actual hard ceiling: a
+  // 15% margin so a near-miss (e.g. $52 against a $50 budget) isn't
+  // needlessly excluded, but "way out of budget" genuinely can't appear.
+  // Falls back to the unfiltered pool only if the budget is tight enough
+  // that literally nothing in the catalog qualifies, so a real result still
+  // comes back instead of nothing at all.
+  const budgetFiltered = budget ? availableCandidates.filter((product) => product.price_cents <= budget * 100 * 1.15) : availableCandidates;
+  const candidatePool = budgetFiltered.length > 0 ? budgetFiltered : availableCandidates;
+  const scoredCandidates = candidatePool
     .map((product) => ({ product, score: scoreProduct(product, trimmed, tags, budget, learningProfile, avoidTerms) }))
     .filter(({ score }) => score > 1.25 || tags.length === 0);
   const results = selectDiverseTopN(scoredCandidates, resultLimit)
