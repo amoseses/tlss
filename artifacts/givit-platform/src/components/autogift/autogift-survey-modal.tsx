@@ -233,11 +233,14 @@ export function GiftSurveyModal({
                     <button
                       key={interest}
                       type="button"
-                      onClick={() => setInterests(prev => 
-                        prev.includes(interest) 
-                          ? prev.filter(i => i !== interest)
-                          : [...prev, interest]
-                      )}
+                      onClick={() => setInterests(prev => {
+                        if (prev.includes(interest)) return prev.filter(i => i !== interest);
+                        // "(pick 2-4)" was purely a label -- nothing actually
+                        // stopped a 5th, 6th, etc. selection. Capped here so
+                        // the label is a real constraint, not just copy.
+                        if (prev.length >= 4) return prev;
+                        return [...prev, interest];
+                      })}
                       className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
                         interests.includes(interest)
                           ? "bg-givit-ember text-white"
@@ -295,9 +298,12 @@ export function GiftSurveyModal({
                 />
               </div>
 
-              <Button onClick={handleSurveySubmit} className="w-full rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+              <Button onClick={handleSurveySubmit} disabled={interests.length < 2} className="w-full rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-50">
                 <Sparkles className="h-4 w-4" /> Generate gift ideas
               </Button>
+              {interests.length < 2 && (
+                <p className="text-center text-xs text-muted-foreground">Pick at least 2 interests to continue ({interests.length}/2).</p>
+              )}
             </div>
           )}
 

@@ -260,8 +260,14 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-xl border border-border bg-card shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border p-5">
+      {/* flex-col + max-h + the body below scrolling on its own (not the
+          whole card) is what keeps Back/Continue reachable even when a
+          step's content -- adding several recipients, say -- grows taller
+          than the viewport. Previously the whole card had no height cap or
+          scroll at all, so the footer buttons could render off-screen with
+          no way to reach them. */}
+      <div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-xl border border-border bg-card shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-border p-5">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-givit-ember">AutoGift setup</p>
             <h2 className="font-serif text-xl font-bold text-givit-ink">
@@ -279,7 +285,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
           )}
         </div>
 
-        <div className="p-5">
+        <div className="flex-1 overflow-y-auto p-5">
           {/* Progress */}
           <div className="mb-5 flex items-center justify-between text-xs font-semibold text-muted-foreground">
             {["welcome", "address", "payment", "recipient", "done"].map((s, i) => (
@@ -292,7 +298,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
             ))}
           </div>
 
-          {error && <div className="mb-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
+          {error && <div className="mb-4 break-words rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
 
           {step === "welcome" && (
             <div className="space-y-3">
@@ -367,7 +373,12 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                       <input
                         type="date"
                         value={r.occasionDate}
-                        min={standardHoliday(r.occasionLabel) ? undefined : todayIso()}
+                        // Birthdays/anniversaries need a real past date (AI
+                        // calculates age/years from it) -- min=today here
+                        // was blocking exactly that, only letting future
+                        // dates be picked. Only Birthday gets a cap, and
+                        // it's a max (today or earlier), not a min.
+                        max={r.occasionLabel === "Birthday" && !standardHoliday(r.occasionLabel) ? todayIso() : undefined}
                         readOnly={Boolean(standardHoliday(r.occasionLabel))}
                         onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: e.target.value } : item))}
                         className={`h-9 w-full rounded-md border border-border bg-background px-3 text-sm ${standardHoliday(r.occasionLabel) ? "cursor-not-allowed text-muted-foreground" : ""}`}
@@ -394,31 +405,34 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
               <p className="text-sm text-muted-foreground">You can add more recipients, edit addresses, and update payment details anytime in AutoGift.</p>
             </div>
           )}
+        </div>
 
-          <div className="mt-6 flex items-center justify-between">
-            <div>
-              {step !== "welcome" && step !== "done" && (
-                <Button type="button" variant="outline" onClick={back} className="rounded-md">
-                  <ArrowLeft className="mr-1 h-4 w-4" /> Back
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {(step === "address" || step === "payment") && (
-                <button type="button" onClick={skip} className="text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline">
-                  Skip for now
-                </button>
-              )}
-              {step !== "done" ? (
-                <Button onClick={next} disabled={saving || (step === "payment" && !paymentClientSecret)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
-                  {saving ? "Saving..." : <>Continue <ArrowRight className="ml-1 h-4 w-4" /></>}
-                </Button>
-              ) : (
-                <Button onClick={finish} disabled={saving} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
-                  {saving ? "Saving..." : "Go to AutoGift"}
-                </Button>
-              )}
-            </div>
+        {/* Own row, outside the scrollable area above, so Back/Continue
+            are always reachable regardless of how tall the current step's
+            content gets. */}
+        <div className="flex shrink-0 items-center justify-between border-t border-border p-5">
+          <div>
+            {step !== "welcome" && step !== "done" && (
+              <Button type="button" variant="outline" onClick={back} className="rounded-md">
+                <ArrowLeft className="mr-1 h-4 w-4" /> Back
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {(step === "address" || step === "payment") && (
+              <button type="button" onClick={skip} className="text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline">
+                Skip for now
+              </button>
+            )}
+            {step !== "done" ? (
+              <Button onClick={next} disabled={saving || (step === "payment" && !paymentClientSecret)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+                {saving ? "Saving..." : <>Continue <ArrowRight className="ml-1 h-4 w-4" /></>}
+              </Button>
+            ) : (
+              <Button onClick={finish} disabled={saving} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+                {saving ? "Saving..." : "Go to AutoGift"}
+              </Button>
+            )}
           </div>
         </div>
       </div>

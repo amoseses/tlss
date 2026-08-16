@@ -13,6 +13,19 @@ import { getUserFromRequest } from "../../server/api-lib/auth.mjs";
 import { getOrCreateStripeCustomer, getPaymentMethodSummary } from "../../server/api-lib/payments.mjs";
 import { getStripe } from "../../server/api-lib/stripe.mjs";
 
+// Stripe's own error messages are safe to show verbatim only for
+// StripeCardError (customer-facing declines, e.g. "Your card was
+// declined.") -- every other Stripe error type is a server-side
+// configuration/auth problem, and some (an expired/revoked secret key)
+// literally embed a fragment of the key itself in the message text.
+// Logging the real error server-side and returning a generic message
+// for anything else is what keeps that out of the response body.
+function safeStripeErrorMessage(error: any, fallback: string): string {
+  console.error("Stripe error:", error?.type, error?.message);
+  if (error?.type === "StripeCardError") return error.message;
+  return fallback;
+}
+
 async function startSetupIntent(req: any, res: any) {
   try {
     const user = await getUserFromRequest(req);
@@ -32,7 +45,7 @@ async function startSetupIntent(req: any, res: any) {
 
     res.status(200).json({ clientSecret: setup.client_secret });
   } catch (error: any) {
-    res.status(500).json({ error: error?.message ?? "Couldn't start payment setup." });
+    res.status(500).json({ error: safeStripeErrorMessage(error, "Couldn't start payment setup. Please try again shortly.") });
   }
 }
 
@@ -53,7 +66,7 @@ async function paymentMethodSummary(req: any, res: any) {
     const summary = await getPaymentMethodSummary(paymentMethodId);
     res.status(200).json(summary);
   } catch (error: any) {
-    res.status(500).json({ error: error?.message ?? "Couldn't retrieve card details." });
+    res.status(500).json({ error: safeStripeErrorMessage(error, "Card was saved, but details couldn't be confirmed.") });
   }
 }
 
