@@ -58,9 +58,9 @@ const FALLBACK_PHOTOS_BY_CATEGORY: Record<string, string[]> = {
     "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=640&q=80",
   ],
   outdoor: [
-    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=640&q=80",
+    "https://images.unsplash.com/photo-1499803270242-467f7311582d?w=640&q=80",
     "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=640&q=80",
-    "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=640&q=80",
+    "https://images.unsplash.com/photo-1509762774605-f07235a08f1f?w=640&q=80",
   ],
   fitness: [
     "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=640&q=80",

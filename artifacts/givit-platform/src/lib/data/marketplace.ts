@@ -71,7 +71,9 @@ const img = (id: string) => `https://images.unsplash.com/${id}?w=1100&q=86&auto=
 const RESOLVED_PRODUCT_IMAGES: Record<string, string> = {
   "anker-737-power-bank": "https://cdn.shopify.com/s/files/1/0493/9834/9974/products/A1289011-Anker_737_Power_Bank_PowerCore_24K_1.png?v=1775967275",
   "apple-pencil-pro": "https://www.apple.com/v/apple-pencil/ag/images/meta/apple-pencil__e54ff7ft4f0i_og.png?202604221757",
-  "logitech-mx-master-3s": "https://resource.logitech.com/c_fill,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/logitech/en/homepage/delorean-hp/logitech-global-og-image.png",
+  // Previous URL was Logitech's homepage "logi" wordmark og:image, not a
+  // photo of the mouse itself.
+  "logitech-mx-master-3s": "https://resource.logitech.com/w_1100,ar_7:6,c_pad,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/logitech/en/products/mice/mx-master-3s/2025-update/mx-master-3s-bluetooth-edition-top-view-black-new-1.png",
   "elgato-key-light-mini": "https://images.ctfassets.net/h50kqpe25yx1/43o0MaPFvGeFAccpTIxZx6/d71ed1ec841fa499921f05edcd5f2949/key-light-mini.jpg",
   "vitruvi-stone-diffuser": "https://vitruvi.com/cdn/shop/files/pdp_stone-diffuser_front_white_gallery_1_v9_image.png?v=1759291810",
   "hatch-restore-2": "https://www.datocms-assets.com/98401/1769721785-restore-3-carousel-putty-1-v2.webp",
@@ -81,8 +83,11 @@ const RESOLVED_PRODUCT_IMAGES: Record<string, string> = {
   "audible-membership": "https://m.media-amazon.com/images/G/01/Audible/en_US/images/Facebook_Placement_v1_OG_Tag.jpg",
   "criterion-channel": "https://signup.criterionchannel.com/assets/img/png/channel_signup_preview.jpg",
   "therabody-theraface-mask": "https://www.therabody.com/cdn/shop/files/Theraface-Mask-PLP-Thumbnail-1.png?v=1740016375",
-  "necessaire-body-ritual": "https://cdn.shopify.com/s/files/1/0034/8812/0947/files/necessaire-ig_10.jpg?v=1775587653",
-  "slip-silk-pillowcase": "https://cdn.shopify.com/s/files/1/0328/0021/files/Asset_1_2c6ebe3d-8f50-4329-a709-091e294fa583.png?v=1604367269",
+  // Both entries below previously pointed at bare brand wordmarks (a black
+  // "Necessaire" logo card, a black "slip" logo card) rather than a photo of
+  // the actual bottles/pillowcase.
+  "necessaire-body-ritual": "https://necessaire.com/cdn/shop/files/01_TheBodyEssentials_Trio_EU_e179728f-8e1b-43a4-9eb8-8c4aa5dd515d.jpg?v=1758839169&width=1400",
+  "slip-silk-pillowcase": "https://www.slip.com/cdn/shop/files/SLIP_QPC_DARKBROWN_SHOT1.jpg?v=1773896169&width=1000",
   "rumpl-original-puffy": "https://www.rumpl.com/cdn/shop/files/rumpl-solid-original-1-person-original-puffy-blanket-deepwater-ru01014111p-1193687888.webp?v=1758240391",
   "biolite-campstove-2": "https://www.bioliteenergy.com/cdn/shop/files/campstove-2csc0200-382115.png?v=1711827654&width=1024",
   "eno-doublenest-hammock": "https://eaglesnestoutfittersinc.com/cdn/shop/files/eagles-nest-outfitters-inc-hammock-coastal-cocktail-doublenest-hammock-1229152566.jpg?v=1774456176",
@@ -90,13 +95,23 @@ const RESOLVED_PRODUCT_IMAGES: Record<string, string> = {
   "manduka-pro-yoga-mat": "https://www.manduka.com/cdn/shop/products/111011460-Mats-Pro71-Elderberry-01.jpg?v=1768944270",
   "whoop-one-year": "https://images.ctfassets.net/rbzqg6pelgqa/3CCQWI1KRdKsfMkGIgNfls/1db1bc98dbbca4f4c288cca02729e964/Not_a_whoop_member_image__1_.png",
   "hyperice-venom-go": "https://hyperice.com/cdn/shop/files/VenomGo1.png?v=1782333962&width=1200",
-  "catit-flower-fountain": "https://www.catit.com/wp-content/uploads/2026/07/Catit_Home_July26_Banner-Slider_Creamy-US_Mobile.jpg",
+  // Previous URL here pointed at a seasonal cat-treat marketing banner from
+  // catit.com's homepage carousel (wrong product entirely, just same domain)
+  // -- swapped for the actual flower fountain's own product-page hero photo.
+  "catit-flower-fountain": "https://www.catit.com/wp-content/uploads/2021/11/Catit-Original-Flower-Fountain-Hero.jpg.webp",
   "wild-one-walk-kit": "https://wildone.com/cdn/shop/files/WO_VM_WalkKitHarness_Bubblegum_OnDog_PDP_01_4x5_Web_1.jpg?v=1771436060",
   "furbo-360-dog-camera": "https://cdn.shopify.com/s/files/1/1362/5949/files/dog_cat_thumbnail.jpg?v=1769160413",
   "tuft-paw-cove-litter-box": "https://www.tuftandpaw.com/cdn/shop/files/CovePDP-1.jpg?crop=center&height=630&v=1764682754&width=1200",
-  "jacques-torres-chocolate": "https://mrchocolate.com/cdn/shop/files/logo-new-orange.png?height=628&pad_color=ffffff&v=1767114026&width=1200",
-  "diaspora-spice-set": "https://www.diasporaco.com/cdn/shop/files/DiasporaCo_Logos-04.png?v=1613692452",
-  "rainey-day-tea-sampler": "https://rareteacompany.com/cdn/shop/files/RTC-URL-Preview_f402a4b3-c453-473b-9a2a-1a0a0b4e7443.jpg?v=1628692487",
+  // Both entries below previously pointed at brand wordmark/logo files
+  // (filenames literally said "logo") instead of a photo of the actual
+  // product -- rendered as a near-blank white card, which is what a
+  // reviewer flagged as a "missing image" bug.
+  "jacques-torres-chocolate": "https://mrchocolate.com/cdn/shop/files/GiftBox_Web_Sampler_0925_019.jpg?v=1758832684&width=990",
+  "diaspora-spice-set": "https://www.diasporaco.com/cdn/shop/files/The_Trio_3d1307be-d472-4dc3-9b35-8d22ec43105d.png?v=1781593599&width=1000",
+  // Previous URL was a generic link-preview/OG card with no tea visible at
+  // all -- swapped for the actual gift collection's product photo.
+  "rainey-day-tea-sampler": "https://rareteacompany.com/cdn/shop/files/Rare-Tea-Company-The-Rare-Tea-Gift-Collection-1000x1000px-1.jpg?v=1753106265&width=1000",
+  "yeti-rambler-bottle": "https://yeti-webmedia.imgix.net/asset/52f4e49a-ef2c-45a8-bd21-242ecda0004f/W/Site_Studio_Drinkware_Rambler_Flip_Chug_Bottle_26oz_Rescue_Red_Front_012_A.png?bg=0fff&auto=format,compress&w=1100&q=86",
 };
 
 const IMAGE_POOLS: Record<string, string[]> = {
@@ -107,7 +122,12 @@ const IMAGE_POOLS: Record<string, string[]> = {
   books: ["photo-1512820790803-83ca734da794", "photo-1524995997946-a1c2e315a42f", "photo-1519682337058-a94d519337bc", "photo-1521587760476-6c12a4b040da", "photo-1516321318423-f06f85e504b3"],
   writing: ["photo-1455390582262-044cdead277a", "photo-1517842645767-c639042777db", "photo-1517971129774-8a2b38fa128e", "photo-1499750310107-5fef28a66643", "photo-1484480974693-6ca0a78fb36b"],
   beauty: ["photo-1596462502278-27bfdc403348", "photo-1598440947619-2c35fc9aa908", "photo-1570172619644-dfd03ed5d881", "photo-1522335789203-aabd1fc54bc9", "photo-1616394584738-fc6e612e71b9"],
-  outdoor: ["photo-1500530855697-b586d89ba3ee", "photo-1504280390367-361c6d9f38f4", "photo-1464822759023-fed622ff2c3b", "photo-1445307806294-bff7f67ff225", "photo-1496545672447-f699b503d270"],
+  // The first and third slots here used to be pure landscape shots (an empty
+  // desert road, a mountain range with no gear in frame) with nothing
+  // product-like in them -- a reviewer screenshot caught one landing on the
+  // YETI bottle card looking like a random travel photo. Swapped for shots
+  // that actually show gear (backpacks, a bottle in a side pocket).
+  outdoor: ["photo-1499803270242-467f7311582d", "photo-1504280390367-361c6d9f38f4", "photo-1509762774605-f07235a08f1f", "photo-1445307806294-bff7f67ff225", "photo-1496545672447-f699b503d270"],
   fitness: ["photo-1518611012118-696072aa579a", "photo-1571019613454-1cb2f99b2d8b", "photo-1517836357463-d25dfeac3438", "photo-1599901860904-17e6ed7083a0", "photo-1526506118085-60ce8714f8c5"],
   pets: ["photo-1583337130417-3346a1be7dee", "photo-1514888286974-6c03e2ca1dba", "photo-1548199973-03cce0bbc87b", "photo-1543852786-1cf6624b9987", "photo-1558944351-c02fe5cd1e93"],
   art: ["photo-1513364776144-60967b0f800f", "photo-1460661419201-fd4cecdf8a8b", "photo-1452860606245-08befc0ff44b", "photo-1516321497487-e288fb19713f", "photo-1586717791821-3f44a563fa4c"],
