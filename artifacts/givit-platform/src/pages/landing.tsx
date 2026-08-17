@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, Bell, CheckCircle2, ChevronDown, Gift, Heart, PartyPopper, ShieldCheck, Sparkles, Star, UserRound, Wand2 } from "lucide-react";
+import { ArrowRight, Bell, ChevronDown, Gift, Heart, PackageCheck, PartyPopper, ShieldCheck, Sparkles, Star, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
 import { useScrollProgress } from "@/lib/hooks/use-scroll-progress";
+import { getMarketplaceProductBySlug } from "@/lib/data/marketplace";
+import { formatMoney } from "@/lib/format";
 
 const ROTATING_PROMPTS = [
   "a mom who loves gardening and cozy nights in",
@@ -26,26 +28,24 @@ const FLOATING_ICONS = [
   { Icon: Sparkles, className: "right-[7%] top-[50%] h-5 w-5 text-givit-coral/20", duration: "6.8s", delay: "0.9s" },
 ];
 
+// Trimmed from 4 steps to 3 (and from 120vh to 90vh each, ~460vh down to
+// ~270vh of scroll) after feedback that the story took too long to get
+// through before even reaching an account -- same mechanic, shorter trip.
 const STORY_STEPS = [
   {
     Icon: UserRound,
     title: "Save someone once",
-    body: "Names, dates, interests — the details you'd normally have to hold in your head, or worse, forget.",
+    body: "Names, dates, interests — the details you'd normally hold in your head, or forget.",
   },
   {
     Icon: Sparkles,
     title: "Your Gift AI remembers",
-    body: "Every birthday, every anniversary, every offhand mention of what they're into. It never resets to a blank page.",
+    body: "It proposes a real bundle before every date, with a stated reason for each pick — not a guess.",
   },
   {
-    Icon: Wand2,
-    title: "AutoGift reasons through it",
-    body: "35 days out, it proposes a real bundle — gift, card, flowers — with a stated reason for each pick, not a guess.",
-  },
-  {
-    Icon: CheckCircle2,
+    Icon: PackageCheck,
     title: "You approve, it ships",
-    body: "Nothing charges or ships without your yes. The agent does the thinking; you keep the final say.",
+    body: "Nothing charges or ships without your yes. The agent thinks it through; you keep the final say.",
   },
 ];
 
@@ -60,12 +60,12 @@ function StoryScroll() {
   const activeStep = Math.min(STORY_STEPS.length - 1, Math.floor(progress * STORY_STEPS.length));
   const step = STORY_STEPS[activeStep]!;
   const Icon = step.Icon;
-  // Just under two full turns across the whole section -- enough motion to
-  // read as continuous, not so much it spins faster than the eye can track.
-  const rotationY = 8 + progress * 620;
+  // Just over one full turn across the whole (now shorter) section -- enough
+  // motion to read as continuous without needing as much scroll distance.
+  const rotationY = 8 + progress * 380;
 
   return (
-    <section ref={ref} className="relative bg-black" style={{ height: `${STORY_STEPS.length * 120}vh` }}>
+    <section ref={ref} className="relative bg-black" style={{ height: `${STORY_STEPS.length * 90}vh` }}>
       <div className="sticky top-0 flex h-screen items-center overflow-hidden">
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-givit-ember/10 blur-3xl" />
         <div className="container relative grid items-center gap-10 md:grid-cols-2 md:gap-16">
@@ -94,6 +94,52 @@ function StoryScroll() {
             />
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+// A handful of real, in-stock catalog items with real retailer photos --
+// the marketing page was previously 100% text/icons/animation with zero
+// product proof, which read as "all AI talk, no actual gifts." This is
+// deliberately small (4 cards, one row) rather than a full marketplace
+// wall: just enough to prove the catalog is real before asking for an
+// account, not a second product-browsing surface.
+const SHOWCASE_SLUGS = ["sony-wh-1000xm5", "yeti-rambler-bottle", "manduka-pro-yoga-mat", "jacques-torres-chocolate"];
+
+function ProductShowcase() {
+  const products = SHOWCASE_SLUGS.map((slug) => getMarketplaceProductBySlug(slug)).filter((p): p is NonNullable<typeof p> => Boolean(p));
+  if (products.length === 0) return null;
+
+  return (
+    <section className="relative bg-black px-6 py-20 text-center text-white">
+      <p className="text-xs font-bold uppercase tracking-widest text-givit-coral">Real gifts, not just AI talk</p>
+      <h2 className="mt-2 font-serif text-3xl font-bold md:text-4xl">Pulled from a catalog of real, in-stock products.</h2>
+      <div className="mx-auto mt-10 grid max-w-4xl grid-cols-2 gap-4 md:grid-cols-4">
+        {products.map((product) => {
+          const image = product.images[0]?.storage_path;
+          const price = product.sale_price_cents ?? product.price_cents;
+          return (
+            <Link
+              key={product.slug}
+              href={`/products/${product.slug}`}
+              className="group overflow-hidden rounded-2xl border border-white/10 bg-white/5 text-left transition hover:-translate-y-1 hover:border-white/25"
+            >
+              <div className="aspect-square overflow-hidden bg-white">
+                <img
+                  src={image}
+                  alt={product.name}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+              <div className="p-3">
+                <p className="line-clamp-1 text-sm font-semibold text-white">{product.name}</p>
+                <p className="mt-1 text-sm font-bold text-givit-coral">{formatMoney(price)}</p>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
@@ -233,6 +279,8 @@ export default function LandingPage() {
     </div>
 
     <StoryScroll />
+
+    <ProductShowcase />
 
     <div className="relative flex flex-col items-center gap-5 bg-black px-6 py-24 text-center text-white">
       <h2 className="font-serif text-3xl font-bold md:text-4xl">Ready to never send a bad gift again?</h2>

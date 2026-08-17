@@ -42,6 +42,7 @@ export default function SignupPage() {
       }
 
       window.localStorage.setItem("givit-just-signed-up", "1");
+      window.localStorage.setItem("givit-show-welcome-tour", "1");
       if (data.session) navigate(nextPath);
       else setDone(true);
     } finally {

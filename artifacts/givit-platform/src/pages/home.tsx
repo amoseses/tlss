@@ -5,6 +5,7 @@ import { PeopleDashboard } from "@/components/personalization/people-dashboard";
 import { RecentMemoryFeed } from "@/components/personalization/recent-memory-feed";
 import { RelationshipGraph } from "@/components/personalization/relationship-graph";
 import { RelationshipInsights } from "@/components/personalization/relationship-insights";
+import { WelcomeTour } from "@/components/personalization/welcome-tour";
 import { Button } from "@/components/ui/button";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
 import { Reveal } from "@/components/ui/reveal";
@@ -76,6 +77,7 @@ export default function HomePage() {
   const { user } = useAuth();
   return (
     <div className="pb-12">
+      <WelcomeTour />
       {/* Hero — minimal, relationship-first, no product wall */}
       <section className="relative overflow-hidden border-b border-border/50 bg-card">
         <div className="pointer-events-none absolute -top-32 right-0 h-[600px] w-[600px] rounded-full bg-givit-ember/25 blur-3xl" />
