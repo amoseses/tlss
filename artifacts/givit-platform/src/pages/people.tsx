@@ -539,7 +539,7 @@ function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: 
   const daysUntil = upcoming ? Math.ceil((upcoming.parsed.getTime() - today.getTime()) / 86400000) : null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border/40 bg-card p-5">
+    <div className="flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-sm shadow-black/[0.03] transition-shadow duration-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full givit-gradient text-base font-bold text-white">

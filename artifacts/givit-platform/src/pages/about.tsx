@@ -52,7 +52,7 @@ export default function AboutPage() {
             {TEAM.map((member) => (
               <div
                 key={member.name}
-                className="slide-up group overflow-hidden rounded-2xl border border-border/50 bg-card opacity-0 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/30 hover:shadow-xl hover:shadow-black/10"
+                className="slide-up group overflow-hidden rounded-2xl bg-card opacity-0 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10"
               >
                 <div className="aspect-[4/5] w-full overflow-hidden bg-givit-sand">
                   <TeamPhoto member={member} />
