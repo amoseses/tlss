@@ -1,17 +1,37 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, BellRing, Loader2 } from "lucide-react";
+import { Bell, BellOff, BellRing, Loader2, MessageSquare } from "lucide-react";
 import { isPushSupported, isSubscribedToPush, subscribeToPush, unsubscribeFromPush, sendTestPush } from "@/lib/push/subscribe";
 import { updateProfile } from "@/lib/supabase/db";
 
 const LEAD_TIME_OPTIONS = [7, 14, 21, 35, 56];
 
-export function NotificationSettingsCard({ userId, defaultLeadDays }: { userId: string; defaultLeadDays: number }) {
+// Exact language shown at opt-in time, frozen into profiles.sms_consent_text
+// on every toggle-on -- if this copy changes later, past consent should
+// still reflect what a given user actually agreed to.
+export const SMS_CONSENT_TEXT =
+  "By checking this box, you agree to receive automated SMS gift reminders and AutoGift approval requests from GIVIT at the phone number provided. Consent is not a condition of purchase. Message frequency varies. Message & data rates may apply. Reply STOP to cancel at any time, HELP for help.";
+
+export function NotificationSettingsCard({
+  userId,
+  defaultLeadDays,
+  phone,
+  smsOptIn,
+  onSmsOptInChange,
+}: {
+  userId: string;
+  defaultLeadDays: number;
+  phone?: string | null;
+  smsOptIn?: boolean | null;
+  onSmsOptInChange?: (optedIn: boolean) => void;
+}) {
   const [supported, setSupported] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [leadDays, setLeadDays] = useState(defaultLeadDays);
   const [savingLeadDays, setSavingLeadDays] = useState(false);
+  const [smsBusy, setSmsBusy] = useState(false);
+  const [smsMessage, setSmsMessage] = useState("");
 
   async function saveLeadDays(days: number) {
     setLeadDays(days);
@@ -47,6 +67,18 @@ export function NotificationSettingsCard({ userId, defaultLeadDays }: { userId: 
     const { error } = await sendTestPush(userId, "GIVIT", "This is what a real reminder will look like on this device.");
     setMessage(error || "Test notification sent, check your device.");
     setBusy(false);
+  }
+
+  async function toggleSmsOptIn(nextOptedIn: boolean) {
+    setSmsBusy(true);
+    setSmsMessage("");
+    const { error } = await updateProfile(userId, nextOptedIn
+      ? { sms_opt_in: true, sms_opt_in_at: new Date().toISOString(), sms_consent_text: SMS_CONSENT_TEXT, sms_opted_out_at: null }
+      : { sms_opt_in: false });
+    setSmsBusy(false);
+    if (error) { setSmsMessage("Couldn't save that. Try again."); return; }
+    onSmsOptInChange?.(nextOptedIn);
+    setSmsMessage(nextOptedIn ? "Text reminders are on." : "Text reminders turned off.");
   }
 
   return (
@@ -98,6 +130,30 @@ export function NotificationSettingsCard({ userId, defaultLeadDays }: { userId: 
           {message && <p className="text-xs text-muted-foreground">{message}</p>}
         </div>
       )}
+
+      <div className="mt-4 space-y-2 border-t border-border pt-4">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="h-3.5 w-3.5 text-givit-ember" />
+          <label className="text-sm text-muted-foreground">Text message reminders</label>
+        </div>
+        {!phone ? (
+          <p className="text-xs text-muted-foreground">Add a phone number above to turn on text reminders.</p>
+        ) : (
+          <>
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={Boolean(smsOptIn)}
+                disabled={smsBusy}
+                onChange={(e) => void toggleSmsOptIn(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border accent-givit-ember"
+              />
+              <span>{SMS_CONSENT_TEXT}</span>
+            </label>
+            {smsMessage && <p className="text-xs text-muted-foreground">{smsMessage}</p>}
+          </>
+        )}
+      </div>
     </div>
   );
 }
