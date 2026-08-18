@@ -247,11 +247,14 @@
   }
 
   .chat-bubble-user {
-    @apply rounded-lg rounded-br-sm bg-givit-ember text-white px-4 py-3;
+    @apply rounded-2xl rounded-br-md bg-givit-ink text-background px-4 py-2.5 dark:bg-givit-ember;
   }
 
+  /* AI replies read as flowing text on the panel, not a boxed reply --
+     a border/fill on every single message is what made a long
+     conversation look like a stack of chat-template cards. */
   .chat-bubble-ai {
-    @apply rounded-lg rounded-bl-sm bg-card border border-border/40 px-4 py-3;
+    @apply px-0 py-0.5 text-foreground;
   }
 
   .tag-pill {
@@ -263,14 +266,26 @@
   }
 }
 
-@keyframes typing-dot {
-  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1); }
+/* A traveling highlight along a thin rule, instead of three bouncing
+   dots -- the bouncing-dots typing indicator is one of the most
+   recognizable off-the-shelf chatbot-template tells there is. */
+@keyframes thinking-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
 }
-
-.typing-dot:nth-child(1) { animation: typing-dot 1.2s ease-in-out infinite 0s; }
-.typing-dot:nth-child(2) { animation: typing-dot 1.2s ease-in-out infinite 0.2s; }
-.typing-dot:nth-child(3) { animation: typing-dot 1.2s ease-in-out infinite 0.4s; }
+.thinking-rule {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--givit-ember) 18%, transparent);
+}
+.thinking-rule::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--givit-ember), transparent);
+  animation: thinking-sweep 1.3s ease-in-out infinite;
+}
 
 @keyframes slide-up-fade {
   from { opacity: 0; transform: translateY(16px); }
