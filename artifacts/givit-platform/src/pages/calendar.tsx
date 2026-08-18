@@ -6,6 +6,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useRecipients, nextOccurrenceDate } from "@/lib/hooks/use-recipients";
 import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
+import { GoogleCalendarConnect } from "@/components/calendar/google-calendar-connect";
 import { detectUserRegion, getHolidaysForRegion, SUPPORTED_REGIONS } from "@/lib/data/holidays";
 
 export default function CalendarPage() {
@@ -85,6 +86,8 @@ export default function CalendarPage() {
           <p className="mt-1 text-sm text-muted-foreground">Every date saved in <Link href="/people" className="text-givit-ember hover:underline">People</Link> plus regional public holidays.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Google Calendar Connect / Sync Button */}
+          <GoogleCalendarConnect />
           {/* Custom Styled Region Picker */}
           <div className="relative">
             <button
