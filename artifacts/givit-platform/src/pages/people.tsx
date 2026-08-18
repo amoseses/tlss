@@ -198,8 +198,8 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
       if (idx !== personIndex) return p;
       const occasions = [...p.occasions];
       const next = { ...occasions[occIndex], [field]: value };
-      if (field === "label" && LOCKED_OCCASION_LABELS.has(value)) {
-        next.date = nextHolidayDateString(value) ?? next.date;
+      if (field === "label" && LOCKED_OCCASION_LABELS.has(String(value))) {
+        next.date = nextHolidayDateString(String(value)) ?? next.date;
       }
       occasions[occIndex] = next;
       return { ...p, occasions };
@@ -376,8 +376,8 @@ function EditRecipientModal({
     setOccasions((prev) => prev.map((o, idx) => {
       if (idx !== i) return o;
       const next = { ...o, [field]: value };
-      if (field === "label" && LOCKED_OCCASION_LABELS.has(value)) {
-        next.date = nextHolidayDateString(value) ?? next.date;
+      if (field === "label" && LOCKED_OCCASION_LABELS.has(String(value))) {
+        next.date = nextHolidayDateString(String(value)) ?? next.date;
       }
       return next;
     }));

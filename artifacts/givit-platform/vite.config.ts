@@ -76,6 +76,35 @@ function aiApiDevMiddleware(): Plugin {
           return;
         }
 
+        if (req.url?.startsWith("/api/stripe/setup-intent")) {
+          try {
+            const setupIntentPath = path.resolve(import.meta.dirname, "../../api/stripe/setup-intent.ts");
+            const mod = await server.ssrLoadModule(setupIntentPath);
+            const handler = mod.default;
+
+            const body = req.method === "POST" ? await readJsonBody(req) : undefined;
+            const urlObj = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+            const query = Object.fromEntries(urlObj.searchParams.entries());
+
+            const reqMock = Object.assign(req, { body, query });
+            const resMock = Object.assign(res, {
+              status(code: number) { res.statusCode = code; return resMock; },
+              json(obj: any) {
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify(obj));
+                return resMock;
+              }
+            });
+
+            await handler(reqMock, resMock);
+          } catch (error: any) {
+            res.statusCode = 500;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ error: error?.message || "Server error" }));
+          }
+          return;
+        }
+
         next();
       });
     },
@@ -87,6 +116,8 @@ export default defineConfig(({ mode }) => {
   process.env.VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || env.VAPID_PUBLIC_KEY;
   process.env.VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || env.VAPID_PRIVATE_KEY;
   process.env.VAPID_SUBJECT = process.env.VAPID_SUBJECT || env.VAPID_SUBJECT;
+  process.env.SUPABASE_URL = process.env.SUPABASE_URL || env.SUPABASE_URL || env.VITE_SUPABASE_URL;
+  process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || env.STRIPE_SECRET_KEY;
 
   return {
     base: basePath,

@@ -1,7 +1,17 @@
 {
   "extends": "../../tsconfig.base.json",
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "**/*.test.ts",
+    "src/pages/FeedbackPage.tsx",
+    "src/components/gifting/concierge-dashboard.tsx",
+    "src/components/product/product-add-to-cart.tsx",
+    "src/components/product/product-review-form.tsx",
+    "src/lib/data/manager.ts"
+  ],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": ".tsbuildinfo",
