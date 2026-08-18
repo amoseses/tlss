@@ -662,3 +662,18 @@ DROP POLICY IF EXISTS "Users can create their own push subscriptions" ON push_su
 CREATE POLICY "Users can create their own push subscriptions" ON push_subscriptions FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can delete their own push subscriptions" ON push_subscriptions;
 CREATE POLICY "Users can delete their own push subscriptions" ON push_subscriptions FOR DELETE USING (auth.uid() = user_id);
+
+-- ============================================================
+-- SMS CONSENT (CTIA-style opt-in tracking for AutoGift reminders sent via
+-- AWS SNS). sms_opt_in gates every SMS send in dispatch-notifications.ts;
+-- sms_consent_text freezes exactly what the user agreed to at opt-in time,
+-- since the consent language can change later and disputes need to point
+-- at what was actually shown, not the current copy. sms_opted_out_at is
+-- set the moment someone replies STOP, independent of sms_opt_in, so a
+-- STOP-driven opt-out is distinguishable from one that came from a UI
+-- toggle later.
+-- ============================================================
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_opt_in BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_opt_in_at TIMESTAMPTZ;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_consent_text TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_opted_out_at TIMESTAMPTZ;

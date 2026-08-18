@@ -4,7 +4,7 @@ export default function TermsPage() {
   return (
     <PageShell narrow>
       <h1 className="font-serif text-3xl font-bold text-givit-ink mb-2">Terms of Use</h1>
-      <p className="text-sm text-muted-foreground mb-8">Last updated: June 2026</p>
+      <p className="text-sm text-muted-foreground mb-8">Last updated: August 2026</p>
       <div className="prose prose-sm max-w-none text-foreground space-y-6">
         <section>
           <h2 className="font-serif text-xl font-bold text-givit-ink">Using GIVIT</h2>
@@ -21,6 +21,14 @@ export default function TermsPage() {
         <section>
           <h2 className="font-serif text-xl font-bold text-givit-ink">Accounts</h2>
           <p className="mt-2 text-sm leading-7 text-muted-foreground">You are responsible for keeping your account credentials secure. GIVIT reserves the right to suspend accounts that violate these terms.</p>
+        </section>
+        <section>
+          <h2 className="font-serif text-xl font-bold text-givit-ink">Payment authorization for AutoGift</h2>
+          <p className="mt-2 text-sm leading-7 text-muted-foreground">When you save a card for AutoGift, you authorize GIVIT to charge that card, via Stripe, for any AutoGift gift package you explicitly approve — nothing is ever charged without an approval step you take first. Each charge corresponds to the total shown to you at approval time (item cost plus GIVIT's service fee). You can remove a saved card at any time from your Account page; doing so does not cancel a charge already approved and processed, but does prevent any future AutoGift charge. If a charge is declined or a card is removed before an approved order is charged, GIVIT may pause that order and ask you to approve it again with a valid payment method.</p>
+        </section>
+        <section>
+          <h2 className="font-serif text-xl font-bold text-givit-ink">SMS communications</h2>
+          <p className="mt-2 text-sm leading-7 text-muted-foreground">If you opt in to text message reminders from your Account page, GIVIT may send automated SMS messages about AutoGift reminders and approval requests to the phone number you provide. Consent to receive these messages is not a condition of any purchase. Message frequency varies based on your upcoming occasions. Message and data rates may apply. Reply <strong className="text-foreground">STOP</strong> at any time to opt out, or <strong className="text-foreground">HELP</strong> for help. Carriers are not liable for delayed or undelivered messages. You can also opt out any time from your Account page without replying by text.</p>
         </section>
         <section>
           <h2 className="font-serif text-xl font-bold text-givit-ink">Contact</h2>
