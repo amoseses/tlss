@@ -192,7 +192,7 @@ function BoardCard({ board, onOpen, onDelete }: { board: UserBoard; onOpen: () =
           <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
             <span>{board.images.length} product{board.images.length !== 1 ? "s" : ""}</span>
             <span>·</span>
-            <span>{board.likes} ♥</span>
+            <span className="inline-flex items-center gap-1">{board.likes} <Heart className="h-3 w-3" /></span>
           </div>
         </div>
       </button>
@@ -614,7 +614,7 @@ export default function BoardsPage() {
         <>
           {userBoards.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-20 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10 text-3xl">📌</div>
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10"><Bookmark className="h-6 w-6 text-givit-ember" /></div>
               <p className="mt-4 font-serif text-xl font-bold text-givit-ink">No boards yet</p>
               <p className="mt-2 max-w-xs text-sm text-muted-foreground">Create your first board to collect gift ideas, add products, and share with friends.</p>
               {user ? (
@@ -660,7 +660,7 @@ export default function BoardsPage() {
 
               {selectedBoard.images.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-16 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10 text-2xl">🎁</div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10"><Sparkles className="h-6 w-6 text-givit-ember" /></div>
                   <p className="mt-4 font-serif text-xl font-bold text-givit-ink">No items yet</p>
                   <p className="mt-2 max-w-xs text-sm text-muted-foreground">Add marketplace products or custom products to build your gift board.</p>
                   <div className="mt-5 flex gap-3">

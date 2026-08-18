@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { AlertTriangle, ExternalLink, Send, Sparkles, Star, ThumbsDown, ThumbsUp, Wand2, UserRound } from "lucide-react";
+import { AlertTriangle, ExternalLink, Gift, Send, Sparkles, Star, ThumbsDown, ThumbsUp, Wand2, UserRound } from "lucide-react";
 import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { recommendGifts, EMPTY_CONTEXT, type GiftRecommendResult, type ParsedContext } from "@/lib/gift-recommend";
@@ -41,12 +41,12 @@ const GREETING: Message = {
 };
 
 const QUICK_PROMPTS = [
-  { label: "For Mom 🌸", prompt: "Gift for my mom, birthday, $50 budget, loves cooking and gardening, thoughtful style, avoid clutter" },
-  { label: "For Dad 🔧", prompt: "Gift for my dad, birthday, under $75, likes tools, coffee, and outdoors, practical style, avoid clothes" },
-  { label: "For Friend 🎉", prompt: "Gift for a close friend, just because, $30-$50, likes fun design and cozy nights, avoid generic mugs" },
-  { label: "For Partner 💝", prompt: "Romantic anniversary gift for my partner, $100 budget, likes travel, coffee, and keepsakes" },
-  { label: "Graduation 🎓", prompt: "Graduation gift for a student, $80 budget, likes tech, studying, and travel" },
-  { label: "Pens ✍️", prompt: "Gift for a teacher who loves pens and journaling, thank-you gift, under $30" },
+  { label: "For Mom", prompt: "Gift for my mom, birthday, $50 budget, loves cooking and gardening, thoughtful style, avoid clutter" },
+  { label: "For Dad", prompt: "Gift for my dad, birthday, under $75, likes tools, coffee, and outdoors, practical style, avoid clothes" },
+  { label: "For Friend", prompt: "Gift for a close friend, just because, $30-$50, likes fun design and cozy nights, avoid generic mugs" },
+  { label: "For Partner", prompt: "Romantic anniversary gift for my partner, $100 budget, likes travel, coffee, and keepsakes" },
+  { label: "Graduation", prompt: "Graduation gift for a student, $80 budget, likes tech, studying, and travel" },
+  { label: "Pens", prompt: "Gift for a teacher who loves pens and journaling, thank-you gift, under $30" },
 ];
 
 const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Graduation", "Wedding", "Holiday", "Housewarming", "Thank you", "Father's Day", "Mother's Day", "Valentine's Day", "Easter", "Halloween", "New Baby", "Retirement", "Get Well", "Just Because", "Engagement", "Baby Shower"];
@@ -198,13 +198,13 @@ function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index
         {result.image_url ? (
           <img src={imageSrc} alt={result.name} className="h-full w-full object-cover" onError={() => setImageSrc(productPhotoFallback(result.slug, result.category_slug))} />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center"><span className="text-4xl">🎁</span></div>
+          <div className="absolute inset-0 flex items-center justify-center"><Gift className="h-8 w-8 text-muted-foreground/40" /></div>
         )}
         {result.sale_price_cents ? (
           <div className="absolute right-2 top-2 rounded-full bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white shadow-sm">Sale</div>
         ) : null}
         <div className="absolute bottom-2 left-2 right-2">
-          <p className="line-clamp-1 rounded-lg bg-black/60 px-2 py-1 text-[10px] text-white/90 backdrop-blur-sm">✨ {result.match_reason}</p>
+          <p className="flex items-center gap-1 line-clamp-1 rounded-lg bg-black/60 px-2 py-1 text-[10px] text-white/90 backdrop-blur-sm"><Sparkles className="h-2.5 w-2.5 shrink-0" /> {result.match_reason}</p>
         </div>
       </div>
       <div className="p-3">
@@ -497,7 +497,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     if (satisfied) {
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: "assistant", content: "Great, I saved those positive signals. ✅" },
+        { id: crypto.randomUUID(), role: "assistant", content: "Great, I saved those positive signals." },
       ]);
       return;
     }

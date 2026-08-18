@@ -316,10 +316,10 @@ export default function SubmitProductPage() {
           <div>
             <h2 className="font-semibold text-givit-ink">Why add your own products?</h2>
             <ul className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
-              <li>✓ Help other shoppers discover great gifts and experiences</li>
-              <li>✓ Your submissions make the marketplace better</li>
-              <li>✓ AI checks for duplicates and fills in the details from the link</li>
-              <li>✓ You'll earn recognition as a contributor</li>
+              <li className="flex items-start gap-1.5"><CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-givit-ember" /> Help other shoppers discover great gifts and experiences</li>
+              <li className="flex items-start gap-1.5"><CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-givit-ember" /> Your submissions make the marketplace better</li>
+              <li className="flex items-start gap-1.5"><CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-givit-ember" /> AI checks for duplicates and fills in the details from the link</li>
+              <li className="flex items-start gap-1.5"><CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-givit-ember" /> You'll earn recognition as a contributor</li>
             </ul>
           </div>
         </div>

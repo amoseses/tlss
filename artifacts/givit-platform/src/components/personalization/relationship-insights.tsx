@@ -75,47 +75,44 @@ export function RelationshipInsights() {
         <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Relationship intelligence</h2>
       </div>
 
-      <div className="stagger-children grid gap-4 sm:grid-cols-3">
-        <div className="slide-up flex items-center gap-4 rounded-2xl border border-border/40 bg-card p-5 opacity-0">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-givit-sand">
-            <UserRound className="h-6 w-6 text-givit-ember" />
-          </div>
-          <div>
-            <p className="font-serif text-2xl font-bold text-givit-ink md:text-3xl">{insight.peopleCount}</p>
-            <p className="text-sm text-muted-foreground">{insight.peopleCount === 1 ? "person" : "people"} remembered</p>
-          </div>
+      {/* An inline stat bar, not three identical bordered tiles -- the
+          icon-in-circle-plus-number-in-a-box pattern repeated three times is
+          the single most recognizable "AI dashboard" cliche there is. */}
+      <div className="stagger-children flex flex-wrap items-stretch divide-x divide-border/40">
+        <div className="slide-up flex items-center gap-2.5 py-1 pr-6 opacity-0">
+          <UserRound className="h-4 w-4 shrink-0 text-givit-ember" />
+          <p className="leading-tight">
+            <span className="font-serif text-2xl font-bold text-givit-ink md:text-3xl">{insight.peopleCount}</span>{" "}
+            <span className="text-sm text-muted-foreground">{insight.peopleCount === 1 ? "person" : "people"} remembered</span>
+          </p>
         </div>
-        <div className="slide-up flex items-center gap-4 rounded-2xl border border-border/40 bg-card p-5 opacity-0">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-givit-sand">
-            <Brain className="h-6 w-6 text-givit-ember" />
-          </div>
-          <div>
-            <p className="font-serif text-2xl font-bold text-givit-ink md:text-3xl">{insight.interestCount}</p>
-            <p className="text-sm text-muted-foreground">interests known</p>
-          </div>
+        <div className="slide-up flex items-center gap-2.5 py-1 px-6 opacity-0">
+          <Brain className="h-4 w-4 shrink-0 text-givit-ember" />
+          <p className="leading-tight">
+            <span className="font-serif text-2xl font-bold text-givit-ink md:text-3xl">{insight.interestCount}</span>{" "}
+            <span className="text-sm text-muted-foreground">interests known</span>
+          </p>
         </div>
-        <div className="slide-up flex items-center gap-4 rounded-2xl border border-border/40 bg-card p-5 opacity-0">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-givit-sand">
-            <Heart className="h-6 w-6 text-givit-ember" />
-          </div>
-          <div>
-            <p className="font-serif text-2xl font-bold text-givit-ink md:text-3xl">{insight.lovedCount}</p>
-            <p className="text-sm text-muted-foreground">gifts loved so far</p>
-          </div>
+        <div className="slide-up flex items-center gap-2.5 py-1 pl-6 opacity-0">
+          <Heart className="h-4 w-4 shrink-0 text-givit-ember" />
+          <p className="leading-tight">
+            <span className="font-serif text-2xl font-bold text-givit-ink md:text-3xl">{insight.lovedCount}</span>{" "}
+            <span className="text-sm text-muted-foreground">gifts loved so far</span>
+          </p>
         </div>
       </div>
 
       {insight.upcoming.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-border/40 bg-card p-5">
-          <p className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-givit-ember">
+        <div className="mt-6">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-givit-ember">
             <Bell className="h-3.5 w-3.5" /> Coming up
           </p>
-          <div className="space-y-2">
+          <div className="divide-y divide-border/40">
             {insight.upcoming.map((occ, i) => (
               <Link
                 key={i}
                 href={`/gift?q=${encodeURIComponent(`Gift for ${occ.name}, ${occ.label.toLowerCase()}`)}`}
-                className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-base transition hover:bg-muted/50"
+                className="flex items-center justify-between gap-2 rounded-lg px-1 py-2.5 text-base transition hover:bg-muted/50"
               >
                 <span className="text-foreground"><span className="font-semibold">{occ.name}</span>'s {occ.label.toLowerCase()}</span>
                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-semibold ${occ.daysUntil <= 14 ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"}`}>
@@ -128,7 +125,7 @@ export function RelationshipInsights() {
       )}
 
       {insight.needsDetail.length > 0 && (
-        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-dashed border-givit-ember/40 bg-givit-sand/40 p-5">
+        <div className="mt-6 flex items-start gap-3">
           <Brain className="mt-0.5 h-5 w-5 shrink-0 text-givit-ember" />
           <p className="text-base text-foreground">
             GIVIT doesn't know much about {insight.needsDetail.join(" or ")} yet.{" "}
