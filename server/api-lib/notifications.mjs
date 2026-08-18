@@ -46,10 +46,28 @@ export async function fetchDueNotifications(limit = 200) {
 export async function fetchProfilesByIds(userIds) {
   if (userIds.length === 0) return [];
   const params = new URLSearchParams({
-    select: "id,email,full_name,phone",
+    select: "id,email,full_name,phone,sms_opt_in,sms_opted_out_at",
     id: `in.(${userIds.join(",")})`,
   });
   return restFetch(`profiles?${params.toString()}`);
+}
+
+// STOP/START keyword handling (see api/cron/dispatch-notifications.ts's
+// inbound-webhook branch) looks a profile up by the phone number a reply
+// came from, since that's all an inbound SMS gives us -- there's no user
+// session to authenticate against.
+export async function fetchProfileByPhone(phone) {
+  const params = new URLSearchParams({ select: "id,phone", phone: `eq.${phone}`, limit: "1" });
+  const rows = await restFetch(`profiles?${params.toString()}`);
+  return rows?.[0] ?? null;
+}
+
+export async function setSmsOptStatus(userId, updates) {
+  await restFetch(`profiles?id=eq.${userId}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify(updates),
+  });
 }
 
 export async function fetchPushSubscriptions(userId) {

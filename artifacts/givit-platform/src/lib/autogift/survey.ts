@@ -26,6 +26,18 @@ export type SurveyResponse = {
   avoidItems: string[];
   giftStyle: "practical" | "surprise" | "sentimental" | "experience";
   notes: string;
+  // Structured personality/tone traits for the recipient (e.g. "adventurous",
+  // "low-key") -- kept separate from free-text `notes` so both the local
+  // scoring engine and the AI prompt can weight them as deliberate signal
+  // rather than something that only shows up if a shopper happens to type it.
+  personality: string[];
+  // What's actually worked/missed before, in the recipient's own gifting
+  // history -- the single highest-signal input for "don't repeat the thing
+  // that flopped" and "more of what landed," which nothing else here captures.
+  pastGiftFeedback: {
+    loved: string;
+    missed: string;
+  };
 };
 
 export type GiftSuggestion = {
@@ -161,7 +173,7 @@ export type SuggestionContext = {
 export function generateGiftSuggestions(response: SurveyResponse, context: SuggestionContext = {}): GiftSuggestion[] {
   const suggestions: GiftSuggestion[] = [];
 
-  const occasionText = `${response.notes} ${response.giftStyle} ${response.interests.join(" ")}`.toLowerCase();
+  const occasionText = `${response.notes} ${response.giftStyle} ${response.interests.join(" ")} ${response.personality.join(" ")} ${response.pastGiftFeedback.loved} ${response.pastGiftFeedback.missed}`.toLowerCase();
   const shouldIncludeCard = response.giftStyle === "sentimental" || /birthday|anniversary|wedding|sympathy|condolence|graduation|mother|father|love|miss you|thank/.test(occasionText);
   const shouldIncludeFlowers = response.interests.includes("plants") || /flower|garden|plant|sympathy|condolence|romantic|anniversary|mother/.test(occasionText);
 
@@ -206,9 +218,12 @@ export function generateGiftSuggestions(response: SurveyResponse, context: Sugge
     context.recipientName ? `Recipient: ${context.recipientName}.` : "",
     context.occasion ? `Occasion: ${context.occasion}.` : "",
     response.interests.length > 0 ? `Interests: ${response.interests.join(", ")}.` : "",
+    response.personality.length > 0 ? `Personality: ${response.personality.join(", ")}.` : "",
     `Style: ${response.giftStyle}.`,
     response.budget > 0 ? `Budget under $${response.budget}.` : "",
     response.avoidItems.length > 0 ? `Avoid: ${response.avoidItems.join(", ")}.` : "",
+    response.pastGiftFeedback.loved ? `A past gift they loved: ${response.pastGiftFeedback.loved}.` : "",
+    response.pastGiftFeedback.missed ? `A past gift that missed the mark: ${response.pastGiftFeedback.missed}.` : "",
     response.notes,
   ].filter(Boolean).join(" ");
 
