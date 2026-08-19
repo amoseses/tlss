@@ -178,12 +178,9 @@ function buildQuestionnairePrompt(form: Questionnaire) {
 // working, not a chat-template icon sitting next to inert text.
 function AgentLabel() {
   return (
-    <div className="mb-1.5 flex items-center gap-1.5">
-      <span className="relative flex h-1.5 w-1.5">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-givit-ember opacity-75" />
-        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-givit-ember" />
-      </span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-givit-ember">GIVIT</span>
+    <div className="mb-1.5 flex items-center gap-1.5 text-givit-ember">
+      <span className="tech-dot" />
+      <span className="text-[10px] font-bold uppercase tracking-[0.15em]">GIVIT</span>
     </div>
   );
 }
@@ -597,12 +594,9 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
             onClick={() => setShowQuestionnaire((v) => !v)}
             className="flex w-full items-center justify-between px-4 py-3 lg:pointer-events-none"
           >
-            <span className="flex items-center gap-1.5">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-givit-ember opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-givit-ember" />
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-givit-ember">Agent brief</span>
+            <span className="flex items-center gap-1.5 text-givit-ember">
+              <span className="tech-dot" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Agent brief</span>
             </span>
             <span className="text-xs font-semibold text-muted-foreground lg:hidden">{showQuestionnaire ? "Hide" : "Edit"}</span>
           </button>

@@ -95,8 +95,8 @@ export default function HomePage() {
             <div className="pointer-events-none mx-auto mb-2 flex h-14 items-center justify-center">
               <GiftBox3D size={56} />
             </div>
-            <p className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-bold uppercase tracking-widest text-givit-coral">
-              <Sparkles className="h-3.5 w-3.5" /> Your AI gifting agent
+            <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-bold uppercase tracking-widest text-givit-coral">
+              <span className="tech-dot" /> Your AI gifting agent
             </p>
             <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-foreground md:text-5xl">
               Never send a bad gift again.
