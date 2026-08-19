@@ -119,8 +119,8 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
     if (step !== "payment" || paymentClientSecret || paymentFetching) return;
     setPaymentFetching(true);
     authedFetch("/api/stripe/setup-intent", { method: "POST" })
-      .then((res) => res.json())
-      .then((data) => {
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({ error: "Couldn't load payment configuration from server." }));
         if (data.clientSecret) setPaymentClientSecret(data.clientSecret);
         else setError(data.error || "Couldn't load the payment form.");
       })
@@ -298,7 +298,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
             ))}
           </div>
 
-          {error && <div className="mb-4 break-words rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
+          {error && <div className="mb-4 break-all rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
 
           {step === "welcome" && (
             <div className="space-y-3">

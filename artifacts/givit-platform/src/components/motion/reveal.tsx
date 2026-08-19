@@ -1,4 +1,4 @@
-import { motion, type HTMLMotionProps } from "motion/react";
+import { motion, type HTMLMotionProps } from "framer-motion";
 
 type FadeInProps = HTMLMotionProps<"div"> & {
   delay?: number;
@@ -18,7 +18,7 @@ export function FadeIn({
   className,
   ...props
 }: FadeInProps) {
-  const offset = offsets[direction];
+  const offset = offsets[direction as keyof typeof offsets] || offsets.up;
   return (
     <motion.div
       initial={{ opacity: 0, ...offset }}
