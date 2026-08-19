@@ -37,6 +37,7 @@ import {
   MARKETPLACE_CATEGORIES,
   MARKETPLACE_RATINGS,
   getMarketplaceProducts,
+  syncLivePricesClient,
   type MarketplaceProduct,
 } from "@/lib/data/marketplace";
 import { fetchAdminProducts } from "@/lib/data/data-layer";
@@ -100,6 +101,10 @@ export default function ProductsPage() {
   const { user } = useAuth();
   const [savedPeople, setSavedPeople] = useState<ShoppingForPerson[]>([]);
   const [peopleReady, setPeopleReady] = useState(false);
+
+  useEffect(() => {
+    syncLivePricesClient();
+  }, []);
   useEffect(() => {
     if (!user) { setSavedPeople([]); setPeopleReady(true); return; }
     let mounted = true;

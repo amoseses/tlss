@@ -67,7 +67,6 @@ export default async function handler(req: any, res: any) {
         const summary = event.summary;
         if (!summary) continue;
         const occasion = guessOccasion(summary);
-        if (occasion === "Other") continue; // conservative: only auto-import clear birthday/anniversary matches
         const date = eventDateIso(event);
         if (!date) continue;
         const name = guessName(summary);

@@ -15,7 +15,8 @@ import { deleteConnection, saveConnection } from "../../../server/api-lib/calend
 import { buildAuthUrl, exchangeCodeForTokens } from "../../../server/api-lib/google-calendar.mjs";
 
 function redirect(res: any, path: string) {
-  res.writeHead(302, { Location: `https://givit.site${path}` });
+  const baseUrl = process.env.APP_BASE_URL || (process.env.NODE_ENV === "production" ? "https://givit.site" : "http://localhost:3000");
+  res.writeHead(302, { Location: `${baseUrl}${path}` });
   res.end();
 }
 
@@ -26,8 +27,9 @@ async function start(req: any, res: any) {
       res.status(401).json({ error: "Not signed in." });
       return;
     }
-    const state = signState({ userId: user.id });
-    res.status(200).json({ url: buildAuthUrl(state) });
+    const redirectPath = req.body?.redirectPath || req.query?.redirectPath || "/calendar";
+    const state = signState({ userId: user.id, redirectPath });
+    res.status(200).json({ url: buildAuthUrl(state, req) });
   } catch (error: any) {
     res.status(500).json({ error: error?.message ?? "Couldn't start Google Calendar connect." });
   }
@@ -35,29 +37,31 @@ async function start(req: any, res: any) {
 
 async function callback(req: any, res: any) {
   const { code, state, error } = req.query ?? {};
+  const payload = typeof state === "string" ? verifyState(state) : null;
+  const targetPath = payload?.redirectPath || "/calendar";
 
   if (error) {
-    redirect(res, "/people?calendar=denied");
+    redirect(res, `${targetPath}?calendar=denied`);
     return;
   }
 
-  const payload = typeof state === "string" ? verifyState(state) : null;
   if (!payload?.userId || typeof code !== "string") {
-    redirect(res, "/people?calendar=error");
+    redirect(res, `${targetPath}?calendar=error`);
     return;
   }
 
   try {
-    const tokens = await exchangeCodeForTokens(code);
-    if (!tokens.refresh_token) {
-      redirect(res, "/people?calendar=error");
+    const tokens = await exchangeCodeForTokens(code, req);
+    const refreshToken = tokens.refresh_token || tokens.access_token;
+    if (!refreshToken) {
+      redirect(res, `${targetPath}?calendar=error`);
       return;
     }
-    await saveConnection(payload.userId, tokens.refresh_token);
-    redirect(res, "/people?calendar=connected");
+    await saveConnection(payload.userId, refreshToken);
+    redirect(res, `${targetPath}?calendar=connected`);
   } catch (err: any) {
     console.error("google-calendar callback failed:", err?.message);
-    redirect(res, "/people?calendar=error");
+    redirect(res, `${targetPath}?calendar=error`);
   }
 }
 

@@ -15,6 +15,7 @@ import {
   MARKETPLACE_RATINGS,
   getMarketplaceProductBySlug,
   getRelatedMarketplaceProducts,
+  syncLivePricesClient,
   type MarketplaceProduct,
 } from "@/lib/data/marketplace";
 import { fetchProductBySlug } from "@/lib/data/data-layer";
@@ -23,6 +24,10 @@ import { productPhotoFallback, resolveProductImageSrc } from "@/lib/product-phot
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+
+  useEffect(() => {
+    syncLivePricesClient();
+  }, []);
   const [, navigate] = useLocation();
 
   const seedProduct = getMarketplaceProductBySlug(slug ?? "");
@@ -66,7 +71,11 @@ export default function ProductDetailPage() {
   const reviewCount = stats?.review_count ?? 0;
   const images = [...product.images].sort((a, b) => a.sort_order - b.sort_order);
   const mainSrc = resolveProductImageSrc(product.id, images, product.category?.slug);
-  const displayPrice = product.sale_price_cents ? formatMoney(product.sale_price_cents) : product.price_range ?? formatMoney(product.price_cents);
+  const displayPrice = product.sale_price_cents
+    ? formatMoney(product.sale_price_cents)
+    : product.price_cents
+    ? formatMoney(product.price_cents)
+    : product.price_range ?? "Check price";
   const related = getRelatedMarketplaceProducts(product);
   const ratings = Object.fromEntries(MARKETPLACE_RATINGS);
 

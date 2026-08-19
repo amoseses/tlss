@@ -1,0 +1,12 @@
+{
+  "https://electronics.sony.com/audio/headphones/headband/p/wh1000xm5-b": {
+    "price_cents": 39999,
+    "sale_price_cents": 24800,
+    "updated_at": "2026-08-19T18:10:31.119Z"
+  },
+  "https://www.amazon.com/dp/B08KTZ8249": {
+    "price_cents": 17999,
+    "sale_price_cents": null,
+    "updated_at": "2026-08-19T18:13:49.879Z"
+  }
+}

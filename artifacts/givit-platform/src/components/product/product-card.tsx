@@ -38,7 +38,11 @@ export function ProductCard({
   const src = resolveProductImageSrc(product.id, images, categorySlug);
   const [imageSrc, setImageSrc] = useState(src);
   const salePrice = marketplaceProduct.sale_price_cents;
-  const priceLabel = salePrice ? formatMoney(salePrice) : marketplaceProduct.price_range ?? formatMoney(product.price_cents);
+  const priceLabel = salePrice
+    ? formatMoney(salePrice)
+    : product.price_cents
+    ? formatMoney(product.price_cents)
+    : marketplaceProduct.price_range ?? "Check price";
   // A "#47 in Tech" badge on a 700-item catalog isn't a credible ranking
   // signal — it reads as filler. Only surface the rank when it's genuinely
   // a top-10 standing; every other card just shows the honest basics

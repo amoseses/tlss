@@ -1,9 +1,18 @@
 // Thin wrapper around Google's OAuth + Calendar API endpoints (plain fetch,
 // no SDK -- matches the rest of api/_lib). Requires GOOGLE_CALENDAR_CLIENT_ID
 // and GOOGLE_CALENDAR_CLIENT_SECRET, from an OAuth client registered in
-// Google Cloud Console with this exact redirect URI.
-const REDIRECT_URI = "https://givit.site/api/auth/google-calendar/callback";
+// Google Cloud Console.
+
 const SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+
+export function getRedirectUri(req) {
+  if (process.env.GOOGLE_CALENDAR_REDIRECT_URI) {
+    return process.env.GOOGLE_CALENDAR_REDIRECT_URI;
+  }
+  const host = req?.headers?.host || "localhost:3000";
+  const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
+  return `${protocol}://${host}/api/auth/google-calendar/callback`;
+}
 
 function credentials() {
   const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
@@ -14,25 +23,26 @@ function credentials() {
   return { clientId, clientSecret };
 }
 
-export function buildAuthUrl(state) {
+export function buildAuthUrl(state, req) {
   const { clientId } = credentials();
+  const redirectUri = getRedirectUri(req);
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     response_type: "code",
     scope: SCOPE,
     access_type: "offline",
     // Forces Google to hand back a refresh token even if this user already
-    // granted access before -- without it, a reconnect after revoking
-    // access silently returns no refresh_token at all.
+    // granted access before
     prompt: "consent",
     state,
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 }
 
-export async function exchangeCodeForTokens(code) {
+export async function exchangeCodeForTokens(code, req) {
   const { clientId, clientSecret } = credentials();
+  const redirectUri = getRedirectUri(req);
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -40,7 +50,7 @@ export async function exchangeCodeForTokens(code) {
       code,
       client_id: clientId,
       client_secret: clientSecret,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: redirectUri,
       grant_type: "authorization_code",
     }),
   });

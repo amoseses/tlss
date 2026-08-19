@@ -2,6 +2,7 @@ import type { Category, Product, ProductImage, ProductRatingStats } from "@/type
 import { EXPANDED_CURATED_PRODUCTS } from "@/lib/data/marketplace-expanded";
 import { getImportedMarketplaceProducts } from "@/lib/admin/imported-products";
 import { productPhotoFallback } from "@/lib/product-photo";
+import livePricesData from "@/lib/data/live-prices.json";
 
 export type MarketplaceProduct = Product & {
   affiliate_url: string;
@@ -511,9 +512,56 @@ export const MARKETPLACE_RATINGS = new Map<string, ProductRatingStats>(
   ]),
 );
 
+function getLocalLiveOverrides(): Record<string, { price_cents: number; sale_price_cents?: number | null; updated_at?: string }> {
+  let overrides: Record<string, any> = { ...livePricesData };
+  if (typeof window !== "undefined") {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem("givit-live-price-overrides") ?? "{}");
+      overrides = { ...overrides, ...stored };
+    } catch {
+      // Ignore storage errors
+    }
+  }
+  return overrides;
+}
+
+export function syncLivePricesClient() {
+  if (typeof window === "undefined") return;
+  fetch("/api/live-prices")
+    .then((res) => res.json())
+    .then((data) => {
+      if (data && typeof data === "object" && Object.keys(data).length > 0) {
+        const stored = JSON.parse(window.localStorage.getItem("givit-live-price-overrides") ?? "{}");
+        window.localStorage.setItem("givit-live-price-overrides", JSON.stringify({ ...stored, ...data }));
+      }
+    })
+    .catch(() => {});
+}
+
+if (typeof window !== "undefined") {
+  syncLivePricesClient();
+}
+
+function applyLivePriceOverrides(product: MarketplaceProduct): MarketplaceProduct {
+  const overrides = getLocalLiveOverrides();
+  const entry = overrides[product.affiliate_url] || overrides[product.slug] || overrides[product.id];
+  if (!entry) return product;
+
+  const priceCents = typeof entry.price_cents === "number" ? entry.price_cents : product.price_cents;
+  const salePriceCents = typeof entry.sale_price_cents === "number" ? entry.sale_price_cents : product.sale_price_cents;
+
+  return {
+    ...product,
+    price_cents: priceCents,
+    sale_price_cents: salePriceCents ?? undefined,
+    deal_badge: salePriceCents ? "Live Deal" : product.deal_badge,
+    updated_at: entry.updated_at || product.updated_at,
+  };
+}
+
 export function getAllMarketplaceProducts(): MarketplaceProduct[] {
-  if (typeof window === "undefined") return MARKETPLACE_PRODUCTS;
-  return [...MARKETPLACE_PRODUCTS, ...getImportedMarketplaceProducts()];
+  const base = typeof window === "undefined" ? MARKETPLACE_PRODUCTS : [...MARKETPLACE_PRODUCTS, ...getImportedMarketplaceProducts()];
+  return base.map(applyLivePriceOverrides);
 }
 
 export function getMarketplaceProductBySlug(slug: string) {

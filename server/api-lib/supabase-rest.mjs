@@ -2,10 +2,10 @@
 // as api/_lib/notifications.mjs uses internally -- pulled out here so new
 // _lib modules don't each redefine it.
 export function restBase() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
   if (!url || !key) {
-    throw new Error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not configured on the server.");
+    throw new Error("SUPABASE_URL / SUPABASE_ANON_KEY are not configured on the server.");
   }
   return { url: url.replace(/\/$/, ""), key };
 }

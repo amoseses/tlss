@@ -76,33 +76,54 @@ function aiApiDevMiddleware(): Plugin {
           return;
         }
 
-        if (req.url?.startsWith("/api/stripe/setup-intent")) {
-          try {
-            const setupIntentPath = path.resolve(import.meta.dirname, "../../api/stripe/setup-intent.ts");
-            const mod = await server.ssrLoadModule(setupIntentPath);
-            const handler = mod.default;
+        if (req.url?.startsWith("/api/")) {
+          const urlObj = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+          const pathname = urlObj.pathname;
 
-            const body = req.method === "POST" ? await readJsonBody(req) : undefined;
-            const urlObj = new URL(req.url, `http://${req.headers.host || "localhost"}`);
-            const query = Object.fromEntries(urlObj.searchParams.entries());
-
-            const reqMock = Object.assign(req, { body, query });
-            const resMock = Object.assign(res, {
-              status(code: number) { res.statusCode = code; return resMock; },
-              json(obj: any) {
-                res.setHeader("Content-Type", "application/json");
-                res.end(JSON.stringify(obj));
-                return resMock;
-              }
-            });
-
-            await handler(reqMock, resMock);
-          } catch (error: any) {
-            res.statusCode = 500;
-            res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify({ error: error?.message || "Server error" }));
+          let apiRelativePath: string | null = null;
+          if (pathname === "/api/auth/google-calendar/callback") {
+            apiRelativePath = "../../api/auth/google-calendar/callback.ts";
+          } else if (pathname === "/api/calendar/status") {
+            apiRelativePath = "../../api/calendar/status.ts";
+          } else if (pathname === "/api/calendar/sync") {
+            apiRelativePath = "../../api/calendar/sync.ts";
+          } else if (pathname === "/api/stripe/setup-intent") {
+            apiRelativePath = "../../api/stripe/setup-intent.ts";
+          } else if (pathname === "/api/webhooks/price-update") {
+            apiRelativePath = "../../api/webhooks/price-update.ts";
+          } else if (pathname === "/api/cron/sync-all-prices") {
+            apiRelativePath = "../../api/cron/sync-all-prices.ts";
+          } else if (pathname === "/api/live-prices") {
+            apiRelativePath = "../../api/live-prices.ts";
           }
-          return;
+
+          if (apiRelativePath) {
+            try {
+              const fullPath = path.resolve(import.meta.dirname, apiRelativePath);
+              const mod = await server.ssrLoadModule(fullPath);
+              const handler = mod.default;
+
+              const body = (req.method === "POST" || req.method === "PUT" || req.method === "DELETE") ? await readJsonBody(req) : undefined;
+              const query = Object.fromEntries(urlObj.searchParams.entries());
+
+              const reqMock = Object.assign(req, { body, query });
+              const resMock = Object.assign(res, {
+                status(code: number) { res.statusCode = code; return resMock; },
+                json(obj: any) {
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(JSON.stringify(obj));
+                  return resMock;
+                }
+              });
+
+              await handler(reqMock, resMock);
+            } catch (error: any) {
+              res.statusCode = 500;
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify({ error: error?.message || "Server error" }));
+            }
+            return;
+          }
         }
 
         next();
@@ -117,7 +138,12 @@ export default defineConfig(({ mode }) => {
   process.env.VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || env.VAPID_PRIVATE_KEY;
   process.env.VAPID_SUBJECT = process.env.VAPID_SUBJECT || env.VAPID_SUBJECT;
   process.env.SUPABASE_URL = process.env.SUPABASE_URL || env.SUPABASE_URL || env.VITE_SUPABASE_URL;
+  process.env.VITE_SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
+  process.env.SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY || env.VITE_SUPABASE_ANON_KEY;
   process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || env.STRIPE_SECRET_KEY;
+  process.env.GOOGLE_CALENDAR_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || env.GOOGLE_CALENDAR_CLIENT_ID;
+  process.env.GOOGLE_CALENDAR_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || env.GOOGLE_CALENDAR_CLIENT_SECRET;
 
   return {
     base: basePath,

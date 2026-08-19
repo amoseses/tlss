@@ -26,8 +26,7 @@ export async function getUserFromRequest(req) {
 // this connection belongs to," since Vercel functions don't see the
 // browser's Supabase session on that redirect.
 function stateSecret() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured on the server.");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "givit-local-dev-state-secret";
   return key;
 }
 

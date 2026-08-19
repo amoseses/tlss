@@ -1,0 +1,128 @@
+{
+  "https://electronics.sony.com/audio/headphones/headband/p/wh1000xm5-b": {
+    "price_cents": 39999,
+    "sale_price_cents": 24800,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "sony-wh-1000xm5": {
+    "price_cents": 39999,
+    "sale_price_cents": 24800,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.amazon.com/dp/B08KTZ8249": {
+    "price_cents": 17999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "kindle-paperwhite": {
+    "price_cents": 17999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.pilotpen.us/categories/fountain-pens/custom-823-fountain/": {
+    "price_cents": 33600,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "pilot-custom-823": {
+    "price_cents": 33600,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.apple.com/airtag/": {
+    "price_cents": 9900,
+    "sale_price_cents": 7999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "apple-airtags-4-pack": {
+    "price_cents": 9900,
+    "sale_price_cents": 7999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.lego.com/en-us/product/orchid-10311": {
+    "price_cents": 4999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "lego-botanicals-orchid": {
+    "price_cents": 4999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://ember.com/products/ember-mug-2": {
+    "price_cents": 12995,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "ember-temperature-control-mug": {
+    "price_cents": 12995,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.therabody.com/us/en-us/theragun-mini.html": {
+    "price_cents": 19900,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "theragun-mini": {
+    "price_cents": 19900,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.stanley1913.com/products/adventure-quencher-travel-tumbler-40-oz": {
+    "price_cents": 4500,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "stanley-quencher-h2-0": {
+    "price_cents": 4500,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://aeropress.com/products/aeropress-clear": {
+    "price_cents": 4995,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "aeropress-clear": {
+    "price_cents": 4995,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.patagonia.com/product/black-hole-duffel-bag-55-liters/49343.html": {
+    "price_cents": 15900,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "patagonia-black-hole-duffel": {
+    "price_cents": 15900,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.nintendo.com/us/store/products/nintendo-switch-oled-model-white-set/": {
+    "price_cents": 34999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "nintendo-switch-oled": {
+    "price_cents": 34999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://playbackbone.com/products/backbone-one/": {
+    "price_cents": 9999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "backbone-one-controller": {
+    "price_cents": 9999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.dyson.com/hair-care/hair-stylers/airwrap": {
+    "price_cents": 59999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "dyson-airwrap": {
+    "price_cents": 59999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.brooklinen.com/products/super-plush-robes": {
+    "price_cents": 9900,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "brooklinen-super-plush-robe": {
+    "price_cents": 9900,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "https://www.anker.com/products/a1289": {
+    "price_cents": 14999,
+    "sale_price_cents": 10999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  },
+  "anker-737-power-bank": {
+    "price_cents": 14999,
+    "sale_price_cents": 10999,
+    "updated_at": "2026-08-19T18:50:00.000Z"
+  }
+}
