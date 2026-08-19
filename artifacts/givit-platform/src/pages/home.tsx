@@ -121,24 +121,28 @@ export default function HomePage() {
         </div>
       </section>
 
-      <p className="container py-6 text-center font-sans text-xl font-bold tracking-tight text-foreground md:text-2xl">
-        Never forget an important date again.
-      </p>
-
       {/* How it works — explains the mechanism before showing it in action below */}
       <HowItWorksScroll />
 
       {/* People dashboard — the actual front door for returning, logged-in users */}
       <PeopleDashboard />
 
-      {/* Visual map of who GIVIT remembers, right after the people it's about */}
-      <RelationshipGraph />
+      {/* Visual map of who GIVIT remembers, right after the people it's about --
+          a faint tint here (rather than the bare page background) is what
+          actually separates it from the sections above and below; without
+          it the whole run from the people grid through relationship
+          intelligence reads as one undifferentiated scroll. */}
+      <div className="bg-givit-sand/30">
+        <RelationshipGraph />
+      </div>
 
       {/* What GIVIT has learned recently — a real, growing memory feed, not a product rail */}
       <RecentMemoryFeed />
 
       {/* Relationship intelligence — what GIVIT knows and is doing for you, not a product rail */}
-      <RelationshipInsights />
+      <div className="bg-givit-sand/30">
+        <RelationshipInsights />
+      </div>
 
       {/* Footer CTA */}
       <Reveal variant="triangle">
