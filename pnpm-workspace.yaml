@@ -39,9 +39,4 @@ overrides:
 
 allowBuilds:
   esbuild: true
-...
-...
-
-
-
 
