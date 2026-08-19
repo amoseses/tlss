@@ -37,8 +37,15 @@ type Questionnaire = {
 const GREETING: Message = {
   id: "greeting",
   role: "assistant",
-  content: "Hey! I'm GIVIT, your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll suggest thoughtful picks with a reason for each one.",
+  content: "I'm GIVIT. Tell me who you're shopping for, or fill in the brief on the left, and I'll reason through the catalog against their interests, budget, and what to avoid — then bring back picks with my thinking on each one.",
 };
+
+// Fake-but-honest progress labels shown while a search is in flight. The
+// search itself is a single async call, not literally four discrete
+// backend steps, but the work it's doing (reading context, scoring the
+// wide pool, personalizing) really does happen in roughly this order —
+// this just makes that visible instead of hiding it behind a spinner.
+const REASONING_STEPS = ["Reading the brief", "Scanning the catalog", "Weighing budget & interests", "Ranking the best matches"];
 
 const QUICK_PROMPTS = [
   { label: "For Mom", prompt: "Gift for my mom, birthday, $50 budget, loves cooking and gardening, thoughtful style, avoid clutter" },
@@ -166,11 +173,32 @@ function buildQuestionnairePrompt(form: Questionnaire) {
   ].join(". ");
 }
 
+// GIVIT's identity marker on its own replies -- a live pulse rather than a
+// static avatar circle, so it reads as an agent that's actually present and
+// working, not a chat-template icon sitting next to inert text.
+function AgentLabel() {
+  return (
+    <div className="mb-1.5 flex items-center gap-1.5">
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-givit-ember opacity-75" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-givit-ember" />
+      </span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-givit-ember">GIVIT</span>
+    </div>
+  );
+}
+
 function TypingIndicator() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setStep((s) => Math.min(s + 1, REASONING_STEPS.length - 1)), 650);
+    return () => clearInterval(id);
+  }, []);
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold text-muted-foreground">Thinking it through</span>
-      <div className="thinking-rule h-[3px] w-24 rounded-full" />
+      <AgentLabel />
+      <span className="text-xs font-semibold text-foreground">{REASONING_STEPS[step]}</span>
+      <div className="thinking-rule h-[3px] w-28 rounded-full" />
     </div>
   );
 }
@@ -267,11 +295,10 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   const [loading, setLoading] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
   const [form, setForm] = useState<Questionnaire>({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
-  // The full 7-field questionnaire used to sit permanently in a sidebar next
-  // to the chat, so the page read as "fill out this form to talk to an AI"
-  // rather than a conversation. It's the same functionality, just collapsed
-  // behind a toggle so the chat itself is the primary surface by default.
-  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  // The brief sidebar is always visible on desktop (see the lg:grid override
+  // below); this only controls whether it's expanded on narrow screens,
+  // where a permanent 300px column isn't viable next to the chat.
+  const [showQuestionnaire, setShowQuestionnaire] = useState(true);
   // Saved AutoGift recipient profiles double as one-tap starting points here
   // — their interests/avoid-list/budget were already captured once, so
   // reusing them avoids making the shopper retype what GIVIT already knows.
@@ -532,7 +559,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4">
+    <div className="mx-auto flex max-w-5xl flex-col gap-4">
       {messages.length === 1 && (
         <div className="flex flex-col items-center gap-3">
           {savedRecipients.length > 0 && (
@@ -560,32 +587,26 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
         </div>
       )}
 
-      <div className="givit-panel flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3">
+      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
+        {/* The agent's working brief, back as a real sidebar -- this is what
+            GIVIT is actually reasoning against, not a form gating access to
+            the chat, so it stays visible and in view while the chat runs. */}
+        <aside className="givit-panel lg:sticky lg:top-20">
           <button
             type="button"
             onClick={() => setShowQuestionnaire((v) => !v)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition hover:text-givit-ember"
+            className="flex w-full items-center justify-between px-4 py-3 lg:pointer-events-none"
           >
-            <Wand2 className="h-3.5 w-3.5" /> {showQuestionnaire ? "Hide details" : "Refine with details"}
+            <span className="flex items-center gap-1.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-givit-ember opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-givit-ember" />
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-givit-ember">Agent brief</span>
+            </span>
+            <span className="text-xs font-semibold text-muted-foreground lg:hidden">{showQuestionnaire ? "Hide" : "Edit"}</span>
           </button>
-          <div className="flex gap-1.5">
-            {lastQuery && !loading && (
-              <button type="button" onClick={regenerate} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">
-                <Wand2 className="h-3 w-3" /> Regenerate
-              </button>
-            )}
-            <button type="button" onClick={startOver} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">
-              ↺ Start over
-            </button>
-          </div>
-        </div>
-
-        {/* Same fields, same handler -- collapsed by default instead of a
-            permanent sidebar, since "fill out this form to talk to the AI"
-            was the single most template-chatbot thing about this page. */}
-        {showQuestionnaire && (
-          <div className="grid gap-3 border-t border-border/30 px-5 py-4 sm:grid-cols-2">
+          <div className={`grid gap-3 border-t border-border/30 px-4 py-4 ${showQuestionnaire ? "grid" : "hidden"} lg:grid`}>
             <Field label="Who is it for?" value={form.recipient} placeholder="Mom, partner, boss..." onChange={(recipient) => setForm((prev) => ({ ...prev, recipient }))} />
             <Field label="Relationship" value={form.relationship} placeholder="Close, formal..." onChange={(relationship) => setForm((prev) => ({ ...prev, relationship }))} />
             <div className="grid gap-1.5">
@@ -605,13 +626,27 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
             <Field label="Avoid" value={form.avoid} placeholder="Clothes, alcohol, clutter..." onChange={(avoid) => setForm((prev) => ({ ...prev, avoid }))} />
             <button
               type="button"
-              onClick={() => { sendMessage(buildQuestionnairePrompt(form)); setShowQuestionnaire(false); }}
-              className="flex h-11 items-center justify-center gap-2 rounded-full bg-givit-ember text-sm font-bold text-white transition hover:bg-givit-ember-hover sm:col-span-2"
+              onClick={() => sendMessage(buildQuestionnairePrompt(form))}
+              className="flex h-11 items-center justify-center gap-2 rounded-full bg-givit-ember text-sm font-bold text-white transition hover:bg-givit-ember-hover"
             >
-              Analyze gifts <Sparkles className="h-4 w-4" />
+              Run the brief <Sparkles className="h-4 w-4" />
             </button>
           </div>
-        )}
+        </aside>
+
+      <div className="givit-panel flex flex-col overflow-hidden">
+        <div className="flex items-center justify-end px-5 py-3">
+          <div className="flex gap-1.5">
+            {lastQuery && !loading && (
+              <button type="button" onClick={regenerate} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">
+                <Wand2 className="h-3 w-3" /> Regenerate
+              </button>
+            )}
+            <button type="button" onClick={startOver} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">
+              ↺ Start over
+            </button>
+          </div>
+        </div>
 
         <div ref={scrollContainerRef} className="flex flex-col gap-6 overflow-y-auto border-t border-border/30 p-5" style={{ maxHeight: "65vh" }}>
           {messages.map((msg) => (
@@ -622,6 +657,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                 <TypingIndicator />
               ) : (
                 <div className="flex flex-col gap-3">
+                  <AgentLabel />
                   {msg.content && <div className="chat-bubble-ai max-w-[85%] text-sm leading-relaxed">{msg.content}</div>}
                   {msg.confirmRecipient && (
                     <div className="flex flex-wrap gap-2">
@@ -676,6 +712,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
           </div>
           <p className="mt-1.5 text-center text-[10px] text-muted-foreground/60">Press Enter to send · Shift+Enter for new line</p>
         </div>
+      </div>
       </div>
     </div>
   );
