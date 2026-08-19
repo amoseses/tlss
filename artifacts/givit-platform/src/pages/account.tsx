@@ -1,14 +1,61 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useLocation, Link } from "wouter";
 import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2 } from "lucide-react";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getUserOrders, getUserAutoGiftOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile, saveUserAddress, saveUserPaymentMethod, deleteUserAddress, deleteUserPaymentMethod } from "@/lib/supabase/db";
 import { NotificationSettingsCard } from "@/components/personalization/notification-settings";
+import { getStripePromise } from "@/lib/stripe/client";
+import { createClient } from "@/lib/supabase/client";
+
+async function authedFetch(path: string, init?: RequestInit) {
+  const { data } = await createClient().auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not signed in.");
+  return fetch(path, {
+    ...init,
+    headers: { ...(init?.headers ?? {}), Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  });
+}
+
+type ConfirmedPaymentMethod = { id: string; brand: string; last4: string };
+type PaymentFormHandle = { submit: () => Promise<{ ok: true; method: ConfirmedPaymentMethod } | { ok: false; error: string }> };
+
+// Same pattern as the AutoGift onboarding wizard's PaymentElementForm: card
+// fields never touch GIVIT's own state or servers, Stripe's PaymentElement
+// runs inside Stripe's own iframe, and confirmSetup() only ever hands this
+// component back an opaque payment_method ID.
+const PaymentElementForm = forwardRef<PaymentFormHandle>(function PaymentElementForm(_props, ref) {
+  const stripe = useStripe();
+  const elements = useElements();
+
+  useImperativeHandle(ref, () => ({
+    async submit() {
+      if (!stripe || !elements) return { ok: false, error: "Payment form is still loading." };
+      const { error: submitError } = await elements.submit();
+      if (submitError) return { ok: false, error: submitError.message || "Enter valid card details." };
+      const { error, setupIntent } = await stripe.confirmSetup({ elements, redirect: "if_required" });
+      if (error) return { ok: false, error: error.message || "Card couldn't be saved." };
+      const paymentMethodId = typeof setupIntent?.payment_method === "string" ? setupIntent.payment_method : setupIntent?.payment_method?.id;
+      if (!paymentMethodId) return { ok: false, error: "Card couldn't be saved." };
+      try {
+        const res = await authedFetch(`/api/stripe/setup-intent?paymentMethodId=${encodeURIComponent(paymentMethodId)}`, { method: "GET" });
+        const data = await res.json();
+        if (!res.ok) return { ok: false, error: data.error || "Card was saved, but details couldn't be confirmed." };
+        return { ok: true, method: { id: paymentMethodId, brand: data.brand, last4: data.last4 } };
+      } catch (err: any) {
+        return { ok: false, error: err.message || "Card was saved, but details couldn't be confirmed." };
+      }
+    },
+  }));
+
+  return <PaymentElement options={{ layout: "tabs" }} />;
+});
 
 export default function AccountPage() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, refresh } = useAuth();
   const [, navigate] = useLocation();
   const [orders, setOrders] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<any[]>([]);
@@ -23,8 +70,16 @@ export default function AccountPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [addressForm, setAddressForm] = useState({ label: "Home", line1: "", city: "", state: "", zip: "", country: "US" });
-  const [cardForm, setCardForm] = useState({ name: "", number: "", expiry: "", cvc: "" });
   const [accountNotice, setAccountNotice] = useState("");
+
+  // Payment via real Stripe Elements -- clientSecret is fetched fresh each
+  // time "Add a card" is opened rather than kept around, same reasoning as
+  // the AutoGift onboarding wizard.
+  const [addingPayment, setAddingPayment] = useState(false);
+  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
+  const [paymentFetching, setPaymentFetching] = useState(false);
+  const [savingPayment, setSavingPayment] = useState(false);
+  const paymentFormRef = useRef<PaymentFormHandle>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate("/login?next=/account");
@@ -118,24 +173,44 @@ export default function AccountPage() {
     setAccountNotice("Payment method deleted.");
   }
 
-  async function handlePaymentSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!user) return;
-    const digits = cardForm.number.replace(/\D/g, "");
-    if (!cardForm.name || digits.length < 13 || !cardForm.expiry || cardForm.cvc.replace(/\D/g, "").length < 3) {
-      setAccountNotice("Enter complete card details before saving. Stripe Elements should tokenize this in production.");
+  async function startAddingPayment() {
+    setAddingPayment(true);
+    setAccountNotice("");
+    if (paymentClientSecret || paymentFetching) return;
+    setPaymentFetching(true);
+    try {
+      const res = await authedFetch("/api/stripe/setup-intent", { method: "POST" });
+      const data = await res.json();
+      if (data.clientSecret) setPaymentClientSecret(data.clientSecret);
+      else setAccountNotice(data.error || "Couldn't load the payment form.");
+    } catch (err: any) {
+      setAccountNotice(err.message || "Couldn't load the payment form.");
+    } finally {
+      setPaymentFetching(false);
+    }
+  }
+
+  async function handlePaymentSave() {
+    if (!user || !paymentFormRef.current) return;
+    setSavingPayment(true);
+    const result = await paymentFormRef.current.submit();
+    if (!result.ok) {
+      setSavingPayment(false);
+      setAccountNotice(result.error);
       return;
     }
     const { error } = await saveUserPaymentMethod({
       user_id: user.id,
-      stripe_payment_method_id: `pm_demo_${digits.slice(-8)}`,
-      card_brand: detectCardBrand(digits),
-      card_last4: digits.slice(-4),
+      stripe_payment_method_id: result.method.id,
+      card_brand: result.method.brand,
+      card_last4: result.method.last4,
       is_default: paymentMethods.length === 0,
     });
+    setSavingPayment(false);
     if (error) { setAccountNotice(error.message); return; }
     setPaymentMethods(await getUserPaymentMethods(user.id));
-    setCardForm({ name: "", number: "", expiry: "", cvc: "" });
+    setAddingPayment(false);
+    setPaymentClientSecret(null);
     setAccountNotice("Payment method saved for Stripe checkout / AutoGift approvals.");
   }
 
@@ -284,13 +359,26 @@ export default function AccountPage() {
             <CreditCard className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Payment Methods</h2>
           </div>
-          <form onSubmit={handlePaymentSave} className="mb-4 grid gap-3 rounded-lg border border-border/40 p-4 sm:grid-cols-2">
-            <input value={cardForm.name} onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })} placeholder="Name on card" className="h-10 rounded-md border border-border bg-background px-3 text-sm sm:col-span-2" />
-            <input value={cardForm.number} onChange={(e) => setCardForm({ ...cardForm, number: formatCardNumber(e.target.value) })} placeholder="Card number" inputMode="numeric" className="h-10 rounded-md border border-border bg-background px-3 text-sm sm:col-span-2" />
-            <input value={cardForm.expiry} onChange={(e) => setCardForm({ ...cardForm, expiry: formatExpiry(e.target.value) })} placeholder="MM/YY" inputMode="numeric" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />
-            <input value={cardForm.cvc} onChange={(e) => setCardForm({ ...cardForm, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="CVC" inputMode="numeric" className="h-10 rounded-md border border-border bg-background px-3 text-sm" />
-            <Button type="submit" size="sm" className="w-fit rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover sm:col-span-2">Save payment method</Button>
-          </form>
+          {!addingPayment ? (
+            <Button type="button" size="sm" variant="outline" className="mb-4 rounded-md" onClick={startAddingPayment}>Add a card</Button>
+          ) : (
+            <div className="mb-4 space-y-3 rounded-lg border border-border/40 p-4">
+              <p className="text-xs text-muted-foreground">Card details are handled directly by Stripe — they never touch GIVIT's own servers.</p>
+              {paymentFetching || !paymentClientSecret ? (
+                <p className="text-sm text-muted-foreground">Loading payment form…</p>
+              ) : (
+                <Elements stripe={getStripePromise()} options={{ clientSecret: paymentClientSecret }}>
+                  <PaymentElementForm ref={paymentFormRef} />
+                </Elements>
+              )}
+              <div className="flex gap-2">
+                <Button type="button" size="sm" disabled={!paymentClientSecret || savingPayment} onClick={handlePaymentSave} className="w-fit rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+                  {savingPayment ? "Saving…" : "Save payment method"}
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="rounded-md" onClick={() => { setAddingPayment(false); setPaymentClientSecret(null); }}>Cancel</Button>
+              </div>
+            </div>
+          )}
           {paymentMethods.length === 0 ? <p className="text-sm text-muted-foreground">No saved payment methods.</p> : (
             <div className="grid gap-2.5 sm:grid-cols-2">{paymentMethods.map((pm: any) => (<div key={pm.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-sm"><CreditCard className="h-4 w-4 text-muted-foreground" /><span className="font-medium text-foreground">{pm.card_brand} •••• {pm.card_last4}</span>{pm.is_default && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-xs text-givit-ember">Default</span>}<button type="button" onClick={() => void handlePaymentDelete(pm.id)} className="ml-auto rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Delete payment method"><Trash2 className="h-3.5 w-3.5" /></button></div>))}</div>
           )}
@@ -298,7 +386,13 @@ export default function AccountPage() {
 
         {user && (
           <div className="lg:col-span-2">
-            <NotificationSettingsCard userId={user.id} defaultLeadDays={profile?.default_reminder_lead_days ?? 35} />
+            <NotificationSettingsCard
+              userId={user.id}
+              defaultLeadDays={profile?.default_reminder_lead_days ?? 35}
+              phone={profile?.phone}
+              smsOptIn={profile?.sms_opt_in}
+              onSmsOptInChange={refresh}
+            />
           </div>
         )}
       </div>
@@ -354,6 +448,3 @@ export default function AccountPage() {
     </PageShell>
   );
 }
-function formatCardNumber(value: string) { return value.replace(/\D/g, "").slice(0, 19).replace(/(.{4})/g, "$1 ").trim(); }
-function formatExpiry(value: string) { const digits = value.replace(/\D/g, "").slice(0, 4); return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits; }
-function detectCardBrand(digits: string) { if (/^4/.test(digits)) return "Visa"; if (/^(5[1-5]|2[2-7])/.test(digits)) return "Mastercard"; if (/^3[47]/.test(digits)) return "Amex"; if (/^6/.test(digits)) return "Discover"; return "Card"; }

@@ -13,6 +13,11 @@ const INTEREST_OPTIONS = [
   "wellness", "crafts", "beauty", "home", "foodie", "sports", "learning", "local experiences"
 ];
 
+const PERSONALITY_OPTIONS = [
+  "adventurous", "homebody", "minimalist", "sentimental", "playful",
+  "low-key", "trendy", "high-energy", "introverted", "extroverted",
+];
+
 const STYLE_OPTIONS = [
   { value: "practical", label: "Practical: something they actually need" },
   { value: "surprise", label: "Surprise: something fun and unexpected" },
@@ -38,6 +43,9 @@ export function GiftSurveyModal({
   const [giftStyle, setGiftStyle] = useState<string>("practical");
   const [packageType, setPackageType] = useState<"full" | "recommendations">("full");
   const [notes, setNotes] = useState("");
+  const [personality, setPersonality] = useState<string[]>([]);
+  const [pastLoved, setPastLoved] = useState("");
+  const [pastMissed, setPastMissed] = useState("");
   const [bundles, setBundles] = useState<AutoGiftBundle[]>([]);
   const [selectedBundleId, setSelectedBundleId] = useState("");
   const [cardMessage, setCardMessage] = useState("");
@@ -60,6 +68,8 @@ export function GiftSurveyModal({
     avoidItems: [],
     giftStyle: giftStyle as SurveyResponse["giftStyle"],
     notes: `${notes}${packageType === "full" ? " Full bundle requested." : " One strong gift requested."}`,
+    personality,
+    pastGiftFeedback: { loved: pastLoved.trim(), missed: pastMissed.trim() },
   };
 
   useEffect(() => {
@@ -254,6 +264,30 @@ export function GiftSurveyModal({
               </div>
 
               <div className="space-y-2">
+                <label className="text-sm font-semibold">How would you describe them? (pick 1-3)</label>
+                <div className="flex flex-wrap gap-2">
+                  {PERSONALITY_OPTIONS.map(trait => (
+                    <button
+                      key={trait}
+                      type="button"
+                      onClick={() => setPersonality(prev => {
+                        if (prev.includes(trait)) return prev.filter(t => t !== trait);
+                        if (prev.length >= 3) return prev;
+                        return [...prev, trait];
+                      })}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                        personality.includes(trait)
+                          ? "bg-givit-ember text-white"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      {trait}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-sm font-semibold">Budget per gift (USD)</label>
                 <div className="flex items-center gap-3">
                   <input
@@ -285,6 +319,24 @@ export function GiftSurveyModal({
                     {style.label}
                   </button>
                 ))}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Past gift reactions (optional)</label>
+                <textarea
+                  value={pastLoved}
+                  onChange={(e) => setPastLoved(e.target.value)}
+                  rows={2}
+                  placeholder="A gift they loved in the past, and why..."
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
+                <textarea
+                  value={pastMissed}
+                  onChange={(e) => setPastMissed(e.target.value)}
+                  rows={2}
+                  placeholder="A gift that missed the mark, and why..."
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
               </div>
 
               <div className="space-y-2">

@@ -8,6 +8,8 @@ type Profile = {
   role: UserRole;
   phone?: string | null;
   default_reminder_lead_days?: number | null;
+  sms_opt_in?: boolean | null;
+  sms_opted_out_at?: string | null;
 };
 
 type AuthContext = {
@@ -63,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser({ id: authUser.id, email: authUser.email });
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, email, role, phone, default_reminder_lead_days")
+        .select("full_name, email, role, phone, default_reminder_lead_days, sms_opt_in, sms_opted_out_at")
         .eq("id", authUser.id)
         .maybeSingle();
 
