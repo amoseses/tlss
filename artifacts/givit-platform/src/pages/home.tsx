@@ -73,6 +73,29 @@ const FLOATING_ICONS = [
   { Icon: Gift, className: "right-[16%] bottom-[20%] h-6 w-6 text-givit-ember/20", duration: "9s", delay: "0.3s" },
 ];
 
+// A repeating readout strip, not a stat sitting still on the page --
+// real, verifiable claims about the mechanism (not invented usage
+// numbers) stated the way an instrument panel states them.
+const TELEMETRY = ["MEMORY LAYER: ACTIVE", "REASONS SHOWN, NOT HIDDEN", "NOTHING SHIPS WITHOUT APPROVAL", "CATALOG SYNCED LIVE", "RELATIONSHIP GRAPH: LIVE"];
+
+function TelemetryMarquee() {
+  const track = [...TELEMETRY, ...TELEMETRY];
+  return (
+    <div className="relative overflow-hidden border-y border-border/50 bg-givit-sand/40 py-2.5">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-givit-sand to-transparent dark:from-givit-page" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-givit-sand to-transparent dark:from-givit-page" />
+      <div className="animate-marquee flex w-max items-center gap-8 font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+        {track.map((s, i) => (
+          <span key={i} className="flex items-center gap-8">
+            {s}
+            <span className="text-givit-ember/40">/</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const { user } = useAuth();
   return (
@@ -92,34 +115,44 @@ export default function HomePage() {
 
         <div className="container relative py-16 md:py-24">
           <div className="slide-up mx-auto max-w-xl text-center" style={{ animationDelay: "0ms" }}>
-            <div className="pointer-events-none mx-auto mb-2 flex h-14 items-center justify-center">
-              <GiftBox3D size={56} />
+            {/* A dark instrument viewport for the mark, not a plain icon on
+                the page background -- the same charcoal used for the memory
+                graph, so the hero's "AI core" and the graph's "AI core"
+                read as one material, not two unrelated treatments. */}
+            <div className="pointer-events-none mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-[#16151a] shadow-lg shadow-black/30 ring-1 ring-white/5">
+              <GiftBox3D size={48} />
             </div>
-            <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-bold uppercase tracking-widest text-givit-coral">
-              <span className="tech-dot" /> Your AI gifting agent
-            </p>
-            <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-foreground md:text-5xl">
+            <div className="mb-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+              <span className="text-givit-ember">GIVIT</span>
+              <span>MODEL GIVIT&#8209;3</span>
+              <span className="inline-flex items-center gap-1.5 text-givit-ember"><span className="tech-dot" /> SESSION LIVE</span>
+              <span>MEMORY ACTIVE</span>
+            </div>
+            <h1 className="font-serif text-4xl font-bold leading-tight text-foreground md:text-5xl">
               Never send a bad gift again.
             </h1>
             <p className="mt-4 text-base leading-7 text-muted-foreground">
               GIVIT remembers everyone you care about, reasons about what they'd actually love, and lines it up before you approve it.
             </p>
+            <p className="mt-3 font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+              Relationship intelligence, applied.
+            </p>
 
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
               <Button asChild className="h-12 rounded-full bg-foreground px-6 text-sm font-bold text-background hover:bg-foreground/90">
                 <Link href="/people">
                   Add Your First Relationship <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-12 rounded-full px-6 text-sm font-semibold">
-                <Link href="/gift">
-                  <Sparkles className="h-4 w-4" /> Talk to GIVIT
-                </Link>
-              </Button>
+              <Link href="/gift" className="inline-flex items-center gap-1.5 border-b border-transparent pb-0.5 text-sm font-semibold text-foreground transition hover:border-foreground/40">
+                Talk to GIVIT <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           </div>
         </div>
       </section>
+
+      <TelemetryMarquee />
 
       {/* How it works — explains the mechanism before showing it in action below */}
       <HowItWorksScroll />
