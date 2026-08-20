@@ -337,6 +337,14 @@
 .stagger-children > *:nth-child(4) { animation-delay: 180ms; }
 .stagger-children > *:nth-child(5) { animation-delay: 240ms; }
 
+/* A slow breathing glow, not a fast pulse -- the brain case's opacity
+   drifts gently instead of visibly animating, which is the difference
+   between "glowing" and "screensaver." */
+@keyframes brain-case-breathe {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
 @keyframes drift {
   0%, 100% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(40px, -30px) scale(1.1); }

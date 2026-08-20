@@ -44,47 +44,57 @@ function truncate(text: string, max: number) {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
-// Fixed, hand-picked radius perturbations (not Math.random() per render) so
-// the brain silhouette's bumps -- standing in for cerebral gyri -- are
-// stable across re-renders instead of reshuffling every time people/
-// interests change. Values above 1 push a point out, below 1 pull it in;
-// the run of below-1 values in the back half is what flattens/pinches the
-// underside toward where a brainstem would sit, instead of a plain oval.
-const BRAIN_BUMPS = [
-  1.06, 0.96, 1.1, 0.94, 1.08, 0.97, 1.05, 0.93, 1.09, 0.98,
-  1.04, 0.9, 0.86, 0.92, 0.88, 0.94, 0.86, 0.9, 0.96, 1.02,
+// One right-hemisphere perimeter, front-to-back: a real notch between the
+// frontal lobes, a temporal-lobe bulge, a waist at the sylvian fissure, a
+// parietal bulge, and an occipital taper -- normalized to roughly [-1, 1]
+// before scaling. The left hemisphere below is this exact array mirrored
+// (x negated), not hand-drawn separately, so the shape is guaranteed
+// bilaterally symmetric -- that symmetry is what actually reads as "brain"
+// instead of a randomly lumpy oval.
+const BRAIN_HALF: [number, number][] = [
+  [0, -1.02],
+  [0.22, -0.98],
+  [0.42, -0.74],
+  [0.4, -0.5],
+  [0.62, -0.28],
+  [0.58, 0.02],
+  [0.48, 0.2],
+  [0.64, 0.44],
+  [0.56, 0.7],
+  [0.32, 0.9],
+  [0.14, 1.0],
+  [0, 1.02],
 ];
 
-// A closed, organically bumpy contour approximating a brain's outline --
-// not anatomically precise, but a smooth blob run through
-// quadratic-midpoint curves reads unmistakably "brain silhouette" once the
-// bumps and bottom pinch are there, especially paired with the center
-// fissure line drawn alongside it.
-function brainOutlinePath(cx: number, cy: number, rx: number, ry: number): string {
-  const n = BRAIN_BUMPS.length;
-  const points = BRAIN_BUMPS.map((bump, i) => {
-    const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
-    return { x: cx + rx * Math.cos(angle) * bump, y: cy + ry * Math.sin(angle) * bump };
-  });
-  let d = `M ${(points[0].x + points[n - 1].x) / 2} ${(points[0].y + points[n - 1].y) / 2}`;
+function smoothClosedPath(points: [number, number][]): string {
+  const n = points.length;
+  let d = `M ${(points[0][0] + points[n - 1][0]) / 2} ${(points[0][1] + points[n - 1][1]) / 2}`;
   for (let i = 0; i < n; i++) {
-    const curr = points[i];
-    const next = points[(i + 1) % n];
-    d += ` Q ${curr.x} ${curr.y} ${(curr.x + next.x) / 2} ${(curr.y + next.y) / 2}`;
+    const [x, y] = points[i];
+    const [nx, ny] = points[(i + 1) % n];
+    d += ` Q ${x} ${y} ${(x + nx) / 2} ${(y + ny) / 2}`;
   }
   return `${d} Z`;
 }
 
-// Muted, deliberately desaturated -- the brand's actual ember/coral are
-// full-saturation accent colors meant for a button you click once, not for
-// a dozen glowing, constantly-pulsing nodes sitting on screen the whole
-// time a page is open. Dustier, quieter tones stay the base palette; the
-// one glow that exists (below) is scoped to a single node at a time for
-// exactly that reason.
+function brainCasePath(cx: number, cy: number, rx: number, ry: number): string {
+  const left = [...BRAIN_HALF].reverse().map(([x, y]) => [-x, y] as [number, number]);
+  const full = [...BRAIN_HALF, ...left].map(([x, y]) => [cx + x * rx, cy + y * ry] as [number, number]);
+  return smoothClosedPath(full);
+}
+
+// Muted, deliberately desaturated -- meant for the working node network
+// itself, not a dozen glowing, constantly-pulsing elements sitting on
+// screen the whole time a page is open. The one glow inside the network
+// is scoped to a single node at a time for exactly that reason. The outer
+// brain case is a different visual role (a container, not a working node)
+// and uses the real brand ember/coral -- see BRAIN_EMBER/BRAIN_CORAL below.
 const NODE_COLOR = "#c98a5c"; // muted rust -- person nodes
 const SATELLITE_COLOR = "#b06e82"; // muted dusty rose -- interest satellites
 const GRAPH_BG = "#16151a";
 const SCAN_INTERVAL_MS = 3200;
+const BRAIN_EMBER = "#ff5a3d"; // real brand ember -- matches --givit-ember
+const BRAIN_CORAL = "#ff2f87"; // real brand coral -- matches --givit-coral
 
 /**
  * A node-and-edge map of what GIVIT remembers: you at the center, each
@@ -192,26 +202,49 @@ export function RelationshipGraph() {
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            {/* A much wider, softer blur than scan-glow -- this is a glowing
+                shell around the whole diagram, not a highlight on one small
+                node. */}
+            <filter id="brain-case-glow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="9" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <linearGradient id="brain-case-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={BRAIN_EMBER} />
+              <stop offset="100%" stopColor={BRAIN_CORAL} />
+            </linearGradient>
+            <radialGradient id="brain-case-fill" cx="50%" cy="42%" r="65%">
+              <stop offset="0%" stopColor={BRAIN_EMBER} stopOpacity={0.16} />
+              <stop offset="100%" stopColor={BRAIN_CORAL} stopOpacity={0} />
+            </radialGradient>
           </defs>
 
-          {/* The graph sits inside a brain, not floating on plain
-              background -- an organically bumpy contour behind everything
-              else, plus one center fissure line, is what actually reads as
-              "encased in a brain" rather than just "a blob shape." */}
-          <path
-            d={brainOutlinePath(CENTER.x, CENTER.y - 5, 300, 225)}
-            fill="none"
-            stroke={NODE_COLOR}
-            strokeOpacity={0.22}
-            strokeWidth={1.5}
-          />
-          <path
-            d={`M ${CENTER.x} ${CENTER.y - 5 - 225 * 0.88} Q ${CENTER.x + 14} ${CENTER.y - 5 - 225 * 0.3} ${CENTER.x - 6} ${CENTER.y - 5 + 225 * 0.15} T ${CENTER.x} ${CENTER.y - 5 + 225 * 0.55}`}
-            fill="none"
-            stroke={NODE_COLOR}
-            strokeOpacity={0.15}
-            strokeWidth={1}
-          />
+          {/* The graph sits inside an actual glowing brain case, in the
+              real brand ember/coral (not the network's own muted internal
+              palette) -- a soft radial fill for the "energy field" behind
+              everything, a gradient stroke with a wide blur for the glow
+              itself, and one center fissure line, all still (a slow
+              breathing opacity is the one motion here, not a fast pulse). */}
+          <g style={{ animation: "brain-case-breathe 5s ease-in-out infinite" }}>
+            <path d={brainCasePath(CENTER.x, CENTER.y - 5, 300, 225)} fill="url(#brain-case-fill)" stroke="none" />
+            <path
+              d={brainCasePath(CENTER.x, CENTER.y - 5, 300, 225)}
+              fill="none"
+              stroke="url(#brain-case-stroke)"
+              strokeWidth={2}
+              filter="url(#brain-case-glow)"
+            />
+            <path
+              d={`M ${CENTER.x} ${CENTER.y - 5 - 225 * 0.88} Q ${CENTER.x + 14} ${CENTER.y - 5 - 225 * 0.3} ${CENTER.x - 6} ${CENTER.y - 5 + 225 * 0.15} T ${CENTER.x} ${CENTER.y - 5 + 225 * 0.55}`}
+              fill="none"
+              stroke="url(#brain-case-stroke)"
+              strokeOpacity={0.6}
+              strokeWidth={1.25}
+            />
+          </g>
 
           {/* faint static field of unconnected dots -- reads as "network",
               not just "diagram" */}
