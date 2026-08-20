@@ -22,7 +22,10 @@ export async function callGroqJSON(
   } = {}
 ): Promise<any> {
 
-  const response = await fetch("/api/groq", {
+  // POSTs to /api/metadata, not a dedicated /api/groq -- see the comment on
+  // handleGroqChat in api/metadata.ts for why (Vercel's Hobby-plan
+  // 12-function cap this repo has to work around).
+  const response = await fetch("/api/metadata", {
     method: "POST",
 
     headers: {

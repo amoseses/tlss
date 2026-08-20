@@ -145,7 +145,7 @@ For production email testing, point your scheduler/email worker at rows in `gift
 
 ### 5. Givit AI (Groq chat completions API)
 
-Givit AI calls Groq's OpenAI-compatible chat completions API through a server-side proxy at `api/groq.ts`, which reads `GROQ_API_KEY`. Set this in `.env.local` for local development and in Vercel → Project Settings → Environment Variables for production. The browser-side client (`src/lib/ai/groq-client.ts`) just POSTs to `/api/groq` and never sees the key. (Previously ran on Gemini — moved to Groq since Gemini required billing to use at any real volume; Groq's free tier is generous enough to actually run on. The key also used to be a client-exposed `VITE_GROQ_API_KEY` before this proxy existed — if you have that old variable set anywhere, it's no longer read and can be removed.)
+Givit AI calls Groq's OpenAI-compatible chat completions API through a server-side proxy, which reads `GROQ_API_KEY`. It's branched onto `api/metadata.ts` (POST → Groq, GET → the existing page-metadata scraper) rather than its own file, since this project sits at Vercel's Hobby-plan 12-function cap. Set the key in `.env.local` for local development and in Vercel → Project Settings → Environment Variables for production. The browser-side client (`src/lib/ai/groq-client.ts`) just POSTs to `/api/metadata` and never sees the key. (Previously ran on Gemini — moved to Groq since Gemini required billing to use at any real volume; Groq's free tier is generous enough to actually run on. The key also used to be a client-exposed `VITE_GROQ_API_KEY` before this proxy existed — if you have that old variable set anywhere, it's no longer read and can be removed.)
 
 Get your key from [console.groq.com/keys](https://console.groq.com/keys) — real Groq keys start with `gsk_`. The app still falls back to the existing deterministic rule-based matching if the AI call fails, so nothing crashes and results just get less personalized.
 
@@ -205,7 +205,7 @@ If users can't log in or sessions don't persist:
 - **Routing:** wouter (lightweight)
 - **Auth:** Supabase Auth (email/password)
 - **Data:** LocalStorage (boards, recipients, surveys, some orders) + Supabase DB (user profiles, products, orders, board likes/comments, AutoGift orders, push subscriptions)
-- **AI:** Groq chat completions API (server-side proxy at `api/groq.ts`, via `GROQ_API_KEY`) — see §5 above
+- **AI:** Groq chat completions API (server-side proxy branched onto `api/metadata.ts`, via `GROQ_API_KEY`) — see §5 above
 - **Photos:** Microlink (scrapes real og:image metadata from product URLs) via `/api/photo` and `/api/metadata`
 - **Push notifications:** Web Push (VAPID) + a service worker at `public/sw.js` — see §6 above
 - **Payments:** Stripe (API keys configured, UI ready) — checkout itself is not wired up; the business model redirects to the retailer (Amazon, etc.) for affiliate commission rather than taking payment in-app, except for AutoGift concierge orders
