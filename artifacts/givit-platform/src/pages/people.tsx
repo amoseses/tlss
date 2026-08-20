@@ -14,6 +14,7 @@ import { trackEvent } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
+import { CountUp } from "@/components/ui/count-up";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Hanukkah", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
@@ -555,6 +556,7 @@ function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: 
             title={`AutoGift is ${recipient.automationEnabled !== false ? "on" : "off"} for ${recipient.name}`}
             className="flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-1"
           >
+            <span className={`text-[9px] font-bold uppercase tracking-widest ${recipient.automationEnabled !== false ? "text-emerald-600" : "text-muted-foreground/60"}`}>Auto</span>
             <Zap className={`h-3.5 w-3.5 transition-colors ${recipient.automationEnabled !== false ? "fill-emerald-500 text-emerald-500" : "text-muted-foreground"}`} />
             <Switch
               checked={recipient.automationEnabled !== false}
@@ -990,7 +992,11 @@ export default function PeoplePage() {
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">People</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
+            <span>GIVIT</span>
+            <span className="inline-flex items-center gap-1.5"><span className="tech-dot" /> MEMORY LAYER</span>
+            <span className="text-muted-foreground"><CountUp value={recipients.length} className="font-mono" /> PROFILE{recipients.length === 1 ? "" : "S"} STORED</span>
+          </div>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">The people you care about</h1>
           <p className="mt-1 text-sm text-muted-foreground">Interests, budgets, and dates: saved once, remembered by Your Gift AI every time.</p>
         </div>
