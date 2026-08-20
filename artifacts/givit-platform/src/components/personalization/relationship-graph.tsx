@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Share2, UserRound } from "lucide-react";
+import { Brain, UserRound } from "lucide-react";
 
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients } from "@/lib/supabase/db";
 import { initials } from "@/lib/utils";
+import { CountUp } from "@/components/ui/count-up";
 
 type GraphPerson = { id: string; name: string; interests: string[] };
 
@@ -41,6 +42,37 @@ function curvePath(x1: number, y1: number, x2: number, y2: number, bow = 0.18) {
 
 function truncate(text: string, max: number) {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+// Fixed, hand-picked radius perturbations (not Math.random() per render) so
+// the brain silhouette's bumps -- standing in for cerebral gyri -- are
+// stable across re-renders instead of reshuffling every time people/
+// interests change. Values above 1 push a point out, below 1 pull it in;
+// the run of below-1 values in the back half is what flattens/pinches the
+// underside toward where a brainstem would sit, instead of a plain oval.
+const BRAIN_BUMPS = [
+  1.06, 0.96, 1.1, 0.94, 1.08, 0.97, 1.05, 0.93, 1.09, 0.98,
+  1.04, 0.9, 0.86, 0.92, 0.88, 0.94, 0.86, 0.9, 0.96, 1.02,
+];
+
+// A closed, organically bumpy contour approximating a brain's outline --
+// not anatomically precise, but a smooth blob run through
+// quadratic-midpoint curves reads unmistakably "brain silhouette" once the
+// bumps and bottom pinch are there, especially paired with the center
+// fissure line drawn alongside it.
+function brainOutlinePath(cx: number, cy: number, rx: number, ry: number): string {
+  const n = BRAIN_BUMPS.length;
+  const points = BRAIN_BUMPS.map((bump, i) => {
+    const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+    return { x: cx + rx * Math.cos(angle) * bump, y: cy + ry * Math.sin(angle) * bump };
+  });
+  let d = `M ${(points[0].x + points[n - 1].x) / 2} ${(points[0].y + points[n - 1].y) / 2}`;
+  for (let i = 0; i < n; i++) {
+    const curr = points[i];
+    const next = points[(i + 1) % n];
+    d += ` Q ${curr.x} ${curr.y} ${(curr.x + next.x) / 2} ${(curr.y + next.y) / 2}`;
+  }
+  return `${d} Z`;
 }
 
 // Muted, deliberately desaturated -- the brand's actual ember/coral are
@@ -90,7 +122,7 @@ export function RelationshipGraph() {
     return (
       <section className="container py-8 md:py-12">
         <div className="mb-5 flex items-center gap-2">
-          <Share2 className="h-4 w-4 text-givit-ember" />
+          <Brain className="h-4 w-4 text-givit-ember" />
           <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Your memory graph</h2>
         </div>
         <Link
@@ -116,7 +148,7 @@ export function RelationshipGraph() {
     <section className="container py-8 md:py-12">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Share2 className="h-4 w-4 text-givit-ember" />
+          <Brain className="h-4 w-4 text-givit-ember" />
           <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">Your memory graph</h2>
         </div>
         <Link href="/people" className="givit-link shrink-0 text-sm font-medium">Manage people →</Link>
@@ -161,6 +193,25 @@ export function RelationshipGraph() {
               </feMerge>
             </filter>
           </defs>
+
+          {/* The graph sits inside a brain, not floating on plain
+              background -- an organically bumpy contour behind everything
+              else, plus one center fissure line, is what actually reads as
+              "encased in a brain" rather than just "a blob shape." */}
+          <path
+            d={brainOutlinePath(CENTER.x, CENTER.y - 5, 300, 225)}
+            fill="none"
+            stroke={NODE_COLOR}
+            strokeOpacity={0.22}
+            strokeWidth={1.5}
+          />
+          <path
+            d={`M ${CENTER.x} ${CENTER.y - 5 - 225 * 0.88} Q ${CENTER.x + 14} ${CENTER.y - 5 - 225 * 0.3} ${CENTER.x - 6} ${CENTER.y - 5 + 225 * 0.15} T ${CENTER.x} ${CENTER.y - 5 + 225 * 0.55}`}
+            fill="none"
+            stroke={NODE_COLOR}
+            strokeOpacity={0.15}
+            strokeWidth={1}
+          />
 
           {/* faint static field of unconnected dots -- reads as "network",
               not just "diagram" */}
@@ -290,8 +341,8 @@ export function RelationshipGraph() {
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-1 text-xs">
         <p className="text-sm text-foreground">
-          <span className="font-semibold">{people.length}</span> {people.length === 1 ? "person" : "people"} mapped ·{" "}
-          <span className="font-semibold">{people.filter((p) => p.interests.length > 0).length}</span> with interests known
+          <CountUp value={people.length} className="font-mono font-semibold" /> {people.length === 1 ? "person" : "people"} mapped ·{" "}
+          <CountUp value={people.filter((p) => p.interests.length > 0).length} className="font-mono font-semibold" /> with interests known
         </p>
         <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${NODE_COLOR}, ${SATELLITE_COLOR})` }} /> You</span>

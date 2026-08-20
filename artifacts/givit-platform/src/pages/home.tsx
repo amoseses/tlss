@@ -9,6 +9,7 @@ import { WelcomeTour } from "@/components/personalization/welcome-tour";
 import { Button } from "@/components/ui/button";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
 import { Reveal } from "@/components/ui/reveal";
+import { TypewriterText } from "@/components/ui/typewriter-text";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useScrollProgress } from "@/lib/hooks/use-scroll-progress";
 
@@ -177,30 +178,31 @@ export default function HomePage() {
         <RelationshipInsights />
       </div>
 
-      {/* Footer CTA */}
-      <Reveal variant="triangle">
-        <section className="container mt-4">
-          <div className="relative overflow-hidden rounded-xl border border-border/50 bg-card px-8 py-10 text-foreground md:px-12">
-            <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-givit-ember/10" />
-            <div className="relative max-w-2xl">
-              <h2 className="font-serif text-2xl font-bold md:text-3xl">Every AI conversation starts from zero. GIVIT starts with years of context.</h2>
-              <p className="mt-3 mb-6 text-sm leading-7 text-muted-foreground">
-                {user
-                  ? "AutoGift reminds you early and handles fulfillment once you approve."
-                  : (
-                    <><Link href="/login" className="givit-link underline">Sign in</Link> to let AutoGift remind you early and handle fulfillment once you approve.</>
-                  )}
-              </p>
-              {user ? (
-                <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
-                  <Link href="/concierge"><Zap className="h-4 w-4" /> Go to AutoGift</Link>
-                </Button>
-              ) : (
-                <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
-                  <Link href="/people"><Bell className="h-4 w-4" /> Add your first person</Link>
-                </Button>
-              )}
-            </div>
+      {/* Footer CTA -- deliberately not a card. This is the closing line of
+          the page, not one more panel in a stack of panels, so it gets
+          typed out rather than boxed in. */}
+      <Reveal variant="fade">
+        <section className="container mt-4 py-10 text-center md:py-14">
+          <div className="mx-auto max-w-2xl">
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">
+              <TypewriterText text="Every AI conversation starts from zero. GIVIT starts with years of context." />
+            </h2>
+            <p className="mt-3 mb-6 text-sm leading-7 text-muted-foreground">
+              {user
+                ? "AutoGift reminds you early and handles fulfillment once you approve."
+                : (
+                  <><Link href="/login" className="givit-link underline">Sign in</Link> to let AutoGift remind you early and handle fulfillment once you approve.</>
+                )}
+            </p>
+            {user ? (
+              <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
+                <Link href="/concierge"><Zap className="h-4 w-4" /> Go to AutoGift</Link>
+              </Button>
+            ) : (
+              <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
+                <Link href="/people"><Bell className="h-4 w-4" /> Add your first person</Link>
+              </Button>
+            )}
           </div>
         </section>
       </Reveal>

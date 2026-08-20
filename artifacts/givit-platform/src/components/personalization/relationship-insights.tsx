@@ -5,6 +5,7 @@ import { Bell, Brain, Heart, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients } from "@/lib/supabase/db";
 import { nextOccurrenceDate } from "@/lib/date-utils";
+import { CountUp } from "@/components/ui/count-up";
 
 type Occasion = { label: string; date: string };
 type Insight = {
@@ -82,21 +83,21 @@ export function RelationshipInsights() {
         <div className="slide-up flex items-center gap-2.5 py-1 pr-6 opacity-0">
           <UserRound className="h-4 w-4 shrink-0 text-givit-ember" />
           <p className="leading-tight">
-            <span className="font-serif text-2xl font-bold text-givit-ink md:text-3xl">{insight.peopleCount}</span>{" "}
+            <CountUp value={insight.peopleCount} className="font-mono text-2xl font-bold text-givit-ink md:text-3xl" />{" "}
             <span className="text-sm text-muted-foreground">{insight.peopleCount === 1 ? "person" : "people"} remembered</span>
           </p>
         </div>
         <div className="slide-up flex items-center gap-2.5 py-1 px-6 opacity-0">
           <Brain className="h-4 w-4 shrink-0 text-givit-ember" />
           <p className="leading-tight">
-            <span className="font-serif text-2xl font-bold text-givit-ink md:text-3xl">{insight.interestCount}</span>{" "}
+            <CountUp value={insight.interestCount} className="font-mono text-2xl font-bold text-givit-ink md:text-3xl" />{" "}
             <span className="text-sm text-muted-foreground">interests known</span>
           </p>
         </div>
         <div className="slide-up flex items-center gap-2.5 py-1 pl-6 opacity-0">
           <Heart className="h-4 w-4 shrink-0 text-givit-ember" />
           <p className="leading-tight">
-            <span className="font-serif text-2xl font-bold text-givit-ink md:text-3xl">{insight.lovedCount}</span>{" "}
+            <CountUp value={insight.lovedCount} className="font-mono text-2xl font-bold text-givit-ink md:text-3xl" />{" "}
             <span className="text-sm text-muted-foreground">gifts loved so far</span>
           </p>
         </div>
