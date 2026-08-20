@@ -32,6 +32,7 @@ import { ProductGrid } from "@/components/product/product-grid";
 import { WishlistRail } from "@/components/product/wishlist-button";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
+import { CountUp } from "@/components/ui/count-up";
 import {
   GIFT_COLLECTIONS,
   MARKETPLACE_CATEGORIES,
@@ -277,9 +278,12 @@ export default function ProductsPage() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
         <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-center">
           <div>
-            <p className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-givit-coral">
-              <Sparkles className="h-3 w-3" /> Editorially curated
-            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] font-bold uppercase tracking-widest text-white/50">
+              <span className="text-givit-coral">GIVIT</span>
+              <span>EDITORIALLY CURATED</span>
+              <span className="inline-flex items-center gap-1.5 text-givit-coral"><span className="tech-dot" /> LIVE</span>
+              <span><CountUp value={sorted.length} className="font-mono" /> RESULT{sorted.length === 1 ? "" : "S"}</span>
+            </div>
             <h1 className="mt-4 font-serif text-4xl font-bold leading-[1.05] md:text-6xl">
               Marketplace
             </h1>
