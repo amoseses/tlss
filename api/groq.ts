@@ -1,13 +1,12 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-
-const DEFAULT_MODEL = ""openai/gpt-oss-120b";
+// No other function in this directory imports @vercel/node -- it isn't a
+// project dependency, so that import failed to resolve at build time.
+// Plain `any` request/response params match the pattern used everywhere
+// else in api/.
+const DEFAULT_MODEL = "openai/gpt-oss-120b";
 const GROQ_API_URL =
   "https://api.groq.com/openai/v1/chat/completions";
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed",

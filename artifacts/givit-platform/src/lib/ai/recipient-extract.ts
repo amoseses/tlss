@@ -63,7 +63,8 @@ export async function extractRecipientProfile(text: string): Promise<ExtractedRe
     // Fails soft (blank fields, user can still fill the form manually), but
     // silently swallowing every error made it impossible to tell "Groq is
     // down/misconfigured" from "there was nothing to extract" — log it so a
-    // bad or missing VITE_GROQ_API_KEY is visible in the browser console.
+    // bad or missing server-side GROQ_API_KEY (see api/groq.ts) is visible
+    // in the browser console.
     console.warn("GIVIT AI: recipient extraction failed, falling back to manual entry.", error);
     return EMPTY;
   }
