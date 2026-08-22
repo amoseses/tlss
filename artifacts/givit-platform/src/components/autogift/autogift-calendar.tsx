@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Bell, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Globe, Sparkles } from "lucide-react";
-import type { PublicHoliday } from "@/lib/data/holidays";
+import { getHolidaysForRegion } from "@/lib/data/holidays";
 
 type Occasion = { label: string; date: string };
 type Recipient = { id: string; name: string; occasions: Occasion[] };
@@ -32,16 +32,21 @@ function daysUntilNextOccurrence(month: number, day: number, from: Date) {
 export function AutoGiftCalendar({
   recipients,
   scheduledKeys,
-  holidays = [],
+  region,
 }: {
   recipients: Recipient[];
   scheduledKeys?: Set<string>;
-  holidays?: PublicHoliday[];
+  region: string;
 }) {
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
   });
+  // Computed for whichever year is actually on screen, not a fixed year
+  // handed down once from the parent -- the year picker below lets someone
+  // navigate to any year, and holidays needs to follow that, not just the
+  // real current year.
+  const holidays = useMemo(() => getHolidaysForRegion(region, cursor.year), [region, cursor.year]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [filter, setFilter] = useState<"all" | "personal" | "holidays">("all");
@@ -66,12 +71,16 @@ export function AutoGiftCalendar({
       }
     }
 
-    // Public regional holidays
+    // Public regional holidays -- checked against cursor.year too, not just
+    // cursor.month: holidays is computed once for a single fixed year by
+    // the parent, so without the year check, browsing to a different year
+    // silently redisplayed that same fixed year's holidays on the wrong
+    // dates instead of showing none.
     if (filter === "all" || filter === "holidays") {
       for (const h of holidays) {
         if (!h.date) continue;
         const d = new Date(`${h.date}T12:00:00`);
-        if (Number.isNaN(d.getTime()) || d.getMonth() !== cursor.month) continue;
+        if (Number.isNaN(d.getTime()) || d.getMonth() !== cursor.month || d.getFullYear() !== cursor.year) continue;
         const day = d.getDate();
         map.set(day, [
           ...(map.get(day) ?? []),
@@ -90,6 +99,14 @@ export function AutoGiftCalendar({
   const cells: (number | null)[] = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
   const monthLabel = new Date(cursor.year, cursor.month, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const selectedOccasions = selectedDay ? occasionsByDay.get(selectedDay) : undefined;
+  // Some months genuinely have zero holidays for a given region (August
+  // has none in the US/global list, for example) -- without this, that
+  // reads as "the holidays feature is broken" rather than "there's just
+  // nothing this month."
+  const hasHolidayThisMonth = holidays.some((h) => {
+    const d = new Date(`${h.date}T12:00:00`);
+    return !Number.isNaN(d.getTime()) && d.getMonth() === cursor.month && d.getFullYear() === cursor.year;
+  });
 
   function shiftMonth(delta: number) {
     setCursor((prev) => {
@@ -211,6 +228,12 @@ export function AutoGiftCalendar({
           </button>
         </div>
       </div>
+
+      {filter === "holidays" && !hasHolidayThisMonth && (
+        <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Sparkles className="h-3 w-3 text-cyan-500" /> No holidays for this region in {monthLabel.split(" ")[0]} — try another month.
+        </p>
+      )}
 
       <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
         {WEEKDAY_LABELS.map((d, i) => <div key={i}>{d}</div>)}

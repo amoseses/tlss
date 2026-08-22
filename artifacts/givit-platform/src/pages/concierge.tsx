@@ -6,7 +6,9 @@ import { PageShell } from "@/components/layout/page-shell";
 import { Reveal } from "@/components/ui/reveal";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useRecipients, nextOccurrenceDate, type ConciergeNotification } from "@/lib/hooks/use-recipients";
+import { detectUserRegion } from "@/lib/data/holidays";
 import { initials } from "@/lib/utils";
+import { CountUp } from "@/components/ui/count-up";
 import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
 import { GiftSurveyModal } from "@/components/autogift/autogift-survey-modal";
 import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
@@ -61,6 +63,7 @@ export default function ConciergePage() {
   const scheduledKeys = new Set(notifications.map((n) => `${n.recipientName}-${n.occasion}-${n.date}`));
 
   const onAutoGift = recipients.filter((r) => r.automationEnabled !== false);
+  const region = detectUserRegion();
   const calendarPerson = calendarPersonId ? recipients.find((r) => r.id === calendarPersonId) : null;
 
   if (loading && !hasLoadedOnce) {
@@ -140,14 +143,19 @@ export default function ConciergePage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <AutoGiftCalendar recipients={[calendarPerson]} scheduledKeys={scheduledKeys} />
+            <AutoGiftCalendar recipients={[calendarPerson]} scheduledKeys={scheduledKeys} region={region} />
           </div>
         </div>
       )}
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">AutoGift</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
+            <span>GIVIT</span>
+            <span>AUTOGIFT</span>
+            <span className="inline-flex items-center gap-1.5"><span className="tech-dot" /> SESSION LIVE</span>
+            <span className="text-muted-foreground"><CountUp value={onAutoGift.length} className="font-mono" /> ON AUTOMATION</span>
+          </div>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Your gifting agent</h1>
           <p className="mt-1 text-sm text-muted-foreground">Every date tracked in <Link href="/people" className="text-givit-ember hover:underline">People</Link>: the agent watches the calendar and reasons through what to give, you approve before anything ships.</p>
         </div>
@@ -329,7 +337,7 @@ export default function ConciergePage() {
                 </div>
               )}
 
-              {showCalendar && <AutoGiftCalendar recipients={recipients} scheduledKeys={scheduledKeys} />}
+              {showCalendar && <AutoGiftCalendar recipients={recipients} scheduledKeys={scheduledKeys} region={region} />}
             </>
           )}
         </div>

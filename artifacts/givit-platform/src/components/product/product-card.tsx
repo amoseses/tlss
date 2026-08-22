@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ExternalLink, Play, Sparkles } from "lucide-react";
+import { ExternalLink, Play } from "lucide-react";
 
 import { WishlistButton } from "@/components/product/wishlist-button";
 import type { MarketplaceProduct } from "@/lib/data/marketplace";
@@ -88,15 +88,14 @@ export function ProductCard({
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          {withinTop10 && (
-            <div className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-black/85 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
-              <Sparkles className="h-2 w-2 text-givit-coral sm:h-2.5 sm:w-2.5" />
-              <span className="line-clamp-1">{rankingLabel}</span>
-            </div>
-          )}
+          {/* At most one badge on the image, ever -- a rank pill and a sale
+              tag fighting for the same corner is the single most
+              recognizable "discount marketplace" tell there is. A real
+              price cut is the more useful signal when both apply; rank
+              moves down into the meta line below instead of disappearing. */}
           {salePrice ? (
-            <div className="absolute right-1.5 top-1.5 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm sm:right-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
-              Deal
+            <div className="absolute right-1.5 top-1.5 rounded-full bg-black/85 px-1.5 py-0.5 font-mono text-[8px] font-bold text-givit-coral shadow-sm backdrop-blur-sm sm:right-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
+              -{Math.round((1 - salePrice / product.price_cents) * 100)}%
             </div>
           ) : null}
           {marketplaceProduct.video_url && (
@@ -122,8 +121,15 @@ export function ProductCard({
         </div>
 
         <div className="flex flex-1 flex-col gap-1 sm:gap-1.5 sm:p-3">
-          {marketplaceProduct.brand && (
-            <p className="text-[10px] font-bold uppercase tracking-widest text-givit-ember/80">{marketplaceProduct.brand}</p>
+          {(marketplaceProduct.brand || withinTop10) && (
+            <p className="flex items-center gap-1.5 text-[10px]">
+              {marketplaceProduct.brand && <span className="font-bold uppercase tracking-widest text-givit-ember/80">{marketplaceProduct.brand}</span>}
+              {withinTop10 && (
+                <span className="font-mono uppercase tracking-widest text-muted-foreground">
+                  {marketplaceProduct.brand ? "· " : ""}{rankingLabel}
+                </span>
+              )}
+            </p>
           )}
 
           <p className={`line-clamp-2 text-left font-serif font-semibold leading-snug text-foreground transition-colors group-hover:text-givit-ember ${featured ? "text-lg" : "text-sm"}`}>

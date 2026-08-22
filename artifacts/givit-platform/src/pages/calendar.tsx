@@ -144,7 +144,7 @@ export default function CalendarPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-4">
-          <AutoGiftCalendar recipients={recipients} scheduledKeys={scheduledKeys} holidays={holidays} />
+          <AutoGiftCalendar recipients={recipients} scheduledKeys={scheduledKeys} region={region} />
         </div>
 
         <aside className="space-y-4">

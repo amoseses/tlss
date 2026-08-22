@@ -37,8 +37,15 @@ type Questionnaire = {
 const GREETING: Message = {
   id: "greeting",
   role: "assistant",
-  content: "Hey! I'm GIVIT, your gifting companion. Tell me who you're shopping for, the occasion, and your budget, and I'll suggest thoughtful picks with a reason for each one.",
+  content: "I'm GIVIT. Tell me who you're shopping for, or fill in the brief on the left, and I'll reason through the catalog against their interests, budget, and what to avoid — then bring back picks with my thinking on each one.",
 };
+
+// Fake-but-honest progress labels shown while a search is in flight. The
+// search itself is a single async call, not literally four discrete
+// backend steps, but the work it's doing (reading context, scoring the
+// wide pool, personalizing) really does happen in roughly this order —
+// this just makes that visible instead of hiding it behind a spinner.
+const REASONING_STEPS = ["Reading the brief", "Scanning the catalog", "Weighing budget & interests", "Ranking the best matches"];
 
 const QUICK_PROMPTS = [
   { label: "For Mom", prompt: "Gift for my mom, birthday, $50 budget, loves cooking and gardening, thoughtful style, avoid clutter" },
@@ -166,20 +173,29 @@ function buildQuestionnairePrompt(form: Questionnaire) {
   ].join(". ");
 }
 
-function TypingIndicator() {
+// GIVIT's identity marker on its own replies -- a live pulse rather than a
+// static avatar circle, so it reads as an agent that's actually present and
+// working, not a chat-template icon sitting next to inert text.
+function AgentLabel() {
   return (
-    <div className="flex items-end gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-givit-ember">
-        <Sparkles className="h-3.5 w-3.5 text-white" />
-      </div>
-      <div className="chat-bubble-ai flex flex-col gap-1">
-        <span className="text-[10px] font-semibold text-muted-foreground">GIVIT is thinking…</span>
-        <div className="flex items-center gap-1.5">
-          <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
-          <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
-          <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground/60" />
-        </div>
-      </div>
+    <div className="mb-1.5 flex items-center gap-1.5 text-givit-ember">
+      <span className="tech-dot" />
+      <span className="text-[10px] font-bold uppercase tracking-[0.15em]">GIVIT</span>
+    </div>
+  );
+}
+
+function TypingIndicator() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setStep((s) => Math.min(s + 1, REASONING_STEPS.length - 1)), 650);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <AgentLabel />
+      <span className="text-xs font-semibold text-foreground">{REASONING_STEPS[step]}</span>
+      <div className="thinking-rule h-[3px] w-28 rounded-full" />
     </div>
   );
 }
@@ -276,6 +292,10 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   const [loading, setLoading] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
   const [form, setForm] = useState<Questionnaire>({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
+  // The brief sidebar is always visible on desktop (see the lg:grid override
+  // below); this only controls whether it's expanded on narrow screens,
+  // where a permanent 300px column isn't viable next to the chat.
+  const [showQuestionnaire, setShowQuestionnaire] = useState(true);
   // Saved AutoGift recipient profiles double as one-tap starting points here
   // — their interests/avoid-list/budget were already captured once, so
   // reusing them avoids making the shopper retype what GIVIT already knows.
@@ -536,46 +556,10 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
-      <aside className="givit-panel h-fit p-5">
-        <div className="mb-4 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-givit-ember text-white"><Wand2 className="h-4 w-4" /></div>
-          <div>
-            <h2 className="font-serif text-xl font-bold text-givit-ink">Gift questionnaire</h2>
-          </div>
-        </div>
-        <div className="space-y-3">
-          <Field label="Who is it for?" value={form.recipient} placeholder="Mom, partner, boss..." onChange={(recipient) => setForm((prev) => ({ ...prev, recipient }))} />
-          <Field label="Relationship" value={form.relationship} placeholder="Close, formal..." onChange={(relationship) => setForm((prev) => ({ ...prev, relationship }))} />
-          <div className="grid gap-1.5">
-            <label className="text-xs font-bold text-givit-ink">Occasion</label>
-            <select value={form.occasion} onChange={(e) => setForm((prev) => ({ ...prev, occasion: e.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
-              {OCCASIONS.map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </div>
-          <Field label="Budget" value={form.budget} placeholder="Under $75" onChange={(budget) => setForm((prev) => ({ ...prev, budget }))} />
-          <Field label="Interests" value={form.interests} placeholder="Coffee, running, books..." onChange={(interests) => setForm((prev) => ({ ...prev, interests }))} />
-          <div className="grid gap-1.5">
-            <label className="text-xs font-bold text-givit-ink">Gift style</label>
-            <select value={form.style} onChange={(e) => setForm((prev) => ({ ...prev, style: e.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
-              {STYLES.map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </div>
-          <Field label="Avoid" value={form.avoid} placeholder="Clothes, alcohol, clutter..." onChange={(avoid) => setForm((prev) => ({ ...prev, avoid }))} />
-          <button
-            type="button"
-            onClick={() => sendMessage(buildQuestionnairePrompt(form))}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-givit-ember text-sm font-bold text-white transition hover:bg-givit-ember-hover"
-          >
-            Analyze gifts <Sparkles className="h-4 w-4" />
-          </button>
-        </div>
-      </aside>
-
-      <div>
-        {messages.length === 1 && savedRecipients.length > 0 && (
-          <div className="mb-4">
-            <p className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">Shop for someone you've saved</p>
+    <div className="mx-auto flex max-w-5xl flex-col gap-4">
+      {messages.length === 1 && (
+        <div className="flex flex-col items-center gap-3">
+          {savedRecipients.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2">
               {savedRecipients.map((r) => (
                 <button
@@ -583,108 +567,146 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                   type="button"
                   onClick={() => sendMessage(buildRecipientPrompt(r))}
                   title={r.interests?.length ? `Loves ${r.interests.join(", ")}` : undefined}
-                  className="flex items-center gap-1.5 rounded-full border border-givit-ember/30 bg-givit-ember/5 px-4 py-2 text-xs font-semibold text-givit-ember transition-colors hover:bg-givit-ember/10"
+                  className="flex items-center gap-1.5 rounded-full bg-givit-ember/5 px-4 py-2 text-xs font-semibold text-givit-ember shadow-sm shadow-black/[0.03] transition hover:-translate-y-0.5 hover:bg-givit-ember/10"
                 >
                   <UserRound className="h-3.5 w-3.5" /> {r.name}{r.relationship ? ` (${r.relationship})` : ""}
                 </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {messages.length === 1 && (
-          <div className="mb-4 flex flex-wrap justify-center gap-2">
+          )}
+          <div className="flex flex-wrap justify-center gap-2">
             {QUICK_PROMPTS.map((qp) => (
-              <button key={qp.label} type="button" onClick={() => sendMessage(qp.prompt)} className="rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-givit-ember/40 hover:bg-givit-sand hover:text-givit-ember">
+              <button key={qp.label} type="button" onClick={() => sendMessage(qp.prompt)} className="rounded-full bg-card px-4 py-2 text-xs font-medium text-muted-foreground shadow-sm shadow-black/[0.03] transition hover:-translate-y-0.5 hover:text-givit-ember">
                 {qp.label}
               </button>
             ))}
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="givit-panel flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
-            <p className="text-xs font-semibold text-muted-foreground">Your Gift AI</p>
-            <div className="flex gap-1.5">
-              {lastQuery && !loading && (
-                <button type="button" onClick={regenerate} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">
-                  <Wand2 className="h-3 w-3" /> Regenerate
-                </button>
-              )}
-              <button type="button" onClick={startOver} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">
-                ↺ Start over
-              </button>
+      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
+        {/* The agent's working brief, back as a real sidebar -- this is what
+            GIVIT is actually reasoning against, not a form gating access to
+            the chat, so it stays visible and in view while the chat runs. */}
+        <aside className="givit-panel lg:sticky lg:top-20">
+          <button
+            type="button"
+            onClick={() => setShowQuestionnaire((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-3 lg:pointer-events-none"
+          >
+            <span className="flex items-center gap-1.5 text-givit-ember">
+              <span className="tech-dot" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Agent brief</span>
+            </span>
+            <span className="text-xs font-semibold text-muted-foreground lg:hidden">{showQuestionnaire ? "Hide" : "Edit"}</span>
+          </button>
+          <div className={`grid gap-3 border-t border-border/30 px-4 py-4 ${showQuestionnaire ? "grid" : "hidden"} lg:grid`}>
+            <Field label="Who is it for?" value={form.recipient} placeholder="Mom, partner, boss..." onChange={(recipient) => setForm((prev) => ({ ...prev, recipient }))} />
+            <Field label="Relationship" value={form.relationship} placeholder="Close, formal..." onChange={(relationship) => setForm((prev) => ({ ...prev, relationship }))} />
+            <div className="grid gap-1.5">
+              <label className="text-xs font-bold text-givit-ink">Occasion</label>
+              <select value={form.occasion} onChange={(e) => setForm((prev) => ({ ...prev, occasion: e.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+                {OCCASIONS.map((item) => <option key={item}>{item}</option>)}
+              </select>
             </div>
-          </div>
-          <div ref={scrollContainerRef} className="flex flex-col gap-5 overflow-y-auto p-5" style={{ maxHeight: "65vh" }}>
-            {messages.map((msg) => (
-              <div key={msg.id}>
-                {msg.role === "user" ? (
-                  <div className="flex justify-end"><div className="chat-bubble-user max-w-[80%] text-sm leading-relaxed">{msg.content}</div></div>
-                ) : msg.loading ? (
-                  <TypingIndicator />
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-end gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-givit-ember"><Sparkles className="h-3.5 w-3.5 text-white" /></div>
-                      {msg.content && <div className="chat-bubble-ai max-w-[85%] text-sm leading-relaxed">{msg.content}</div>}
-                    </div>
-                    {msg.confirmRecipient && (
-                      <div className="ml-11 flex flex-wrap gap-2">
-                        <button type="button" disabled={loading} onClick={() => confirmRecipientAndSearch(msg.confirmRecipient!)} className="inline-flex items-center gap-1 rounded-full bg-givit-ember px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40">
-                          Yep, find gifts
-                        </button>
-                        <button type="button" disabled={loading} onClick={() => elaborateRecipient(msg.confirmRecipient!)} className="inline-flex items-center gap-1 rounded-full border border-border/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40">
-                          Let me add details
-                        </button>
-                      </div>
-                    )}
-                    {msg.results && msg.results.length > 0 && (
-                      <div className="ml-0 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                        {msg.results.map((result, idx) => <GiftCard key={result.id} result={result} index={idx} onItemFeedback={handleItemFeedback} />)}
-                        <div className="rounded-2xl border border-border/40 bg-card p-3 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">
-                          <div className="mb-2 font-semibold text-givit-ink">Did these feel right?</div>
-                          <div className="flex flex-wrap gap-2">
-                            <button type="button" onClick={() => handleFeedback(msg.results ?? [], true)} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700 transition hover:bg-emerald-100"><ThumbsUp className="h-3.5 w-3.5" /> Satisfied</button>
-                            <button type="button" onClick={() => handleFeedback(msg.results ?? [], false)} className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-700 transition hover:bg-rose-100"><ThumbsDown className="h-3.5 w-3.5" /> Not yet</button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {/* results:[] is truthy, so length===0 alone can't tell "we
-                        searched and found nothing" apart from "we haven't
-                        searched yet, still asking for more detail" — the
-                        latter already has its own message bubble above and
-                        showing this too just reads as a broken second reply. */}
-                    {msg.results && msg.results.length === 0 && !msg.needsFollowUp && !msg.generalQuestion && (
-                      <div className="ml-11 rounded-2xl border border-border/40 bg-givit-sand p-4 text-sm text-muted-foreground">
-                        No exact matches found. Try different keywords or <Link href="/products" className="givit-link font-medium">shop the marketplace</Link>.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="border-t border-border/40 p-3">
-            <div className="flex items-end gap-2">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-                placeholder="Tell me more, adjust the budget, or ask for different ideas..."
-                rows={1}
-                className="flex-1 resize-none rounded-xl border border-border/40 bg-muted/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                style={{ maxHeight: "120px" }}
-              />
-              <button onClick={() => sendMessage(input)} disabled={!input.trim() || loading} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-givit-ember text-white transition-all hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40">
-                <Send className="h-4 w-4" />
-              </button>
+            <Field label="Budget" value={form.budget} placeholder="Under $75" onChange={(budget) => setForm((prev) => ({ ...prev, budget }))} />
+            <Field label="Interests" value={form.interests} placeholder="Coffee, running, books..." onChange={(interests) => setForm((prev) => ({ ...prev, interests }))} />
+            <div className="grid gap-1.5">
+              <label className="text-xs font-bold text-givit-ink">Gift style</label>
+              <select value={form.style} onChange={(e) => setForm((prev) => ({ ...prev, style: e.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+                {STYLES.map((item) => <option key={item}>{item}</option>)}
+              </select>
             </div>
-            <p className="mt-1.5 text-center text-[10px] text-muted-foreground/60">Press Enter to send · Shift+Enter for new line</p>
+            <Field label="Avoid" value={form.avoid} placeholder="Clothes, alcohol, clutter..." onChange={(avoid) => setForm((prev) => ({ ...prev, avoid }))} />
+            <button
+              type="button"
+              onClick={() => sendMessage(buildQuestionnairePrompt(form))}
+              className="flex h-11 items-center justify-center gap-2 rounded-full bg-givit-ember text-sm font-bold text-white transition hover:bg-givit-ember-hover"
+            >
+              Run the brief <Sparkles className="h-4 w-4" />
+            </button>
+          </div>
+        </aside>
+
+      <div className="givit-panel flex flex-col overflow-hidden">
+        <div className="flex items-center justify-end px-5 py-3">
+          <div className="flex gap-1.5">
+            {lastQuery && !loading && (
+              <button type="button" onClick={regenerate} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">
+                <Wand2 className="h-3 w-3" /> Regenerate
+              </button>
+            )}
+            <button type="button" onClick={startOver} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition">
+              ↺ Start over
+            </button>
           </div>
         </div>
+
+        <div ref={scrollContainerRef} className="flex flex-col gap-6 overflow-y-auto border-t border-border/30 p-5" style={{ maxHeight: "65vh" }}>
+          {messages.map((msg) => (
+            <div key={msg.id}>
+              {msg.role === "user" ? (
+                <div className="flex justify-end"><div className="chat-bubble-user max-w-[80%] text-sm leading-relaxed">{msg.content}</div></div>
+              ) : msg.loading ? (
+                <TypingIndicator />
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <AgentLabel />
+                  {msg.content && <div className="chat-bubble-ai max-w-[85%] text-sm leading-relaxed">{msg.content}</div>}
+                  {msg.confirmRecipient && (
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" disabled={loading} onClick={() => confirmRecipientAndSearch(msg.confirmRecipient!)} className="inline-flex items-center gap-1 rounded-full bg-givit-ember px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40">
+                        Yep, find gifts
+                      </button>
+                      <button type="button" disabled={loading} onClick={() => elaborateRecipient(msg.confirmRecipient!)} className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40">
+                        Let me add details
+                      </button>
+                    </div>
+                  )}
+                  {msg.results && msg.results.length > 0 && (
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {msg.results.map((result, idx) => <GiftCard key={result.id} result={result} index={idx} onItemFeedback={handleItemFeedback} />)}
+                      <div className="flex flex-wrap items-center gap-3 border-t border-border/30 pt-3 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">
+                        <span className="font-semibold text-givit-ink">Did these feel right?</span>
+                        <button type="button" onClick={() => handleFeedback(msg.results ?? [], true)} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700 transition hover:bg-emerald-100"><ThumbsUp className="h-3.5 w-3.5" /> Satisfied</button>
+                        <button type="button" onClick={() => handleFeedback(msg.results ?? [], false)} className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-700 transition hover:bg-rose-100"><ThumbsDown className="h-3.5 w-3.5" /> Not yet</button>
+                      </div>
+                    </div>
+                  )}
+                  {/* results:[] is truthy, so length===0 alone can't tell "we
+                      searched and found nothing" apart from "we haven't
+                      searched yet, still asking for more detail" — the
+                      latter already has its own message bubble above and
+                      showing this too just reads as a broken second reply. */}
+                  {msg.results && msg.results.length === 0 && !msg.needsFollowUp && !msg.generalQuestion && (
+                    <div className="rounded-xl bg-givit-sand/60 p-4 text-sm text-muted-foreground">
+                      No exact matches found. Try different keywords or <Link href="/products" className="givit-link font-medium">shop the marketplace</Link>.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-border/30 p-3">
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
+              placeholder="Tell me more, adjust the budget, or ask for different ideas..."
+              rows={1}
+              className="flex-1 resize-none rounded-xl bg-muted/30 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-givit-ember/30"
+              style={{ maxHeight: "120px" }}
+            />
+            <button onClick={() => sendMessage(input)} disabled={!input.trim() || loading} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-givit-ember text-white transition-all hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40">
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="mt-1.5 text-center text-[10px] text-muted-foreground/60">Press Enter to send · Shift+Enter for new line</p>
+        </div>
+      </div>
       </div>
     </div>
   );

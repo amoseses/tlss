@@ -74,7 +74,7 @@
 :root {
   --font-sans: "Inter", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Inter", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --background: #faf9f7;
   --foreground: #1a1208;
   --card: #ffffff;
@@ -177,12 +177,22 @@
        actual chosen typeface. Everything reads consistent now. */
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     background-attachment: fixed;
-    background-repeat: no-repeat;
+    background-repeat: repeat;
+    /* A faint fixed dot grid under everything -- the one texture cue that
+       actually reads as "technical instrument panel" rather than "warm
+       marketing site," at an opacity low enough it never competes with
+       content on top of it. */
+    background-image:
+      radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--givit-ink) 7%, transparent) 1px, transparent 0);
+    background-size: 28px 28px;
   }
   .dark body {
     background-image:
+      radial-gradient(circle at 1px 1px, color-mix(in srgb, #ffffff 6%, transparent) 1px, transparent 0),
       radial-gradient(1100px 560px at 8% -12%, rgb(255 90 61 / 0.11), transparent 60%),
       radial-gradient(900px 520px at 105% 0%, rgb(255 47 135 / 0.07), transparent 55%);
+    background-size: 28px 28px, auto, auto;
+    background-repeat: repeat, no-repeat, no-repeat;
   }
   html {
     @apply scroll-smooth;
@@ -190,6 +200,16 @@
   h1, h2, h3, .font-display {
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     letter-spacing: -0.02em;
+  }
+  /* Every "eyebrow" label sitewide (About, Calendar, People, AutoGift,
+     Gift AI's own labels, footer column headings, etc.) already shares
+     one de facto convention: uppercase + wide letter-tracking. Rather
+     than hand-editing 40+ call sites, this switches that whole existing
+     convention onto the technical monospace face -- it's what turns a
+     handful of touched pages into a site-wide system instead of one
+     redesigned corner. */
+  [class*="tracking-wide"], [class*="tracking-["] {
+    font-family: var(--font-mono), monospace;
   }
 }
 
@@ -239,7 +259,24 @@
   }
 
   .price-tag {
-    @apply font-semibold tabular-nums text-givit-ink;
+    @apply font-mono font-semibold tabular-nums text-givit-ink;
+  }
+
+  /* A live status dot, not a static bullet -- the ping ring reads as
+     "actively watching/working" rather than decoration. Shared so every
+     eyebrow label that wants the agentic-presence treatment (not just
+     Gift AI's own messages) uses one definition instead of copy-pasted
+     markup drifting out of sync. */
+  .tech-dot {
+    @apply relative inline-flex h-1.5 w-1.5 shrink-0;
+  }
+  .tech-dot::before {
+    content: "";
+    @apply absolute inset-0 animate-ping rounded-full bg-current opacity-75;
+  }
+  .tech-dot::after {
+    content: "";
+    @apply relative inline-flex h-1.5 w-1.5 rounded-full bg-current;
   }
 
   .ember-glow {
@@ -247,11 +284,14 @@
   }
 
   .chat-bubble-user {
-    @apply rounded-lg rounded-br-sm bg-givit-ember text-white px-4 py-3;
+    @apply rounded-2xl rounded-br-md bg-givit-ink text-background px-4 py-2.5 dark:bg-givit-ember;
   }
 
+  /* AI replies read as flowing text on the panel, not a boxed reply --
+     a border/fill on every single message is what made a long
+     conversation look like a stack of chat-template cards. */
   .chat-bubble-ai {
-    @apply rounded-lg rounded-bl-sm bg-card border border-border/40 px-4 py-3;
+    @apply px-0 py-0.5 text-foreground;
   }
 
   .tag-pill {
@@ -263,14 +303,26 @@
   }
 }
 
-@keyframes typing-dot {
-  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1); }
+/* A traveling highlight along a thin rule, instead of three bouncing
+   dots -- the bouncing-dots typing indicator is one of the most
+   recognizable off-the-shelf chatbot-template tells there is. */
+@keyframes thinking-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
 }
-
-.typing-dot:nth-child(1) { animation: typing-dot 1.2s ease-in-out infinite 0s; }
-.typing-dot:nth-child(2) { animation: typing-dot 1.2s ease-in-out infinite 0.2s; }
-.typing-dot:nth-child(3) { animation: typing-dot 1.2s ease-in-out infinite 0.4s; }
+.thinking-rule {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--givit-ember) 18%, transparent);
+}
+.thinking-rule::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--givit-ember), transparent);
+  animation: thinking-sweep 1.3s ease-in-out infinite;
+}
 
 @keyframes slide-up-fade {
   from { opacity: 0; transform: translateY(16px); }
@@ -284,6 +336,14 @@
 .stagger-children > *:nth-child(3) { animation-delay: 120ms; }
 .stagger-children > *:nth-child(4) { animation-delay: 180ms; }
 .stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+
+/* A slow breathing glow, not a fast pulse -- the brain case's opacity
+   drifts gently instead of visibly animating, which is the difference
+   between "glowing" and "screensaver." */
+@keyframes brain-case-breathe {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
 
 @keyframes drift {
   0%, 100% { transform: translate(0, 0) scale(1); }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { ArrowRight, Bell, CalendarPlus, Flower2, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
+import { ArrowRight, Bell, CalendarPlus, Flower2, Pencil, Plus, Sparkles, Trash2, UserRound, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -14,6 +14,7 @@ import { trackEvent } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
+import { CountUp } from "@/components/ui/count-up";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Hanukkah", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
@@ -530,93 +531,75 @@ function EditRecipientModal({
   );
 }
 
-function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: { recipient: Recipient; onDelete: () => void; onEdit: () => void; onToggleAutomation: () => void }) {
+function PersonProfileRow({ recipient, onDelete, onEdit, onToggleAutomation }: { recipient: Recipient; onDelete: () => void; onEdit: () => void; onToggleAutomation: () => void }) {
   const today = new Date();
   const upcoming = recipient.occasions
     .filter((o) => o.date)
     .map((o) => ({ ...o, parsed: nextOccurrenceDate(o.date, today) }))
     .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())[0];
   const daysUntil = upcoming ? Math.ceil((upcoming.parsed.getTime() - today.getTime()) / 86400000) : null;
+  const lastGift = recipient.notes?.trim()?.split("\n").filter(Boolean).slice(-1)[0];
+
+  // The subtitle line does the job three separate blocks (interests pills,
+  // "usual budget," occasion list) used to do in the old card -- a roster
+  // row reads as a live line item, not a form field readout, when it's one
+  // scannable line instead of a stack of labeled facts.
+  const subtitleParts = [
+    recipient.interests?.length ? recipient.interests.join(", ") : null,
+    recipient.budgetCents ? `~$${(recipient.budgetCents / 100).toFixed(0)} budget` : null,
+  ].filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-sm shadow-black/[0.03] transition-shadow duration-200 hover:shadow-md">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full givit-gradient text-base font-bold text-white">
-            {initials(recipient.name)}
-          </div>
-          <div>
-            <p className="font-serif text-base font-bold text-givit-ink">{recipient.name}</p>
-            {recipient.relationship && <p className="text-xs text-muted-foreground">{recipient.relationship}</p>}
-          </div>
+    <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
+          {initials(recipient.name)}
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <label
-            title={`AutoGift is ${recipient.automationEnabled !== false ? "on" : "off"} for ${recipient.name}`}
-            className="flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-1"
-          >
-            <Zap className={`h-3.5 w-3.5 transition-colors ${recipient.automationEnabled !== false ? "fill-emerald-500 text-emerald-500" : "text-muted-foreground"}`} />
-            <Switch
-              checked={recipient.automationEnabled !== false}
-              onCheckedChange={() => onToggleAutomation()}
-              className="data-[state=unchecked]:bg-muted-foreground/40 data-[state=checked]:bg-emerald-500"
-            />
-          </label>
-          <button type="button" onClick={onEdit} aria-label={`Edit ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button type="button" onClick={onDelete} aria-label={`Remove ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-baseline gap-x-2">
+            <span className="font-serif text-base font-bold text-givit-ink">{recipient.name}</span>
+            {recipient.relationship && <span className="text-xs text-muted-foreground">{recipient.relationship}</span>}
+          </p>
+          {subtitleParts.length > 0 ? (
+            <p className="truncate text-xs text-muted-foreground">{subtitleParts.join(" · ")}</p>
+          ) : (
+            <p className="text-xs italic text-muted-foreground/70">No interests learned yet</p>
+          )}
+          {lastGift && <p className="truncate text-[11px] text-givit-ember/80">{lastGift}</p>}
         </div>
       </div>
 
-      {recipient.interests && recipient.interests.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {recipient.interests.map((interest) => (
-            <span key={interest} className="rounded-full bg-givit-sand px-2.5 py-1 text-xs font-medium text-givit-ink">{interest}</span>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs italic text-muted-foreground">No interests learned yet: describe them next time you edit.</p>
-      )}
-
-      {recipient.budgetCents ? (
-        <p className="text-xs text-muted-foreground">Usual budget: <span className="font-semibold text-foreground">${(recipient.budgetCents / 100).toFixed(0)}</span></p>
-      ) : null}
-
-      {recipient.notes?.trim() && (
-        <div className="rounded-lg bg-givit-ember/5 p-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-givit-ember">Gift history</p>
-          <ul className="mt-1 space-y-0.5 text-xs leading-5 text-muted-foreground">
-            {recipient.notes.trim().split("\n").slice(-3).reverse().map((line, i) => <li key={i}>{line}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {recipient.occasions.length > 0 && (
-        <div className="space-y-1.5">
-          {recipient.occasions.slice(0, 3).map((occ, i) => (
-            <div key={i} className="flex items-center justify-between rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs">
-              <span className="font-medium text-foreground">{occ.label}</span>
-              <span className="text-muted-foreground">{new Date(occ.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {daysUntil !== null && (
-        <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${daysUntil <= 14 ? "bg-rose-50 text-rose-700" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
-          <Bell className="h-3 w-3" /> {upcoming?.label} in {daysUntil} day{daysUntil !== 1 ? "s" : ""}
-        </span>
-      )}
-
-      <Link
-        href={`/gift?q=${encodeURIComponent(`Gift for ${recipient.name}`)}`}
-        className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-full bg-givit-ember py-2 text-xs font-semibold text-white transition hover:bg-givit-ember-hover"
-      >
-        <Sparkles className="h-3.5 w-3.5" /> Shop for {recipient.name.split(" ")[0]}
-      </Link>
+      <div className="flex shrink-0 flex-wrap items-center gap-2 pl-[52px] sm:pl-0">
+        {daysUntil !== null && (
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${daysUntil <= 14 ? "bg-rose-50 text-rose-700" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+            <Bell className="h-3 w-3" /> {upcoming?.label} · {daysUntil}d
+          </span>
+        )}
+        <Link
+          href={`/gift?q=${encodeURIComponent(`Gift for ${recipient.name}`)}`}
+          title={`Shop for ${recipient.name}`}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-givit-ember/10 text-givit-ember transition hover:bg-givit-ember/20"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+        </Link>
+        <label
+          title={`AutoGift is ${recipient.automationEnabled !== false ? "on" : "off"} for ${recipient.name}`}
+          className="flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-1"
+        >
+          <span className={`text-[9px] font-bold uppercase tracking-widest ${recipient.automationEnabled !== false ? "text-emerald-600" : "text-muted-foreground/60"}`}>Auto</span>
+          <Switch
+            checked={recipient.automationEnabled !== false}
+            onCheckedChange={() => onToggleAutomation()}
+            className="data-[state=unchecked]:bg-muted-foreground/40 data-[state=checked]:bg-emerald-500"
+          />
+        </label>
+        <button type="button" onClick={onEdit} aria-label={`Edit ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button type="button" onClick={onDelete} aria-label={`Remove ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -990,7 +973,11 @@ export default function PeoplePage() {
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">People</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
+            <span>GIVIT</span>
+            <span className="inline-flex items-center gap-1.5"><span className="tech-dot" /> MEMORY LAYER</span>
+            <span className="text-muted-foreground"><CountUp value={recipients.length} className="font-mono" /> PROFILE{recipients.length === 1 ? "" : "S"} STORED</span>
+          </div>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">The people you care about</h1>
           <p className="mt-1 text-sm text-muted-foreground">Interests, budgets, and dates: saved once, remembered by Your Gift AI every time.</p>
         </div>
@@ -1016,9 +1003,14 @@ export default function PeoplePage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        // A registry, not a wall of cards -- one bordered box per person
+        // repeated across a grid is the single most recognizable "AI
+        // dashboard" cliche there is. Rows separated by a hairline read as
+        // a live roster GIVIT is actually keeping, closer to the memory-
+        // layer framing above than a Pinterest-style card grid ever did.
+        <div className="divide-y divide-border/40 border-t border-border/40">
           {recipients.map((r) => (
-            <PersonProfileCard
+            <PersonProfileRow
               key={r.id}
               recipient={r}
               onDelete={() => setCancelingId(r.id)}
@@ -1029,10 +1021,9 @@ export default function PeoplePage() {
           <button
             type="button"
             onClick={() => setShowModal(true)}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/40 py-8 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
+            className="flex w-full items-center gap-2 py-4 text-sm font-medium text-muted-foreground transition hover:text-givit-ember"
           >
-            <Plus className="h-6 w-6" />
-            Add person
+            <Plus className="h-4 w-4" /> Add another person
           </button>
         </div>
       )}
