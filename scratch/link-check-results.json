@@ -1,0 +1,892 @@
+[
+  {
+    "slug": "sony-wh-1000xm5",
+    "name": "Sony WH-1000XM5 Noise Canceling Headphones",
+    "brand": "Sony",
+    "url": "https://electronics.sony.com/audio/headphones/headband/p/wh1000xm5-b",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://electronics.sony.com/audio/headphones/headband/p/wh1000xm5-b",
+    "ok": true
+  },
+  {
+    "slug": "kindle-paperwhite",
+    "name": "Kindle Paperwhite",
+    "brand": "Amazon",
+    "url": "https://www.amazon.com/dp/B08KTZ8249",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.amazon.com/dp/B08KTZ8249",
+    "ok": true
+  },
+  {
+    "slug": "pilot-custom-823",
+    "name": "Pilot Custom 823 Fountain Pen",
+    "brand": "Pilot",
+    "url": "https://www.pilotpen.us/categories/fountain-pens/custom-823-fountain/",
+    "source": "CORE_PRODUCTS",
+    "status": 404,
+    "finalUrl": "https://www.pilotpen.us/categories/fountain-pens/custom-823-fountain/",
+    "ok": false
+  },
+  {
+    "slug": "apple-airtags-4-pack",
+    "name": "Apple AirTag 4 Pack",
+    "brand": "Apple",
+    "url": "https://www.apple.com/airtag/",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.apple.com/airtag/",
+    "ok": true
+  },
+  {
+    "slug": "lego-botanicals-orchid",
+    "name": "LEGO Botanicals Orchid",
+    "brand": "LEGO",
+    "url": "https://www.lego.com/en-us/product/orchid-10311",
+    "source": "CORE_PRODUCTS",
+    "status": 403,
+    "finalUrl": "https://www.lego.com/en-us/product/orchid-10311",
+    "ok": false
+  },
+  {
+    "slug": "ember-temperature-control-mug",
+    "name": "Ember Temperature Control Smart Mug 2",
+    "brand": "Ember",
+    "url": "https://ember.com/products/ember-mug-2",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://ember.com/products/ember-mug-2",
+    "ok": true
+  },
+  {
+    "slug": "theragun-mini",
+    "name": "Therabody Theragun Mini",
+    "brand": "Therabody",
+    "url": "https://www.therabody.com/us/en-us/theragun-mini.html",
+    "source": "CORE_PRODUCTS",
+    "status": 404,
+    "finalUrl": "https://www.therabody.com/products/theragun-mini-black",
+    "ok": false
+  },
+  {
+    "slug": "stanley-quencher-h2-0",
+    "name": "Stanley Quencher H2.0 FlowState Tumbler",
+    "brand": "Stanley",
+    "url": "https://www.stanley1913.com/products/adventure-quencher-travel-tumbler-40-oz",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.stanley1913.com/products/adventure-quencher-travel-tumbler-40-oz",
+    "ok": true
+  },
+  {
+    "slug": "aeropress-clear",
+    "name": "AeroPress Clear Coffee Maker",
+    "brand": "AeroPress",
+    "url": "https://aeropress.com/products/aeropress-clear",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://aeropress.com/products/aeropress-clear",
+    "ok": true
+  },
+  {
+    "slug": "patagonia-black-hole-duffel",
+    "name": "Patagonia Black Hole Duffel",
+    "brand": "Patagonia",
+    "url": "https://www.patagonia.com/product/black-hole-duffel-bag-55l/49344.html",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.patagonia.com/product/black-hole-duffel-bag-55l/49344.html",
+    "ok": true
+  },
+  {
+    "slug": "nintendo-switch-oled",
+    "name": "Nintendo Switch OLED",
+    "brand": "Nintendo",
+    "url": "https://www.nintendo.com/us/store/products/nintendo-switch-oled-model-white-set/",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.nintendo.com/us/store/products/nintendo-switch-oled-model-white-set/",
+    "ok": true
+  },
+  {
+    "slug": "backbone-one-controller",
+    "name": "Backbone One Mobile Controller",
+    "brand": "Backbone",
+    "url": "https://playbackbone.com/products/backbone-one/",
+    "source": "CORE_PRODUCTS",
+    "status": 403,
+    "finalUrl": "https://backbone.com/products/backbone-one/",
+    "ok": false
+  },
+  {
+    "slug": "dyson-airwrap",
+    "name": "Dyson Airwrap Multi-Styler",
+    "brand": "Dyson",
+    "url": "https://www.dyson.com/hair-care/hair-stylers/airwrap",
+    "source": "CORE_PRODUCTS",
+    "status": 403,
+    "finalUrl": "https://www.dyson.com/hair-care/hair-stylers/airwrap",
+    "ok": false
+  },
+  {
+    "slug": "brooklinen-super-plush-robe",
+    "name": "Brooklinen Super-Plush Robe",
+    "brand": "Brooklinen",
+    "url": "https://www.brooklinen.com/products/super-plush-robes",
+    "source": "CORE_PRODUCTS",
+    "status": "ERROR",
+    "error": "fetch failed",
+    "ok": false
+  },
+  {
+    "slug": "masterclass-membership",
+    "name": "MasterClass Membership",
+    "brand": "MasterClass",
+    "url": "https://www.masterclass.com/",
+    "source": "CORE_PRODUCTS",
+    "status": 403,
+    "finalUrl": "https://www.masterclass.com/",
+    "ok": false
+  },
+  {
+    "slug": "goldbelly-pizza-kit",
+    "name": "Goldbelly Regional Pizza Kit",
+    "brand": "Goldbelly",
+    "url": "https://www.goldbelly.com/foods/pizza",
+    "source": "CORE_PRODUCTS",
+    "status": 403,
+    "finalUrl": "https://www.goldbelly.com/foods/pizza",
+    "ok": false
+  },
+  {
+    "slug": "aura-frame",
+    "name": "Aura Digital Picture Frame",
+    "brand": "Aura",
+    "url": "https://auraframes.com/digital-frame/carver",
+    "source": "CORE_PRODUCTS",
+    "status": 404,
+    "finalUrl": "https://auraframes.com/digital-frame/carver",
+    "ok": false
+  },
+  {
+    "slug": "personalized-cutting-board-family-name",
+    "name": "Personalized Cutting Board",
+    "brand": "Uncommon Goods",
+    "url": "https://www.uncommongoods.com/product/personalized-cutting-board",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.uncommongoods.com/product/personalized-cutting-board",
+    "ok": true
+  },
+  {
+    "slug": "mejuri-nameplate-necklace",
+    "name": "Nameplate Necklace",
+    "brand": "Mejuri",
+    "url": "https://mejuri.com/products/nameplate-necklace",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://mejuri.com/world/en/products/nameplate-necklace",
+    "ok": true
+  },
+  {
+    "slug": "wonderbly-lost-my-name-book",
+    "name": "The Little Boy or Girl Who Lost Their Name",
+    "brand": "Wonderbly",
+    "url": "https://www.wonderbly.com/personalized-products/lost-my-name-v2-book",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.wonderbly.com/personalized-products/lost-my-name-v2-book",
+    "ok": true
+  },
+  {
+    "slug": "diaspora-cookbook-spice-trio-bundle",
+    "name": "The Cookbook + Spice Trio Bundle",
+    "brand": "Diaspora Co.",
+    "url": "https://www.diasporaco.com/products/the-cookbook-spice-trio-bundle",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.diasporaco.com/products/the-cookbook-spice-trio-bundle",
+    "ok": true
+  },
+  {
+    "slug": "stay-cool-adjustable-laptop-desk",
+    "name": "Stay Cool Adjustable Laptop Desk",
+    "brand": "Uncommon Goods",
+    "url": "https://www.uncommongoods.com/product/stay-cool-adjustable-laptop-desk",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.uncommongoods.com/product/stay-cool-adjustable-laptop-desk",
+    "ok": true
+  },
+  {
+    "slug": "hidden-pocket-scrunchies-set-of-two",
+    "name": "Hidden Pocket Scrunchies, Set of Two",
+    "brand": "Uncommon Goods",
+    "url": "https://www.uncommongoods.com/product/hidden-pocket-scrunchies-set-of-two",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.uncommongoods.com/product/hidden-pocket-scrunchies-set-of-two",
+    "ok": true
+  },
+  {
+    "slug": "framebridge-mercer-slim-frame",
+    "name": "Mercer Slim Gallery Frame",
+    "brand": "Framebridge",
+    "url": "https://www.framebridge.com/products/mercer-slim-black-frame",
+    "source": "CORE_PRODUCTS",
+    "status": 200,
+    "finalUrl": "https://www.framebridge.com/products/mercer-slim-black-frame",
+    "ok": true
+  },
+  {
+    "slug": "anker-737-power-bank",
+    "name": "Anker 737 Power Bank",
+    "brand": "Anker",
+    "url": "https://www.anker.com/products/a1289",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.anker.com/products/a1289",
+    "ok": true
+  },
+  {
+    "slug": "apple-pencil-pro",
+    "name": "Apple Pencil Pro",
+    "brand": "Apple",
+    "url": "https://www.apple.com/apple-pencil/",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.apple.com/apple-pencil/",
+    "ok": true
+  },
+  {
+    "slug": "tile-mate",
+    "name": "Tile Mate Tracker",
+    "brand": "Tile",
+    "url": "https://www.tile.com/products/tile-mate",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://www.life360.com/products/tile-mate",
+    "ok": false
+  },
+  {
+    "slug": "logitech-mx-master-3s",
+    "name": "Logitech MX Master 3S Mouse",
+    "brand": "Logitech",
+    "url": "https://www.logitech.com/en-us/products/mice/mx-master-3s.html",
+    "source": "GENERATED_IDEAS",
+    "status": "ERROR",
+    "error": "fetch failed",
+    "ok": false
+  },
+  {
+    "slug": "nanoleaf-lines",
+    "name": "Nanoleaf Lines Smarter Kit",
+    "brand": "Nanoleaf",
+    "url": "https://nanoleaf.me/en-US/products/nanoleaf-lines/",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://nanoleaf.me/en-int/products/nanoleaf-lines",
+    "ok": true
+  },
+  {
+    "slug": "ps5-dualsense-edge",
+    "name": "DualSense Edge Wireless Controller",
+    "brand": "PlayStation",
+    "url": "https://direct.playstation.com/en-us/buy-accessories/dualsense-edge-wireless-controller",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://direct.playstation.com/en-us/buy-accessories/dualsense-edge-wireless-controller",
+    "ok": true
+  },
+  {
+    "slug": "xbox-game-pass-ultimate",
+    "name": "Xbox Game Pass Ultimate",
+    "brand": "Xbox",
+    "url": "https://www.xbox.com/en-US/xbox-game-pass/ultimate",
+    "source": "GENERATED_IDEAS",
+    "status": 301,
+    "finalUrl": "https://www.xbox.com/en-US/xbox-game-pass/ultimate",
+    "ok": true
+  },
+  {
+    "slug": "secretlab-magnus-desk-mat",
+    "name": "Secretlab MAGPAD Desk Mat",
+    "brand": "Secretlab",
+    "url": "https://secretlab.co/products/magpad-desk-mat",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://secretlab.co/products/magpad-desk-mat",
+    "ok": true
+  },
+  {
+    "slug": "elgato-key-light-mini",
+    "name": "Elgato Key Light Mini",
+    "brand": "Elgato",
+    "url": "https://www.elgato.com/us/en/p/key-light-mini",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.elgato.com/us/en/p/key-light-mini",
+    "ok": true
+  },
+  {
+    "slug": "8bitdo-ultimate-controller",
+    "name": "8BitDo Ultimate Controller",
+    "brand": "8BitDo",
+    "url": "https://www.8bitdo.com/ultimate-bluetooth-controller/",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.8bitdo.com/ultimate-bluetooth-controller/",
+    "ok": true
+  },
+  {
+    "slug": "vitruvi-stone-diffuser",
+    "name": "Vitruvi Stone Diffuser",
+    "brand": "Vitruvi",
+    "url": "https://vitruvi.com/products/stone-diffuser",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://vitruvi.com/products/stone-essential-oil-diffuser",
+    "ok": true
+  },
+  {
+    "slug": "parachute-cloud-cotton-throw",
+    "name": "Parachute Cloud Cotton Throw",
+    "brand": "Parachute",
+    "url": "https://www.parachutehome.com/products/cloud-cotton-throw",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://parachutehome.com/products/cloud-cotton-throw",
+    "ok": false
+  },
+  {
+    "slug": "hatch-restore-2",
+    "name": "Hatch Restore 2",
+    "brand": "Hatch",
+    "url": "https://www.hatch.co/restore",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.hatch.co/restore",
+    "ok": true
+  },
+  {
+    "slug": "flikr-personal-fireplace",
+    "name": "FLIKR Personal Fireplace",
+    "brand": "FLIKR",
+    "url": "https://flikrfire.com/products/flikr-fire-personal-fireplace",
+    "source": "GENERATED_IDEAS",
+    "status": "ERROR",
+    "error": "The operation was aborted due to timeout",
+    "ok": false
+  },
+  {
+    "slug": "smeg-milk-frother",
+    "name": "Smeg Milk Frother",
+    "brand": "Smeg",
+    "url": "https://www.smegusa.com/products/MFF11",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://www.smeg.com/us/products/MFF11",
+    "ok": false
+  },
+  {
+    "slug": "fellow-stagg-ekg-kettle",
+    "name": "Fellow Stagg EKG Kettle",
+    "brand": "Fellow",
+    "url": "https://fellowproducts.com/products/stagg-ekg-electric-kettle",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://fellowproducts.com/products/stagg-ekg-electric-kettle",
+    "ok": false
+  },
+  {
+    "slug": "great-jones-dutchess",
+    "name": "Great Jones The Dutchess",
+    "brand": "Great Jones",
+    "url": "https://greatjonesgoods.com/products/the-dutchess",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://greatjonesgoods.com/products/the-dutchess",
+    "ok": true
+  },
+  {
+    "slug": "oxo-cold-brew-maker",
+    "name": "OXO Cold Brew Coffee Maker",
+    "brand": "OXO",
+    "url": "https://www.oxo.com/cold-brew-coffee-maker.html",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://www.oxo.com/cold-brew-coffee-maker.html",
+    "ok": false
+  },
+  {
+    "slug": "brightland-olive-oil-duo",
+    "name": "Brightland Olive Oil Duo",
+    "brand": "Brightland",
+    "url": "https://brightland.co/products/the-duo",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://brightland.co/products/the-duo",
+    "ok": true
+  },
+  {
+    "slug": "material-reboard",
+    "name": "Material reBoard Cutting Board",
+    "brand": "Material",
+    "url": "https://materialkitchen.com/products/the-reboard",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://materialkitchen.com/products/the-mk-free-board",
+    "ok": true
+  },
+  {
+    "slug": "bookshop-gift-card",
+    "name": "Bookshop.org Gift Card",
+    "brand": "Bookshop.org",
+    "url": "https://bookshop.org/gift_cards",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://bookshop.org/gift_cards",
+    "ok": false
+  },
+  {
+    "slug": "audible-membership",
+    "name": "Audible Membership",
+    "brand": "Audible",
+    "url": "https://www.audible.com/ep/giftcenter",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.audible.com/mk/g/giftcenter",
+    "ok": true
+  },
+  {
+    "slug": "folio-society-classic",
+    "name": "Folio Society Illustrated Classic",
+    "brand": "Folio Society",
+    "url": "https://www.foliosociety.com/usa",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.foliosociety.com/usa/",
+    "ok": true
+  },
+  {
+    "slug": "criterion-channel",
+    "name": "Criterion Channel Gift Subscription",
+    "brand": "Criterion",
+    "url": "https://www.criterionchannel.com/checkout/subscribe/purchase",
+    "source": "GENERATED_IDEAS",
+    "status": 406,
+    "finalUrl": "https://www.criterionchannel.com/unavailable",
+    "ok": false
+  },
+  {
+    "slug": "nyt-games-subscription",
+    "name": "NYT Games Subscription",
+    "brand": "New York Times",
+    "url": "https://www.nytimes.com/subscription/games",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.nytimes.com/subscription/games",
+    "ok": true
+  },
+  {
+    "slug": "lamy-safari-fountain-pen",
+    "name": "Lamy Safari Fountain Pen",
+    "brand": "Lamy",
+    "url": "https://www.lamy.com/en/lamy-safari/",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://www.lamy.com/lamy-safari",
+    "ok": false
+  },
+  {
+    "slug": "moleskine-smart-writing-set",
+    "name": "Moleskine Smart Writing Set",
+    "brand": "Moleskine",
+    "url": "https://www.moleskine.com/en-us/shop/smart-writing-system/",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://www.moleskine.com/en-us/shop/smart-writing-system/",
+    "ok": false
+  },
+  {
+    "slug": "baronfig-confidant",
+    "name": "Baronfig Confidant Notebook",
+    "brand": "Baronfig",
+    "url": "https://baronfig.com/products/confidant",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://baronfig.com/products/confidant",
+    "ok": false
+  },
+  {
+    "slug": "field-notes-subscription",
+    "name": "Field Notes Quarterly Subscription",
+    "brand": "Field Notes",
+    "url": "https://fieldnotesbrand.com/subscriptions",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://fieldnotesbrand.com/subscriptions",
+    "ok": false
+  },
+  {
+    "slug": "uni-ball-jetstream-4-and-1",
+    "name": "Uni Jetstream 4&1 Multi Pen",
+    "brand": "Uni",
+    "url": "https://www.jetpens.com/Uni-Jetstream-4-1-Multi-Pens/ct/354",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://www.jetpens.com/Uni-Jetstream-4-1-Multi-Pens/ct/354",
+    "ok": false
+  },
+  {
+    "slug": "therabody-theraface-mask",
+    "name": "Therabody TheraFace Mask",
+    "brand": "Therabody",
+    "url": "https://www.therabody.com/us/en-us/theraface-mask.html",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.therabody.com/products/theraface-mask",
+    "ok": true
+  },
+  {
+    "slug": "aesop-resurrection-hand-care",
+    "name": "Aesop Resurrection Hand Care Duo",
+    "brand": "Aesop",
+    "url": "https://www.aesop.com/us/p/body-hand/hand-care/resurrection-aromatique-hand-care-duet/",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://www.aesop.com/us/p/body-hand/hand-care/resurrection-aromatique-hand-care-duet/",
+    "ok": false
+  },
+  {
+    "slug": "necessaire-body-ritual",
+    "name": "Necessaire Body Ritual Set",
+    "brand": "Necessaire",
+    "url": "https://necessaire.com/products/the-body-essentials",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://necessaire.com/products/the-body-essentials",
+    "ok": false
+  },
+  {
+    "slug": "slip-silk-pillowcase",
+    "name": "Slip Silk Pillowcase",
+    "brand": "Slip",
+    "url": "https://www.slip.com/products/queen-zippered-pillowcase-white",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://www.slip.com/products/queen-zippered-pillowcase-white",
+    "ok": false
+  },
+  {
+    "slug": "dossier-discovery-set",
+    "name": "Dossier Fragrance Discovery Set",
+    "brand": "Dossier",
+    "url": "https://dossier.co/products/discovery-set",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://dossier.co/products/discovery-set",
+    "ok": true
+  },
+  {
+    "slug": "yeti-rambler-bottle",
+    "name": "YETI Rambler Bottle",
+    "brand": "YETI",
+    "url": "https://www.yeti.com/drinkware/bottles/21071500000.html",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://www.yeti.com/drinkware/bottles/21071500000.html",
+    "ok": false
+  },
+  {
+    "slug": "rumpl-original-puffy",
+    "name": "Rumpl Original Puffy Blanket",
+    "brand": "Rumpl",
+    "url": "https://www.rumpl.com/products/original-puffy-blanket",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.rumpl.com/products/original-puffy-blanket-deepwater",
+    "ok": true
+  },
+  {
+    "slug": "biolite-campstove-2",
+    "name": "BioLite CampStove 2+",
+    "brand": "BioLite",
+    "url": "https://www.bioliteenergy.com/products/campstove-2-plus",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.bioliteenergy.com/products/campstove-2-plus",
+    "ok": true
+  },
+  {
+    "slug": "eno-doublenest-hammock",
+    "name": "ENO DoubleNest Hammock",
+    "brand": "ENO",
+    "url": "https://eaglesnestoutfittersinc.com/products/doublenest-hammock",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://eaglesnestoutfittersinc.com/products/doublenest-hammock",
+    "ok": true
+  },
+  {
+    "slug": "alltrails-plus",
+    "name": "AllTrails+ Subscription",
+    "brand": "AllTrails",
+    "url": "https://www.alltrails.com/plus",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://www.alltrails.com/plus",
+    "ok": false
+  },
+  {
+    "slug": "garmin-forerunner-165",
+    "name": "Garmin Forerunner 165",
+    "brand": "Garmin",
+    "url": "https://www.garmin.com/en-US/p/1055469",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://www.garmin.com/en-US/p/1055469",
+    "ok": false
+  },
+  {
+    "slug": "manduka-pro-yoga-mat",
+    "name": "Manduka PRO Yoga Mat",
+    "brand": "Manduka",
+    "url": "https://www.manduka.com/products/manduka-pro-yoga-mat",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.manduka.com/products/manduka-pro-yoga-mat",
+    "ok": true
+  },
+  {
+    "slug": "whoop-one-year",
+    "name": "WHOOP 12-Month Membership",
+    "brand": "WHOOP",
+    "url": "https://www.whoop.com/",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://www.whoop.com/",
+    "ok": false
+  },
+  {
+    "slug": "lululemon-everywhere-belt-bag",
+    "name": "lululemon Everywhere Belt Bag",
+    "brand": "lululemon",
+    "url": "https://shop.lululemon.com/p/bags/Everywhere-Belt-Bag-1L/_/prod10050055",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://shop.lululemon.com/p/bags/Everywhere-Belt-Bag-1L/_/prod10050055",
+    "ok": false
+  },
+  {
+    "slug": "hyperice-venom-go",
+    "name": "Hyperice Venom Go",
+    "brand": "Hyperice",
+    "url": "https://hyperice.com/products/venom-go/",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://hyperice.com/products/venom-go/",
+    "ok": true
+  },
+  {
+    "slug": "barkbox-subscription",
+    "name": "BarkBox Subscription",
+    "brand": "BarkBox",
+    "url": "https://www.barkbox.com/",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://www.barkbox.com/",
+    "ok": false
+  },
+  {
+    "slug": "catit-flower-fountain",
+    "name": "Catit Flower Fountain",
+    "brand": "Catit",
+    "url": "https://catit.us/products/flower-fountain",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.catit.com/us/",
+    "ok": true
+  },
+  {
+    "slug": "wild-one-walk-kit",
+    "name": "Wild One Walk Kit",
+    "brand": "Wild One",
+    "url": "https://wildone.com/products/walk-kit",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://wildone.com/products/cushioned-harness-waterproof-leash-dog-walk-kit",
+    "ok": true
+  },
+  {
+    "slug": "furbo-360-dog-camera",
+    "name": "Furbo 360 Dog Camera",
+    "brand": "Furbo",
+    "url": "https://furbo.com/products/furbo-360-dog-camera",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://furbo.com/us/products/furbo-360-dog-camera",
+    "ok": true
+  },
+  {
+    "slug": "tuft-paw-cove-litter-box",
+    "name": "Tuft + Paw Cove Litter Box",
+    "brand": "Tuft + Paw",
+    "url": "https://www.tuftandpaw.com/products/cove-litter-box",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.tuftandpaw.com/products/cove-litter-box-full",
+    "ok": true
+  },
+  {
+    "slug": "cricut-joy-xtra",
+    "name": "Cricut Joy Xtra",
+    "brand": "Cricut",
+    "url": "https://cricut.com/en-us/cutting-machines/cricut-joy-xtra",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://cricut.com/en-us/cutting-machines/cricut-joy-xtra",
+    "ok": true
+  },
+  {
+    "slug": "prismacolor-premier-pencils",
+    "name": "Prismacolor Premier Colored Pencils",
+    "brand": "Prismacolor",
+    "url": "https://www.prismacolor.com/colored-pencils/premier-soft-core-colored-pencil-sets/",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://www.prismacolor.com/colored-pencils/premier-soft-core-colored-pencil-sets/",
+    "ok": false
+  },
+  {
+    "slug": "wacom-one",
+    "name": "Wacom One Drawing Tablet",
+    "brand": "Wacom",
+    "url": "https://estore.wacom.com/en-us/wacom-one.html",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://estore.wacom.com/en-us/wacom-one.html",
+    "ok": false
+  },
+  {
+    "slug": "blick-studio-acrylic-set",
+    "name": "Blick Studio Acrylic Set",
+    "brand": "Blick",
+    "url": "https://www.dickblick.com/products/blick-studio-acrylics/",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.dickblick.com/products/blick-studio-acrylics/",
+    "ok": true
+  },
+  {
+    "slug": "museum-membership-credit",
+    "name": "Local Museum Membership Credit",
+    "brand": "GIVIT Experiences",
+    "url": "https://givit.site/gift?q=Request+Local+Museum+Membership+Credit",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.givit.site/gift?q=Request+Local+Museum+Membership+Credit",
+    "ok": true
+  },
+  {
+    "slug": "jacques-torres-chocolate",
+    "name": "Jacques Torres Chocolate Gift Box",
+    "brand": "Jacques Torres",
+    "url": "https://mrchocolate.com/products/chocolate-gift-box",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://mrchocolate.com/products/chocolate-gift-box",
+    "ok": false
+  },
+  {
+    "slug": "atlas-coffee-club",
+    "name": "Atlas Coffee Club Subscription",
+    "brand": "Atlas Coffee Club",
+    "url": "https://atlascoffeeclub.com/pages/gift-subscription",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://atlascoffeeclub.com/pages/gift-subscription",
+    "ok": false
+  },
+  {
+    "slug": "murray-cheese-board",
+    "name": "Murray's Cheese Board Kit",
+    "brand": "Murray's",
+    "url": "https://www.murrayscheese.com/",
+    "source": "GENERATED_IDEAS",
+    "status": 403,
+    "finalUrl": "https://www.murrayscheese.com/",
+    "ok": false
+  },
+  {
+    "slug": "diaspora-spice-set",
+    "name": "Diaspora Co. Spice Set",
+    "brand": "Diaspora Co.",
+    "url": "https://www.diasporaco.com/products/the-trio",
+    "source": "GENERATED_IDEAS",
+    "status": 404,
+    "finalUrl": "https://www.diasporaco.com/products/the-trio",
+    "ok": false
+  },
+  {
+    "slug": "rainey-day-tea-sampler",
+    "name": "Rare Tea Sampler",
+    "brand": "Rare Tea Company",
+    "url": "https://rareteacompany.com/products/the-rare-tea-gift-collection",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://rareteacompany.com/products/the-rare-tea-gift-collection-uk",
+    "ok": true
+  },
+  {
+    "slug": "private-pottery-class",
+    "name": "Private Pottery Wheel Class",
+    "brand": "GIVIT Experiences",
+    "url": "https://givit.site/gift?q=Request+Private+Pottery+Wheel+Class",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.givit.site/gift?q=Request+Private+Pottery+Wheel+Class",
+    "ok": true
+  },
+  {
+    "slug": "jazz-club-night",
+    "name": "Jazz Club Night Out",
+    "brand": "GIVIT Experiences",
+    "url": "https://givit.site/gift?q=Request+Jazz+Club+Night+Out",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.givit.site/gift?q=Request+Jazz+Club+Night+Out",
+    "ok": true
+  },
+  {
+    "slug": "chef-table-credit",
+    "name": "Chef's Table Dinner Credit",
+    "brand": "GIVIT Experiences",
+    "url": "https://givit.site/gift?q=Request+Chef+Table+Dinner+Credit",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.givit.site/gift?q=Request+Chef+Table+Dinner+Credit",
+    "ok": true
+  },
+  {
+    "slug": "botanical-garden-membership",
+    "name": "Botanical Garden Membership",
+    "brand": "GIVIT Experiences",
+    "url": "https://givit.site/gift?q=Request+Botanical+Garden+Membership",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.givit.site/gift?q=Request+Botanical+Garden+Membership",
+    "ok": true
+  },
+  {
+    "slug": "sports-ticket-credit",
+    "name": "Sports Ticket Credit",
+    "brand": "GIVIT Experiences",
+    "url": "https://givit.site/gift?q=Request+Sports+Ticket+Credit",
+    "source": "GENERATED_IDEAS",
+    "status": 200,
+    "finalUrl": "https://www.givit.site/gift?q=Request+Sports+Ticket+Credit",
+    "ok": true
+  }
+]

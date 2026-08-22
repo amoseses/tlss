@@ -4,6 +4,7 @@ import { syncCatalogBatch } from "../../server/api-lib/bulk-sync.mjs";
 const DEFAULT_ITEMS = [
   { slug: "sony-wh-1000xm5", affiliateUrl: "https://electronics.sony.com/audio/headphones/headband/p/wh1000xm5-b" },
   { slug: "kindle-paperwhite", affiliateUrl: "https://www.amazon.com/dp/B08KTZ8249" },
+  { slug: "pilot-custom-823", affiliateUrl: "https://www.gouletpens.com/products/pilot-custom-823-fountain-pen-amber" },
   { slug: "anker-737-power-bank", affiliateUrl: "https://www.anker.com/products/a1289" },
   { slug: "apple-pencil-pro", affiliateUrl: "https://www.apple.com/apple-pencil/" },
   { slug: "apple-airtags-4-pack", affiliateUrl: "https://www.apple.com/airtag/" },
@@ -12,10 +13,12 @@ const DEFAULT_ITEMS = [
   { slug: "theragun-mini", affiliateUrl: "https://www.therabody.com/us/en-us/theragun-mini.html" },
   { slug: "stanley-quencher-h2-0", affiliateUrl: "https://www.stanley1913.com/products/adventure-quencher-travel-tumbler-40-oz" },
   { slug: "aeropress-clear", affiliateUrl: "https://aeropress.com/products/aeropress-clear" },
-  { slug: "patagonia-black-hole-duffel", affiliateUrl: "https://www.patagonia.com/product/black-hole-duffel-bag-55-liters/49343.html" },
+  { slug: "patagonia-black-hole-duffel", affiliateUrl: "https://www.patagonia.com/product/black-hole-duffel-bag-55l/49344.html" },
   { slug: "nintendo-switch-oled", affiliateUrl: "https://www.nintendo.com/us/store/products/nintendo-switch-oled-model-white-set/" },
   { slug: "dyson-airwrap", affiliateUrl: "https://www.dyson.com/hair-care/hair-stylers/airwrap" },
   { slug: "brooklinen-super-plush-robe", affiliateUrl: "https://www.brooklinen.com/products/super-plush-robes" },
+  { slug: "aura-frame", affiliateUrl: "https://auraframes.com/digital-frame/carver" },
+  { slug: "lululemon-everywhere-belt-bag", affiliateUrl: "https://shop.lululemon.com/p/bags/Everywhere-Belt-Bag-1L/_/prod10050055" },
 ];
 
 export default async function handler(req: any, res: any) {
