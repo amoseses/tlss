@@ -173,7 +173,7 @@ function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; o
 
 function BoardCard({ board, onOpen, onDelete }: { board: UserBoard; onOpen: () => void; onDelete?: () => void }) {
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-card shadow-sm border border-border/40 transition-all hover:-translate-y-1 hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-xl bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10">
       <button type="button" onClick={onOpen} className="block w-full text-left">
         <div className="aspect-[4/3] overflow-hidden bg-givit-sand">
           {board.coverImage ? (
@@ -214,7 +214,7 @@ function PinterestGrid({ images, onRemove }: { images: BoardImage[]; onRemove?: 
   return (
     <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 [column-fill:balance]">
       {images.map((img) => (
-        <article key={img.id} className="group mb-4 break-inside-avoid overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <article key={img.id} className="group mb-4 break-inside-avoid overflow-hidden rounded-xl bg-card shadow-sm shadow-black/[0.04]">
           <div className="relative overflow-hidden bg-muted">
             <img src={img.src} alt={img.caption || "Gift board product"} className="w-full object-cover transition group-hover:scale-105" loading="lazy" />
             {onRemove && (
@@ -540,7 +540,12 @@ export default function BoardsPage() {
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-givit-ink">Gift boards</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
+            <span>GIVIT</span>
+            <span>GIFT BOARDS</span>
+            <span className="inline-flex items-center gap-1.5"><span className="tech-dot" /> {publicBoards.length} PUBLIC</span>
+          </div>
+          <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Gift boards</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {user ? "Browse public boards or manage your own" : "Browse public gift boards, sign in to start your own"}
           </p>

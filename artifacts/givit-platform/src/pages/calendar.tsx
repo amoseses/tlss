@@ -81,7 +81,11 @@ export default function CalendarPage() {
     <PageShell>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Calendar</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
+            <span>GIVIT</span>
+            <span>CALENDAR</span>
+            <span className="inline-flex items-center gap-1.5"><span className="tech-dot" /> SESSION LIVE</span>
+          </div>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Your gifting calendar</h1>
           <p className="mt-1 text-sm text-muted-foreground">Every date saved in <Link href="/people" className="text-givit-ember hover:underline">People</Link> plus regional public holidays.</p>
         </div>

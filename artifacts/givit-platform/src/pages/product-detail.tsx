@@ -99,7 +99,9 @@ export default function ProductDetailPage() {
               </div>
             ) : null}
             {product.sale_price_cents ? (
-              <div className="absolute right-4 top-4 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold uppercase text-white shadow-sm">Deal</div>
+              <div className="absolute right-4 top-4 rounded-full bg-black/85 px-3 py-1 font-mono text-xs font-bold text-givit-coral shadow-sm backdrop-blur-sm">
+                -{Math.round((1 - product.sale_price_cents / product.price_cents) * 100)}%
+              </div>
             ) : null}
           </div>
         </div>
