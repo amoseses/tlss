@@ -103,20 +103,6 @@ const SCAN_INTERVAL_MS = 3200;
 const BRAIN_EMBER = "#ff5a3d"; // real brand ember -- matches --givit-ember
 const BRAIN_CORAL = "#ff2f87"; // real brand coral -- matches --givit-coral
 
-// A few real sub-cortical structures, positioned in roughly their real
-// relative locations (temporal lobe pair, frontal midline) and labeled with
-// what they actually do -- mapped honestly to the matching piece of GIVIT's
-// own memory layer, the same "real claim, not decoration" rule every other
-// readout on this graph follows. Coordinates are in the same normalized
-// [-1, 1] space as BRAIN_HALF, positioned inside the case but outside the
-// node network's max reach (PERSON_RADIUS + INTEREST_RADIUS) so they don't
-// collide with it regardless of how many people are saved.
-const BRAIN_REGIONS = [
-  { name: "PREFRONTAL CORTEX", fn: "REASONS THROUGH OPTIONS", x: 0, y: -0.68, rx: 42, ry: 14, rotate: 0 },
-  { name: "AMYGDALA", fn: "WEIGHS CLOSENESS", x: -0.32, y: 0.08, rx: 16, ry: 10, rotate: -15 },
-  { name: "HIPPOCAMPUS", fn: "ENCODES NEW MEMORY", x: 0.4, y: 0.18, rx: 26, ry: 11, rotate: 18 },
-] as const;
-
 /**
  * A node-and-edge map of what GIVIT remembers: you at the center, each
  * saved person one ring out, their known interests as satellite nodes
@@ -266,43 +252,6 @@ export function RelationshipGraph() {
               strokeWidth={1.25}
             />
           </g>
-
-          {/* A few real sub-cortical structures, not just an outline --
-              each one labeled with what it actually does and the honest
-              GIVIT-layer equivalent (prefrontal reasoning -> the AI
-              reasoning through the catalog, hippocampus -> new memory
-              being encoded, amygdala -> how much a relationship weighs).
-              Faint and outside the node network's reach on purpose --
-              background anatomy, not competition for the real data. */}
-          {BRAIN_REGIONS.map((r) => {
-            const brainCx = CENTER.x;
-            const brainCy = CENTER.y - 5;
-            const x = brainCx + r.x * 300;
-            const y = brainCy + r.y * 225;
-            const labelY = y + r.ry + 13;
-            return (
-              <g key={r.name} opacity={0.65}>
-                <ellipse
-                  cx={x}
-                  cy={y}
-                  rx={r.rx}
-                  ry={r.ry}
-                  fill={SATELLITE_COLOR}
-                  fillOpacity={0.1}
-                  stroke={SATELLITE_COLOR}
-                  strokeOpacity={0.55}
-                  strokeWidth={1}
-                  transform={`rotate(${r.rotate} ${x} ${y})`}
-                />
-                <text x={x} y={labelY} textAnchor="middle" className="fill-white/55 font-mono text-[8px] font-bold uppercase tracking-wide">
-                  {r.name}
-                </text>
-                <text x={x} y={labelY + 9} textAnchor="middle" className="fill-white/35 font-mono text-[7px] uppercase tracking-wide">
-                  {r.fn}
-                </text>
-              </g>
-            );
-          })}
 
           {/* faint static field of unconnected dots -- reads as "network",
               not just "diagram" */}
