@@ -176,6 +176,56 @@ export async function personalizeFollowUp(
   }
 }
 
+export type CompareAIResult = { winner: "a" | "b" | "tie"; reasoning: string };
+
+export async function compareGiftsForRecipient(
+  params: {
+    query: string;
+    recipientName?: string | null;
+    interests?: string[];
+    a: { id: string; name: string; price_cents?: number; gift_tags?: string[]; description?: string | null };
+    b: { id: string; name: string; price_cents?: number; gift_tags?: string[]; description?: string | null };
+  },
+  timeoutMs = 7000,
+): Promise<CompareAIResult | null> {
+  const { query, recipientName, interests, a, b } = params;
+
+  const system =
+    "You are Your Gift AI, a gifting concierge asked to settle a head-to-head between exactly two candidate gifts. You NEVER invent products or details beyond what's given. " +
+    "If a recipient and their interests are known, weigh the two candidates specifically against that person, not generic specs — reference what's actually known about them in your reasoning. If nothing is known about the recipient, compare on overall gift quality, uniqueness, and value instead, and say so honestly rather than inventing a personal angle. Pick a clear winner unless they're genuinely close, in which case say \"tie\" and explain the real tradeoff. Keep the reasoning to 1-2 sentences. Return strict JSON only, matching the requested shape exactly, with no markdown code fences.";
+
+  const user = JSON.stringify({
+    instructions: "Decide which candidate (\"a\" or \"b\") is the better gift, or \"tie\" if genuinely close, and explain why in 1-2 sentences.",
+    shopperMessage: query,
+    recipientName: recipientName ?? null,
+    recipientInterests: interests ?? [],
+    candidateA: { name: a.name, price_cents: a.price_cents, tags: a.gift_tags, description: a.description },
+    candidateB: { name: b.name, price_cents: b.price_cents, tags: b.gift_tags, description: b.description },
+    responseShape: { winner: "\"a\" | \"b\" | \"tie\"", reasoning: "string" },
+  });
+
+  try {
+    const result = await Promise.race([
+      callGroqJSON(
+        [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        { temperature: 0.5, maxTokens: 300 },
+      ),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Groq API request timed out")), timeoutMs)),
+    ]);
+
+    const winner = result?.winner === "a" || result?.winner === "b" || result?.winner === "tie" ? result.winner : null;
+    if (!winner || typeof result?.reasoning !== "string" || !result.reasoning.trim()) return null;
+
+    return { winner, reasoning: result.reasoning.trim().slice(0, 400) };
+  } catch (error) {
+    console.warn("Your Gift AI: compare failed, falling back to deterministic comparison.", error);
+    return null;
+  }
+}
+
 /**
  * Answers a question that has nothing to do with gift-shopping (e.g. "who
  * won the 2026 World Cup"). GIVIT AI shouldn't just refuse everything

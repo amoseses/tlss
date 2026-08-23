@@ -270,9 +270,9 @@ function extractAvoidTerms(query: string) {
   return avoidMatch[1].split(/,| and | or |\//).map((term) => term.trim()).filter((term) => term.length > 2);
 }
 
-const OCCASION_WORDS = "birthday|anniversary|christmas|graduation|wedding|holiday|housewarming|thank you|valentine's day|valentine|new baby|baby shower|bridal shower|retirement|promotion|new job|sympathy|condolence|get well|congratulations|engagement|mother's day|mothers day|father's day|fathers day|easter|halloween|new year|hanukkah|diwali|goodbye gift|secret santa|white elephant";
+export const OCCASION_WORDS = "birthday|anniversary|christmas|graduation|wedding|holiday|housewarming|thank you|valentine's day|valentine|new baby|baby shower|bridal shower|retirement|promotion|new job|sympathy|condolence|get well|congratulations|engagement|mother's day|mothers day|father's day|fathers day|easter|halloween|new year|hanukkah|diwali|goodbye gift|secret santa|white elephant";
 
-const RECIPIENT_KEYWORDS = [
+export const RECIPIENT_KEYWORDS = [
   // Multi-word / hyphenated phrases must come before the shorter words they
   // contain (e.g. "brother-in-law" before "brother") since matching just
   // takes the first hit in this list — sorted by length below as a backstop.
@@ -556,6 +556,31 @@ function buildResultsMessage(ctx: ParsedContext, count: number, usedLearning: bo
   return `Here ${count === 1 ? "is" : "are"} ${count} thoughtful idea${count === 1 ? "" : "s"}${who}${occasion}${budget}. Each includes a short "why this gift" note.${learning} Want something more personal or more fun? Just say the word.`;
 }
 
+export function toGiftResult(
+  product: MarketplaceProduct,
+  opts: { matchReason: string; avoidanceWarning?: string | null; rankLabel?: string; giftScore?: GiftScore },
+): GiftRecommendResult {
+  const rating = MARKETPLACE_RATINGS.get(product.id);
+  return {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    price_cents: product.price_cents,
+    sale_price_cents: product.sale_price_cents ?? null,
+    description: product.ai_summary,
+    image_url: resolveProductImageSrc(product.id, product.images, product.category?.slug),
+    avg_rating: rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) : null,
+    review_count: rating?.review_count ?? 0,
+    match_reason: opts.matchReason,
+    avoidance_warning: opts.avoidanceWarning ?? null,
+    gift_tags: product.interests,
+    rank_label: opts.rankLabel,
+    learning_tags: [...product.interests, ...product.recipients, ...product.occasions].slice(0, 8),
+    gift_score: opts.giftScore,
+    category_slug: product.category?.slug ?? null,
+  };
+}
+
 export const EMPTY_CONTEXT: ParsedContext = { recipient: null, occasion: null, budget: null, interests: [], avoid: [] };
 
 // The chat sends each message as its own call — without this, answering a
@@ -599,7 +624,7 @@ export function recommendGifts(
 
   if (isHelpQuery(trimmed)) {
     return {
-      message: "I help you find personalized gifts through conversation. Share who it's for, the occasion, budget, interests, and anything to avoid, and I'll rank curated products and explain why each fits.",
+      message: "I help you find personalized gifts through conversation. Share who it's for, the occasion, budget, interests, and anything to avoid, and I'll rank curated products and explain why each fits. I can also split one total budget across several people at once (\"gifts for Mom and Dad, $200 total\"), or settle a head-to-head between two products for someone (\"compare the mug and the candle for my mom\").",
       results: [],
       tags: [],
       budget: priorContext.budget,
@@ -686,26 +711,13 @@ export function recommendGifts(
     .filter(({ score }) => score > 1.25 || tags.length === 0);
   const results = selectDiverseTopN(scoredCandidates, resultLimit)
     .map(({ product }, index) => {
-      const rating = MARKETPLACE_RATINGS.get(product.id);
       const factors = giftScoreFactors(product, tags, budget, learningProfile, avoidTerms);
-      return {
-        id: product.id,
-        slug: product.slug,
-        name: product.name,
-        price_cents: product.price_cents,
-        sale_price_cents: product.sale_price_cents ?? null,
-        description: product.ai_summary,
-        image_url: resolveProductImageSrc(product.id, product.images, product.category?.slug),
-        avg_rating: rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) : null,
-        review_count: rating?.review_count ?? 0,
-        match_reason: generateMatchReason(product, tags, budget, ctx),
-        avoidance_warning: generateAvoidanceWarning(product, avoidTerms),
-        gift_tags: product.interests,
-        rank_label: `#${index + 1} pick`,
-        learning_tags: [...product.interests, ...product.recipients, ...product.occasions].slice(0, 8),
-        gift_score: { total: totalGiftScore(factors), factors },
-        category_slug: product.category?.slug ?? null,
-      };
+      return toGiftResult(product, {
+        matchReason: generateMatchReason(product, tags, budget, ctx),
+        avoidanceWarning: generateAvoidanceWarning(product, avoidTerms),
+        rankLabel: `#${index + 1} pick`,
+        giftScore: { total: totalGiftScore(factors), factors },
+      });
     });
 
   return {

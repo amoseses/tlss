@@ -2,14 +2,16 @@ import { useState, useRef, useEffect } from "react";
 import { AlertTriangle, ExternalLink, Send, Sparkles, Star, ThumbsDown, ThumbsUp, Wand2, UserRound } from "lucide-react";
 import { Link } from "wouter";
 import { WishlistButton } from "@/components/product/wishlist-button";
-import { recommendGifts, EMPTY_CONTEXT, type GiftRecommendResult, type ParsedContext } from "@/lib/gift-recommend";
+import { recommendGifts, toGiftResult, EMPTY_CONTEXT, type GiftRecommendResult, type ParsedContext } from "@/lib/gift-recommend";
 import { fetchAllProducts, getAllMarketplaceProducts, type MarketplaceProduct } from "@/lib/data/data-layer";
-import { personalizeChatResponse, personalizeFollowUpMessage, personalizeGeneralQuestion } from "@/lib/ai/gift-chat-personalize";
+import { personalizeChatResponse, personalizeFollowUpMessage, personalizeGeneralQuestion, personalizeCompare } from "@/lib/ai/gift-chat-personalize";
 import { readLearningProfile, applyFeedback as applyLearningFeedback } from "@/lib/gift-learning";
 import { productPhotoFallback } from "@/lib/product-photo";
 import { logError, trackUserEvent } from "@/lib/monitoring";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients, saveGiftRecipient } from "@/lib/supabase/db";
+import { parseBatchGiftRequest, runBatchGiftSearch, type BatchGiftPlan } from "@/lib/gift-batch";
+import { parseCompareRequest, findBestProductMatch } from "@/lib/gift-compare";
 
 type GiftResult = GiftRecommendResult;
 
@@ -22,6 +24,8 @@ type Message = {
   needsFollowUp?: boolean;
   generalQuestion?: boolean;
   confirmRecipient?: { recipientId: string; recipientName: string; pendingText: string };
+  batch?: BatchGiftPlan;
+  compare?: { a: GiftResult; b: GiftResult; winner: "a" | "b" | "tie" };
 };
 
 type Questionnaire = {
@@ -47,6 +51,7 @@ const QUICK_PROMPTS = [
   { label: "For Partner 💝", prompt: "Romantic anniversary gift for my partner, $100 budget, likes travel, coffee, and keepsakes" },
   { label: "Graduation 🎓", prompt: "Graduation gift for a student, $80 budget, likes tech, studying, and travel" },
   { label: "Pens ✍️", prompt: "Gift for a teacher who loves pens and journaling, thank-you gift, under $30" },
+  { label: "Split a budget 🎁", prompt: "Gifts for my mom, dad, and my sister, $200 total, birthday" },
 ];
 
 const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Graduation", "Wedding", "Holiday", "Housewarming", "Thank you", "Father's Day", "Mother's Day", "Valentine's Day", "Easter", "Halloween", "New Baby", "Retirement", "Get Well", "Just Because", "Engagement", "Baby Shower"];
@@ -361,6 +366,27 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
+    if (!isRegenerate) {
+      const batchParsed = parseBatchGiftRequest(trimmed, savedRecipients);
+      if (batchParsed) {
+        await runBatchSearch(trimmed, batchParsed);
+        return;
+      }
+    }
+
+    if (!isRegenerate) {
+      const compareFragments = parseCompareRequest(trimmed);
+      if (compareFragments) {
+        const [fragA, fragB] = compareFragments;
+        const productA = findBestProductMatch(fragA, catalogRef.current);
+        const productB = findBestProductMatch(fragB, catalogRef.current);
+        if (productA && productB && productA.id !== productB.id) {
+          await runCompare(trimmed, productA, productB);
+          return;
+        }
+      }
+    }
+
     // "What are my mom's interests" etc. — answer straight from the real
     // saved profile, no gift search or AI call involved, so it's instant
     // and can't drift from what's actually in the database.
@@ -480,6 +506,83 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     }
   }
 
+  function describeBatchPlan(plan: BatchGiftPlan) {
+    const n = plan.entries.length;
+    const who = plan.mode === "each"
+      ? `${formatMoneyLocal(plan.entries[0]?.budgetCents ?? 0)} each for ${n} people`
+      : `${formatMoneyLocal(plan.totalBudgetCents)} split ${n} ways`;
+    const occasion = plan.occasion ? ` for ${plan.occasion.toLowerCase()}` : "";
+    const missed = plan.entries.filter((e) => e.results.length === 0).length;
+    const gap = missed > 0 ? ` I couldn't find a strong fit for ${missed === 1 ? "one of them" : `${missed} of them`} in budget — try raising it a bit.` : "";
+    return `Here's the split: ${who}${occasion}. A quick pick for each person below.${gap} Want me to dig deeper on any one of them?`;
+  }
+
+  async function runBatchSearch(trimmed: string, parsed: ReturnType<typeof parseBatchGiftRequest>) {
+    if (!parsed) return;
+    setLastQuery(trimmed);
+    const replyId = crypto.randomUUID();
+    setMessages((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), role: "user", content: trimmed },
+      { id: replyId, role: "assistant", content: "", loading: true },
+    ]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const profile = await readLearningProfile();
+      const plan = runBatchGiftSearch(parsed, savedRecipients, profile, catalogRef.current);
+      plan.entries.forEach((entry) => entry.results.forEach((r) => shownIdsRef.current.add(r.id)));
+      trackUserEvent("ai_batch_split_generated", { people: plan.entries.length, totalBudgetCents: plan.totalBudgetCents, mode: plan.mode });
+      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, loading: false, content: describeBatchPlan(plan), batch: plan } : m)));
+      setLoading(false);
+      focusInput();
+    } catch (error) {
+      logError(error, "GiftFinderChat.runBatchSearch", { query: trimmed });
+      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, loading: false, content: "I hit a snag splitting that budget. Try something like \"gifts for Sarah and Mike, $150 total, birthday\"." } : m)));
+      setLoading(false);
+      focusInput();
+    }
+  }
+
+  async function runCompare(trimmed: string, productA: MarketplaceProduct, productB: MarketplaceProduct) {
+    setLastQuery(trimmed);
+    const replyId = crypto.randomUUID();
+    setMessages((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), role: "user", content: trimmed },
+      { id: replyId, role: "assistant", content: "", loading: true },
+    ]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const recipient = activeRecipientRef.current ?? findSavedRecipient(trimmed, savedRecipients);
+      const ctx = contextRef.current;
+      const verdict = await personalizeCompare(trimmed, productA, productB, {
+        recipientName: recipient?.name ?? ctx.recipient ?? null,
+        interests: recipient?.interests ?? ctx.interests ?? [],
+      });
+      trackUserEvent("ai_compare_generated", { a: productA.slug, b: productB.slug, winner: verdict.winner });
+
+      const badge = (key: "a" | "b") =>
+        verdict.winner === "tie" ? "🤝 Even match — see reasoning below" : verdict.winner === key ? "🏆 Better pick here — see why below" : "Runner-up in this comparison";
+      const resultA = toGiftResult(productA, { matchReason: badge("a") });
+      const resultB = toGiftResult(productB, { matchReason: badge("b") });
+
+      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, loading: false, content: verdict.reasoning, compare: { a: resultA, b: resultB, winner: verdict.winner } } : m)));
+      setLoading(false);
+      focusInput();
+    } catch (error) {
+      logError(error, "GiftFinderChat.runCompare", { query: trimmed });
+      setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, loading: false, content: "I hit a snag comparing those two. Try naming them again." } : m)));
+      setLoading(false);
+      focusInput();
+    }
+  }
+
   function confirmRecipientAndSearch(confirm: NonNullable<Message["confirmRecipient"]>) {
     confirmedRecipientIdsRef.current.add(confirm.recipientId);
     void runSearch(confirm.pendingText, false, [], true);
@@ -589,6 +692,17 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                 </button>
               ))}
             </div>
+            {savedRecipients.length >= 2 && (
+              <div className="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => sendMessage(`Gifts for ${savedRecipients.slice(0, 3).map((r) => r.name).join(", ")}, $150 total, birthday`)}
+                  className="rounded-full border border-dashed border-givit-ember/40 bg-transparent px-4 py-2 text-xs font-semibold text-givit-ember transition-colors hover:bg-givit-ember/10"
+                >
+                  🎁 Split one budget across {savedRecipients.slice(0, 3).map((r) => r.name).join(", ")}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -649,6 +763,37 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                             <button type="button" onClick={() => handleFeedback(msg.results ?? [], false)} className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-700 transition hover:bg-rose-100"><ThumbsDown className="h-3.5 w-3.5" /> Not yet</button>
                           </div>
                         </div>
+                      </div>
+                    )}
+                    {msg.batch && (
+                      <div className="ml-0 flex flex-col gap-4">
+                        {msg.batch.entries.map((entry) => (
+                          <div key={entry.name} className="rounded-2xl border border-border/40 bg-card p-3">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <p className="flex items-center gap-1.5 text-sm font-semibold text-givit-ink">
+                                <UserRound className="h-3.5 w-3.5 text-givit-ember" />
+                                {entry.recipient?.name ?? entry.name}{entry.recipient?.relationship ? ` (${entry.recipient.relationship})` : ""}
+                              </p>
+                              <span className="shrink-0 rounded-full bg-givit-ember/10 px-2 py-0.5 text-[10px] font-semibold text-givit-ember">{formatMoneyLocal(entry.budgetCents)} budget</span>
+                            </div>
+                            {entry.results.length > 0 ? (
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                {entry.results.map((result, idx) => <GiftCard key={result.id} result={result} index={idx} onItemFeedback={handleItemFeedback} />)}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">No strong match in that budget yet — try raising it a bit.</p>
+                            )}
+                          </div>
+                        ))}
+                        <div className="rounded-xl bg-givit-sand px-3 py-2 text-center text-xs font-semibold text-givit-ink">
+                          Total: {formatMoneyLocal(msg.batch.totalBudgetCents)} across {msg.batch.entries.length} people
+                        </div>
+                      </div>
+                    )}
+                    {msg.compare && (
+                      <div className="ml-0 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <GiftCard result={msg.compare.a} index={0} onItemFeedback={handleItemFeedback} />
+                        <GiftCard result={msg.compare.b} index={1} onItemFeedback={handleItemFeedback} />
                       </div>
                     )}
                     {/* results:[] is truthy, so length===0 alone can't tell "we

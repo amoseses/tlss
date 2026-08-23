@@ -1,5 +1,7 @@
 import type { GiftRecommendResponse, GiftRecommendResult } from "@/lib/gift-recommend";
-import { answerGeneralQuestion, personalizeFollowUp, personalizeGiftChat } from "@/lib/ai/gift-ai";
+import { answerGeneralQuestion, compareGiftsForRecipient, personalizeFollowUp, personalizeGiftChat } from "@/lib/ai/gift-ai";
+import { compareDeterministic, type CompareVerdict } from "@/lib/gift-compare";
+import type { MarketplaceProduct } from "@/lib/data/marketplace";
 
 /**
  * Re-ranks and rewrites match reasons for an already-computed local result
@@ -80,4 +82,20 @@ export async function personalizeFollowUpMessage(query: string, base: GiftRecomm
 export async function personalizeGeneralQuestion(query: string, base: GiftRecommendResponse): Promise<GiftRecommendResponse> {
   const reply = await answerGeneralQuestion(query);
   return { ...base, message: reply ?? "I'm not sure about that one, but I'm always ready to help you find a gift when you are." };
+}
+
+export async function personalizeCompare(
+  query: string,
+  a: MarketplaceProduct,
+  b: MarketplaceProduct,
+  recipient: { recipientName: string | null; interests: string[] },
+): Promise<CompareVerdict> {
+  const ai = await compareGiftsForRecipient({
+    query,
+    recipientName: recipient.recipientName,
+    interests: recipient.interests,
+    a: { id: a.id, name: a.name, price_cents: a.price_cents, gift_tags: a.interests, description: a.ai_summary },
+    b: { id: b.id, name: b.name, price_cents: b.price_cents, gift_tags: b.interests, description: b.ai_summary },
+  });
+  return ai ?? compareDeterministic(a, b, recipient.interests);
 }
