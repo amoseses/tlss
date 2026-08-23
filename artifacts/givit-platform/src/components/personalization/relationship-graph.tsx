@@ -78,8 +78,15 @@ function smoothClosedPath(points: [number, number][]): string {
 }
 
 function brainCasePath(cx: number, cy: number, rx: number, ry: number): string {
-  const left = [...BRAIN_HALF].reverse().map(([x, y]) => [-x, y] as [number, number]);
-  const full = [...BRAIN_HALF, ...left].map(([x, y]) => [cx + x * rx, cy + y * ry] as [number, number]);
+  // BRAIN_HALF's first and last points sit exactly on the centerline
+  // (front-center and back-center) -- mirroring the *whole* array duplicated
+  // both of them at the seams where the two hemispheres meet, which made
+  // smoothClosedPath's midpoint technique collapse to a zero-length segment
+  // right at the front and back tips and kick out a stray little cusp
+  // (the "weird out of place lines"). Mirroring only the interior points
+  // (slice(1, -1)) means each of the 22 points around the loop is unique.
+  const interiorLeft = BRAIN_HALF.slice(1, -1).reverse().map(([x, y]) => [-x, y] as [number, number]);
+  const full = [...BRAIN_HALF, ...interiorLeft].map(([x, y]) => [cx + x * rx, cy + y * ry] as [number, number]);
   return smoothClosedPath(full);
 }
 
