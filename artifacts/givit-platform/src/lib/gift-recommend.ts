@@ -253,15 +253,26 @@ function extractBudget(query: string) {
     /(?:under|below|max|maximum|up to|budget(?:\s+of)?)\s*\$?(\d+)/gi,
     /(\d+)\s*-\s*\$?(\d+)/g,
   ];
+
   const found: number[] = [];
+
   for (const pattern of patterns) {
     for (const match of query.matchAll(pattern)) {
-      const amount = Number.parseInt(match[2] ?? match[1] ?? "", 10);
-      if (!Number.isNaN(amount) && amount > 0 && amount < 10000) found.push(amount);
+      const amount = Number.parseInt(
+        match[2] ?? match[1] ?? "",
+        10
+      );
+
+      if (!Number.isNaN(amount) && amount > 0 && amount < 10000) {
+        found.push(amount);
+      }
     }
   }
+
+  console.log("FOUND BUDGET:", found);
+
   return found.length > 0 ? Math.max(...found) : null;
-}
+    }
 
 function extractAvoidTerms(query: string) {
   const lower = query.toLowerCase();
@@ -408,12 +419,20 @@ function giftScoreFactors(
   const rating = MARKETPLACE_RATINGS.get(product.id);
   const avg = rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) : 4.5;
   const reviewCount = rating?.review_count ?? 100;
- // Around line 411-414
-const priceFit = budget
-  ? product.price_cents <= budget * 100
-    ? 100
-    : Math.max(20, 100 - Math.round(((product.price_cents - budget * 100) / (budget * 100)) * 80))
-  : 72;
+  const effectivePrice =
+  product.sale_price_cents ?? product.price_cents;
+
+    const priceFit = budget
+      ? effectivePrice <= budget * 100
+        ? 100
+        : Math.max(
+            20,
+            100 -
+              Math.round(
+                ((effectivePrice - budget * 100) / (budget * 100)) * 80
+              )
+          )
+      : 72;
   const previousOverlap = Math.max(0, Math.min(100, 74 + ((learningProfile.productWeights?.[product.slug] ?? 0) * 8)));
   const avoidPenalty = avoidTerms.some((term) => text.includes(term)) ? 18 : 0;
 
@@ -454,12 +473,17 @@ function scoreProduct(
   const tagHits = tags.filter((tag) => text.includes(tag)).length;
   const rating = MARKETPLACE_RATINGS.get(product.id);
   const ratingScore = rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) / 5 : 0.8;
-  // Around line 456-459
- const budgetScore = budget
-  ? product.price_cents <= budget * 100
-    ? 1
-    : Math.max(0, 1 - (product.price_cents - budget * 100) / (budget * 100))
-  : 0.65;
+ const effectivePrice =
+  product.sale_price_cents ?? product.price_cents;
+
+  const budgetScore = budget
+    ? effectivePrice <= budget * 100
+      ? 1
+      : Math.max(
+          0,
+          1 - (effectivePrice - budget * 100) / (budget * 100)
+        )
+    : 0.65;
   const productBoost = learningProfile.productWeights?.[product.slug] ?? 0;
   const tagBoost = product.interests.reduce((total, tag) => total + (learningProfile.tagWeights?.[tag] ?? 0), 0);
   const avoidPenalty = avoidTerms.some((term) => text.includes(term)) ? 1.35 : 0;
@@ -518,13 +542,25 @@ function selectDiverseTopN(
 
 function generateMatchReason(product: MarketplaceProduct, tags: string[], budget: number | null, ctx: ParsedContext) {
   const matched = product.interests.filter((interest) => tags.includes(interest));
+
+  const effectivePrice =
+    product.sale_price_cents ?? product.price_cents;
+
   if (ctx.recipient && matched.length > 0) {
     return `${ctx.recipient.charAt(0).toUpperCase() + ctx.recipient.slice(1)} loves ${matched.slice(0, 2).join(" and ")}: ${product.why_we_picked_it.toLowerCase()}`;
   }
-  if (matched.length > 0) return `Why this gift: matched on ${matched.slice(0, 2).join(" + ")}. ${product.why_we_picked_it}`;
-  if (budget && product.price_cents <= budget * 100) return `Why this gift: fits your $${budget} budget and ${product.why_we_picked_it.toLowerCase()}`;
+
+  if (matched.length > 0) {
+    return `Why this gift: matched on ${matched.slice(0, 2).join(" + ")}. ${product.why_we_picked_it}`;
+  }
+
+  if (budget && effectivePrice <= budget * 100) {
+    return `Why this gift: fits your $${budget} budget and ${product.why_we_picked_it.toLowerCase()}`;
+  }
+
   return `Why this gift: ${product.why_we_picked_it}`;
 }
+
 
 function generateAvoidanceWarning(product: MarketplaceProduct, avoidTerms: string[]) {
   const text = productTokens(product);
@@ -681,8 +717,16 @@ export function recommendGifts(
   // Falls back to the unfiltered pool only if the budget is tight enough
   // that literally nothing in the catalog qualifies, so a real result still
   // comes back instead of nothing at all.
-  const budgetFiltered = budget ? availableCandidates.filter((product) => product.price_cents <= budget * 100 * 1.15) : availableCandidates;
-  const candidatePool = budgetFiltered.length > 0 ? budgetFiltered : availableCandidates;
+  const budgetFiltered = budget
+  ? availableCandidates.filter((product) => {
+      const effectivePrice =
+        product.sale_price_cents ?? product.price_cents;
+
+      return effectivePrice <= budget * 100;
+    })
+  : availableCandidates;
+
+  const candidatePool = budgetFiltered;
   const scoredCandidates = candidatePool
     .map((product) => ({ product, score: scoreProduct(product, trimmed, tags, budget, learningProfile, avoidTerms) }))
     .filter(({ score }) => score > 1.25 || tags.length === 0);

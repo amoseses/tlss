@@ -166,7 +166,7 @@ function buildQuestionnairePrompt(form: Questionnaire) {
     `Recipient: ${form.recipient || "not specified"}`,
     `Relationship: ${form.relationship || "not specified"}`,
     `Occasion: ${form.occasion || "not specified"}`,
-    `Budget: ${form.budget || "flexible"}`,
+    `Budget: ${form.budget ? `under $${form.budget.replace(/[^0-9.]/g, "")}` : "flexible"}`,
     `Interests: ${form.interests || "not specified"}`,
     `Style: ${form.style || "balanced"}`,
     `Avoid: ${form.avoid || "none listed"}`,
@@ -454,9 +454,13 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       // actually pick something the rule-based ranking under-scored. The
       // display-facing message/result count still comes from a normal
       // 5-result call so copy like "here are 5 ideas" stays accurate.
-      const widePool = recommendGifts(queryForScoring, profile, 20, recommendOptions);
-      const data = recommendGifts(queryForScoring, profile, 5, recommendOptions);
-      contextRef.current = data.context;
+     	const data = recommendGifts(
+  	queryForScoring,
+  	profile,
+  	5,
+  	recommendOptions
+	);
+      	contextRef.current = data.context;
 
       // Personalize before ever rendering results, not after — showing the
       // plain deterministic set and then silently swapping it a moment
@@ -471,21 +475,36 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
       // flagged general-knowledge question (see isGeneralKnowledgeQuery)
       // skips gift scoring entirely and gets a real answer instead.
       const final = data.generalQuestion
-        ? await personalizeGeneralQuestion(trimmed, data).catch((error) => {
-            logError(error, "GiftFinderChat.personalizeGeneralQuestion", { query: trimmed });
-            return data;
-          })
-        : widePool.results && widePool.results.length > 0
-        ? await personalizeChatResponse(queryForScoring, data, widePool.results).catch((error) => {
-            logError(error, "GiftFinderChat.personalizeChatResponse", { query: trimmed });
-            return data;
-          })
-        : data.needsFollowUp && !data.offTopic
-          ? await personalizeFollowUpMessage(queryForScoring, data).catch((error) => {
-              logError(error, "GiftFinderChat.personalizeFollowUpMessage", { query: trimmed });
-              return data;
-            })
-          : data;
+ 	 ? await personalizeGeneralQuestion(trimmed, data).catch((error) => {
+     	 logError(error, "GiftFinderChat.personalizeGeneralQuestion", {
+         query: trimmed,
+     		 });
+      return data;
+   		 })
+ 	 : data.results && data.results.length > 0
+   	 ? await personalizeChatResponse(
+        queryForScoring,
+        data,
+        data.results,
+      	).catch((error) => {
+        logError(error, "GiftFinderChat.personalizeChatResponse", {
+          query: trimmed,
+       		 });
+        return data;
+     		 })
+   	 : data.needsFollowUp && !data.offTopic
+     	 ? await personalizeFollowUpMessage(
+          queryForScoring,
+          data,
+      		  ).catch((error) => {
+          logError(
+            error,
+            "GiftFinderChat.personalizeFollowUpMessage",
+            { query: trimmed },
+        	  );
+          return data;
+       		 })
+    		  : data;
 
       (final.results ?? []).forEach((r) => shownIdsRef.current.add(r.id));
       trackUserEvent("ai_recommendation_generated", { queryLength: trimmed.length, resultCount: final.results?.length ?? 0, tags: final.tags });
