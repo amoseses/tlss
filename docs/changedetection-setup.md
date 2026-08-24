@@ -21,8 +21,8 @@ Access the Web Dashboard at: **`http://localhost:5000`** (or your server domain)
 1. In `changedetection.io`, click **SETTINGS** at the top right.
 2. Navigate to **Notifications** / **Webhooks**.
 3. Set your Notification URL to your GIVIT webhook endpoint:
-   - **Local / Dev**: `http://host.docker.internal:5000/api/webhooks/price-update` (or via ngrok: `https://your-domain.ngrok-free.app/api/webhooks/price-update`)
-   - **Production**: `https://givit.site/api/webhooks/price-update`
+   - **Local / Dev**: `http://host.docker.internal:5000/api/cron/dispatch-notifications?job=live-prices` (or via ngrok: `https://your-domain.ngrok-free.app/api/cron/dispatch-notifications?job=live-prices`)
+   - **Production**: `https://givit.site/api/cron/dispatch-notifications?job=live-prices`
 4. Set the **Notification Body Format** to `JSON`:
    ```json
    {
@@ -52,7 +52,7 @@ Access the Web Dashboard at: **`http://localhost:5000`** (or your server domain)
 You can also test the GIVIT price update webhook manually using `curl`:
 
 ```bash
-curl -X POST "http://localhost:5000/api/webhooks/price-update" \
+curl -X POST "http://localhost:5000/api/cron/dispatch-notifications?job=live-prices" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://electronics.sony.com/audio/headphones/headband/p/wh1000xm5-b",

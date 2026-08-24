@@ -370,12 +370,12 @@ function aiApiDevMiddleware(env: Record<string, string>): Plugin {
             apiRelativePath = "../../api/calendar/sync.ts";
           } else if (pathname === "/api/stripe/setup-intent") {
             apiRelativePath = "../../api/stripe/setup-intent.ts";
-          } else if (pathname === "/api/webhooks/price-update") {
-            apiRelativePath = "../../api/webhooks/price-update.ts";
-          } else if (pathname === "/api/cron/sync-all-prices") {
-            apiRelativePath = "../../api/cron/sync-all-prices.ts";
-          } else if (pathname === "/api/live-prices") {
-            apiRelativePath = "../../api/live-prices.ts";
+          } else if (pathname === "/api/cron/dispatch-notifications") {
+            // Handles the main cron dispatch plus three query-param branches
+            // (?job=live-prices, ?job=sync-prices, ?webhook=sms-inbound) --
+            // consolidated onto one file for Vercel's Hobby-plan 12-function
+            // cap, see the comments in that file.
+            apiRelativePath = "../../api/cron/dispatch-notifications.ts";
           }
 
           if (apiRelativePath) {

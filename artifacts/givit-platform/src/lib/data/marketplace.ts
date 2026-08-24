@@ -527,7 +527,10 @@ function getLocalLiveOverrides(): Record<string, { price_cents: number; sale_pri
 
 export function syncLivePricesClient() {
   if (typeof window === "undefined") return;
-  fetch("/api/live-prices")
+  // Lives on dispatch-notifications.ts (?job=live-prices), not its own
+  // api/live-prices.ts file -- see the comment there for why (Vercel's
+  // Hobby-plan 12-function cap).
+  fetch("/api/cron/dispatch-notifications?job=live-prices")
     .then((res) => res.json())
     .then((data) => {
       if (data && typeof data === "object" && Object.keys(data).length > 0) {
