@@ -540,11 +540,7 @@ export default function BoardsPage() {
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
-            <span>GIVIT</span>
-            <span>GIFT BOARDS</span>
-            <span className="inline-flex items-center gap-1.5"><span className="tech-dot" /> {publicBoards.length} PUBLIC</span>
-          </div>
+          <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Gift boards</p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Gift boards</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {user ? "Browse public boards or manage your own" : "Browse public gift boards, sign in to start your own"}

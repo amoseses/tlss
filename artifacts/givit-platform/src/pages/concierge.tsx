@@ -153,8 +153,7 @@ export default function ConciergePage() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
             <span>GIVIT</span>
             <span>AUTOGIFT</span>
-            <span className="inline-flex items-center gap-1.5"><span className="tech-dot" /> SESSION LIVE</span>
-            <span className="text-muted-foreground"><CountUp value={onAutoGift.length} className="font-mono" /> ON AUTOMATION</span>
+            <span className="text-muted-foreground"><CountUp value={onAutoGift.length} className="font-mono" /> on automation</span>
           </div>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Your gifting agent</h1>
           <p className="mt-1 text-sm text-muted-foreground">Every date tracked in <Link href="/people" className="text-givit-ember hover:underline">People</Link>: the agent watches the calendar and reasons through what to give, you approve before anything ships.</p>

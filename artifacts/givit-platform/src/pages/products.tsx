@@ -348,7 +348,6 @@ export default function ProductsPage() {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] font-bold uppercase tracking-widest text-white/50">
               <span className="text-givit-coral">GIVIT</span>
               <span>EDITORIALLY CURATED</span>
-              <span className="inline-flex items-center gap-1.5 text-givit-coral"><span className="tech-dot" /> LIVE</span>
               <span><CountUp value={sorted.length} className="font-mono" /> RESULT{sorted.length === 1 ? "" : "S"}</span>
             </div>
             <h1 className="mt-4 font-serif text-4xl font-bold leading-[1.05] md:text-6xl">
