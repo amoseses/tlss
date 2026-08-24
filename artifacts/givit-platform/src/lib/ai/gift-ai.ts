@@ -176,6 +176,47 @@ export async function personalizeFollowUp(
   }
 }
 
+/**
+ * Answers a question that has nothing to do with gift-shopping (e.g. "who
+ * won the 2026 World Cup"). GIVIT AI shouldn't just refuse everything
+ * off-topic — a shopper chatting with it expects it to behave like a normal
+ * helpful assistant, not a form that only understands recipient/occasion/
+ * budget. Falls back to an honest "not sure" reply on failure rather than
+ * ever inventing an answer with no model behind it.
+ */
+export async function answerGeneralQuestion(query: string, timeoutMs = 7000): Promise<string | null> {
+  if (typeof query !== "string" || !query.trim()) return null;
+
+  const system =
+    "You are Your Gift AI, a friendly gifting concierge who can also just chat and answer everyday questions like any helpful assistant. " +
+    "Answer the user's question directly and honestly in 1-3 sentences. If you genuinely don't know or the question is about something after your knowledge cutoff (a future or very recent event), say so plainly instead of guessing at an answer. " +
+    "Only if it fits naturally, you may add one brief closing sentence inviting them back to gift shopping — never force it, and never turn the answer itself into a gift pitch. Return strict JSON only, matching the requested shape exactly, with no markdown code fences.";
+
+  const user = JSON.stringify({
+    instructions: "Answer this question conversationally and honestly.",
+    question: query,
+    responseShape: { answer: "string" },
+  });
+
+  try {
+    const result = await Promise.race([
+      callGroqJSON(
+        [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        { temperature: 0.4, maxTokens: 300 },
+      ),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Groq API request timed out")), timeoutMs)),
+    ]);
+
+    return typeof result?.answer === "string" && result.answer.trim() ? result.answer.trim().slice(0, 600) : null;
+  } catch (error) {
+    console.warn("Your Gift AI: general question answer failed.", error);
+    return null;
+  }
+}
+
 export type CompareAIResult = { winner: "a" | "b" | "tie"; reasoning: string };
 
 export async function compareGiftsForRecipient(
@@ -222,47 +263,6 @@ export async function compareGiftsForRecipient(
     return { winner, reasoning: result.reasoning.trim().slice(0, 400) };
   } catch (error) {
     console.warn("Your Gift AI: compare failed, falling back to deterministic comparison.", error);
-    return null;
-  }
-}
-
-/**
- * Answers a question that has nothing to do with gift-shopping (e.g. "who
- * won the 2026 World Cup"). GIVIT AI shouldn't just refuse everything
- * off-topic — a shopper chatting with it expects it to behave like a normal
- * helpful assistant, not a form that only understands recipient/occasion/
- * budget. Falls back to an honest "not sure" reply on failure rather than
- * ever inventing an answer with no model behind it.
- */
-export async function answerGeneralQuestion(query: string, timeoutMs = 7000): Promise<string | null> {
-  if (typeof query !== "string" || !query.trim()) return null;
-
-  const system =
-    "You are Your Gift AI, a friendly gifting concierge who can also just chat and answer everyday questions like any helpful assistant. " +
-    "Answer the user's question directly and honestly in 1-3 sentences. If you genuinely don't know or the question is about something after your knowledge cutoff (a future or very recent event), say so plainly instead of guessing at an answer. " +
-    "Only if it fits naturally, you may add one brief closing sentence inviting them back to gift shopping — never force it, and never turn the answer itself into a gift pitch. Return strict JSON only, matching the requested shape exactly, with no markdown code fences.";
-
-  const user = JSON.stringify({
-    instructions: "Answer this question conversationally and honestly.",
-    question: query,
-    responseShape: { answer: "string" },
-  });
-
-  try {
-    const result = await Promise.race([
-      callGroqJSON(
-        [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        { temperature: 0.4, maxTokens: 300 },
-      ),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Groq API request timed out")), timeoutMs)),
-    ]);
-
-    return typeof result?.answer === "string" && result.answer.trim() ? result.answer.trim().slice(0, 600) : null;
-  } catch (error) {
-    console.warn("Your Gift AI: general question answer failed.", error);
     return null;
   }
 }

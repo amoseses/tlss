@@ -408,11 +408,12 @@ function giftScoreFactors(
   const rating = MARKETPLACE_RATINGS.get(product.id);
   const avg = rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) : 4.5;
   const reviewCount = rating?.review_count ?? 100;
-  const priceFit = budget
-    ? product.price_cents <= budget * 100
-      ? 100
-      : Math.max(20, 100 - Math.round(((product.price_cents - budget * 100) / (budget * 100)) * 80))
-    : 72;
+ // Around line 411-414
+const priceFit = budget
+  ? product.price_cents <= budget * 100
+    ? 100
+    : Math.max(20, 100 - Math.round(((product.price_cents - budget * 100) / (budget * 100)) * 80))
+  : 72;
   const previousOverlap = Math.max(0, Math.min(100, 74 + ((learningProfile.productWeights?.[product.slug] ?? 0) * 8)));
   const avoidPenalty = avoidTerms.some((term) => text.includes(term)) ? 18 : 0;
 
@@ -453,11 +454,12 @@ function scoreProduct(
   const tagHits = tags.filter((tag) => text.includes(tag)).length;
   const rating = MARKETPLACE_RATINGS.get(product.id);
   const ratingScore = rating?.avg_rating ? Number.parseFloat(String(rating.avg_rating)) / 5 : 0.8;
-  const budgetScore = budget
-    ? product.price_cents <= budget * 100
-      ? 1
-      : Math.max(0, 1 - (product.price_cents - budget * 100) / (budget * 100))
-    : 0.65;
+  // Around line 456-459
+ const budgetScore = budget
+  ? product.price_cents <= budget * 100
+    ? 1
+    : Math.max(0, 1 - (product.price_cents - budget * 100) / (budget * 100))
+  : 0.65;
   const productBoost = learningProfile.productWeights?.[product.slug] ?? 0;
   const tagBoost = product.interests.reduce((total, tag) => total + (learningProfile.tagWeights?.[tag] ?? 0), 0);
   const avoidPenalty = avoidTerms.some((term) => text.includes(term)) ? 1.35 : 0;
