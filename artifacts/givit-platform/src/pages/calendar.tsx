@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
+import { toast } from "sonner";
 import { Bell, CalendarDays, Check, ChevronDown, Globe, UserRound, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -14,6 +15,20 @@ export default function CalendarPage() {
   const { recipients, notifications, localReady } = useRecipients(user, profile?.default_reminder_lead_days ?? undefined);
   const [region, setRegion] = useState(() => detectUserRegion());
   const [showRegionPicker, setShowRegionPicker] = useState(false);
+
+  // Landing back here is how the Google OAuth redirect
+  // (api/auth/google-calendar/callback) reports success/failure when the
+  // connect flow was started from this page -- there's no other channel
+  // back to the SPA from a full-page redirect Google itself controls.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("calendar");
+    if (!result) return;
+    if (result === "connected") toast.success("Google Calendar connected. Hit \"Sync now\" to pull in birthdays.");
+    else if (result === "denied") toast("Google Calendar wasn't connected.");
+    else if (result === "error") toast.error("Couldn't connect Google Calendar. Try again.");
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   const currentYear = new Date().getFullYear();
   const holidays = useMemo(() => getHolidaysForRegion(region, currentYear), [region, currentYear]);
@@ -81,11 +96,7 @@ export default function CalendarPage() {
     <PageShell>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
-            <span>GIVIT</span>
-            <span>CALENDAR</span>
-            <span className="inline-flex items-center gap-1.5"><span className="tech-dot" /> SESSION LIVE</span>
-          </div>
+          <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Calendar</p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Your gifting calendar</h1>
           <p className="mt-1 text-sm text-muted-foreground">Every date saved in <Link href="/people" className="text-givit-ember hover:underline">People</Link> plus regional public holidays.</p>
         </div>

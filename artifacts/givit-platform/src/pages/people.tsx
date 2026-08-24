@@ -11,10 +11,10 @@ import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
 import { nextOccurrenceDate } from "@/lib/date-utils";
 import { trackEvent } from "@/lib/supabase/db";
-import { createClient } from "@/lib/supabase/client";
 import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
 import { CountUp } from "@/components/ui/count-up";
+import { GoogleCalendarConnect } from "@/components/calendar/google-calendar-connect";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Hanukkah", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
@@ -657,104 +657,6 @@ function CancelRecipientModal({ name, onConfirm, onClose }: { name: string; onCo
 
 type ImportRow = ParsedCalendarEvent & { selected: boolean; name: string; occasion: string };
 
-async function authedFetch(path: string, init?: RequestInit) {
-  const { data } = await createClient().auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("Not signed in.");
-  return fetch(path, {
-    ...init,
-    headers: { ...(init?.headers ?? {}), Authorization: `Bearer ${token}` },
-  });
-}
-
-// Google Calendar OAuth is live (see api/auth/google-calendar/*) — this is
-// the "reconnect any time" path once a person's actually granted access.
-// The .ics upload below stays as the zero-account fallback for Apple/Outlook
-// users, or for anyone who'd rather not connect an account at all.
-function GoogleCalendarConnect() {
-  const [status, setStatus] = useState<"loading" | "connected" | "disconnected">("loading");
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    authedFetch("/api/calendar/status")
-      .then((res) => res.json())
-      .then((data) => { if (!cancelled) setStatus(data.connected ? "connected" : "disconnected"); })
-      .catch(() => { if (!cancelled) setStatus("disconnected"); });
-    return () => { cancelled = true; };
-  }, []);
-
-  async function connect() {
-    setBusy(true);
-    try {
-      const res = await authedFetch("/api/auth/google-calendar/callback", { method: "POST" });
-      // Read as text first, not res.json() directly -- if the server ever
-      // returns something that isn't valid JSON (a platform-level crash
-      // page rather than our own handled error response), res.json()
-      // throws a generic "Unexpected token" parse error that hides
-      // whatever the server actually said. This guarantees the real
-      // response body shows up in the toast either way.
-      const raw = await res.text();
-      let data: any = {};
-      try { data = raw ? JSON.parse(raw) : {}; } catch { /* not JSON, handled below */ }
-      if (data.url) { window.location.href = data.url; return; }
-      throw new Error(data.error || (raw ? raw.slice(0, 200) : `Request failed (${res.status}).`));
-    } catch (err: any) {
-      toast.error(err.message || "Couldn't connect Google Calendar.");
-      setBusy(false);
-    }
-  }
-
-  async function disconnect() {
-    setBusy(true);
-    try {
-      await authedFetch("/api/auth/google-calendar/callback", { method: "DELETE" });
-      setStatus("disconnected");
-      toast.success("Google Calendar disconnected.");
-    } catch {
-      toast.error("Couldn't disconnect. Try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function syncNow() {
-    setBusy(true);
-    try {
-      const res = await authedFetch("/api/calendar/sync", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Sync failed.");
-      toast.success(`Synced: ${data.peopleCreated} new ${data.peopleCreated === 1 ? "person" : "people"}, ${data.occasionsAdded} date${data.occasionsAdded === 1 ? "" : "s"} added.`);
-      window.setTimeout(() => window.location.reload(), 1200);
-    } catch (err: any) {
-      toast.error(err.message || "Sync failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (status === "loading") return null;
-
-  return (
-    <div className="rounded-lg border border-border bg-muted/30 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-givit-ink">Google Calendar</p>
-          <p className="text-xs text-muted-foreground">{status === "connected" ? "Connected — stays in sync until you disconnect." : "Connect once, sync any time."}</p>
-        </div>
-        {status === "connected" ? (
-          <div className="flex shrink-0 gap-2">
-            <Button onClick={() => void syncNow()} disabled={busy} size="sm" className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">Sync now</Button>
-            <Button onClick={() => void disconnect()} disabled={busy} variant="outline" size="sm" className="rounded-full">Disconnect</Button>
-          </div>
-        ) : (
-          <Button onClick={() => void connect()} disabled={busy} size="sm" className="shrink-0 rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">Connect</Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function CalendarImportModal({
   recipients,
   onImportNew,
@@ -826,7 +728,7 @@ function CalendarImportModal({
 
         {!rows ? (
           <div className="space-y-4 p-5">
-            <GoogleCalendarConnect />
+            <GoogleCalendarConnect variant="card" />
 
             <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
@@ -975,8 +877,7 @@ export default function PeoplePage() {
         <div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
             <span>GIVIT</span>
-            <span className="inline-flex items-center gap-1.5"><span className="tech-dot" /> MEMORY LAYER</span>
-            <span className="text-muted-foreground"><CountUp value={recipients.length} className="font-mono" /> PROFILE{recipients.length === 1 ? "" : "S"} STORED</span>
+            <span className="text-muted-foreground"><CountUp value={recipients.length} className="font-mono" /> {recipients.length === 1 ? "person" : "people"} saved</span>
           </div>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">The people you care about</h1>
           <p className="mt-1 text-sm text-muted-foreground">Interests, budgets, and dates: saved once, remembered by Your Gift AI every time.</p>

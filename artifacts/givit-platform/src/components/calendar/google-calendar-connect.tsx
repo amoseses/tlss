@@ -2,21 +2,25 @@ import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { getSupabasePublishableEnv } from "@/lib/supabase/env";
+import { createClient } from "@/lib/supabase/client";
 
+// Goes through the Supabase client's own session getter rather than
+// hand-reconstructing its localStorage key (`sb-<project-ref>-auth-token`)
+// and reading it directly -- that reconstruction is one Supabase client
+// version bump away from silently returning null (this component briefly
+// duplicated exactly that fragile version alongside a second, more direct
+// one on the People page; consolidated onto the more direct approach here).
 async function authedFetch(path: string, init?: RequestInit) {
-  const { url, anonKey } = getSupabasePublishableEnv();
-  const storageKey = `sb-${new URL(url).hostname.split(".")[0]}-auth-token`;
-  const raw = window.localStorage.getItem(storageKey);
-  const token = raw ? JSON.parse(raw)?.access_token : null;
+  const { data } = await createClient().auth.getSession();
+  const token = data.session?.access_token;
   if (!token) throw new Error("Not signed in.");
   return fetch(path, {
     ...init,
-    headers: { ...(init?.headers ?? {}), Authorization: `Bearer ${token}`, apikey: anonKey },
+    headers: { ...(init?.headers ?? {}), Authorization: `Bearer ${token}` },
   });
 }
 
-export function GoogleCalendarConnect() {
+export function GoogleCalendarConnect({ variant = "compact" }: { variant?: "compact" | "card" }) {
   const [status, setStatus] = useState<"loading" | "connected" | "disconnected">("loading");
   const [busy, setBusy] = useState(false);
 
@@ -32,7 +36,11 @@ export function GoogleCalendarConnect() {
   async function connect() {
     setBusy(true);
     try {
-      const res = await authedFetch("/api/auth/google-calendar/callback", { method: "POST" });
+      // Tells the OAuth callback which page to send the browser back to --
+      // without this it always landed on /people even when the button was
+      // clicked from /calendar (see the comment in that route).
+      const returnTo = encodeURIComponent(window.location.pathname);
+      const res = await authedFetch(`/api/auth/google-calendar/callback?returnTo=${returnTo}`, { method: "POST" });
       const raw = await res.text();
       let data: any = {};
       try { data = raw ? JSON.parse(raw) : {}; } catch { /* not JSON */ }
@@ -74,32 +82,22 @@ export function GoogleCalendarConnect() {
 
   if (status === "loading") return null;
 
-  if (status === "connected") {
-    return (
-      <div className="flex items-center gap-1.5">
-        <Button
-          onClick={() => void syncNow()}
-          disabled={busy}
-          size="sm"
-          className="h-8 rounded-xl bg-givit-ember px-3 text-xs font-semibold text-white hover:bg-givit-ember-hover shadow-xs cursor-pointer"
-        >
-          <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
-          {busy ? "Syncing..." : "Sync Google Calendar"}
-        </Button>
-        <Button
-          onClick={() => void disconnect()}
-          disabled={busy}
-          variant="outline"
-          size="sm"
-          className="h-8 rounded-xl text-xs"
-        >
-          Disconnect
-        </Button>
-      </div>
-    );
-  }
-
-  return (
+  const buttons = status === "connected" ? (
+    <div className="flex items-center gap-1.5">
+      <Button
+        onClick={() => void syncNow()}
+        disabled={busy}
+        size="sm"
+        className="h-8 rounded-xl bg-givit-ember px-3 text-xs font-semibold text-white hover:bg-givit-ember-hover shadow-xs cursor-pointer"
+      >
+        <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
+        {busy ? "Syncing..." : "Sync now"}
+      </Button>
+      <Button onClick={() => void disconnect()} disabled={busy} variant="outline" size="sm" className="h-8 rounded-xl text-xs">
+        Disconnect
+      </Button>
+    </div>
+  ) : (
     <Button
       onClick={() => void connect()}
       disabled={busy}
@@ -110,5 +108,17 @@ export function GoogleCalendarConnect() {
       <RefreshCw className="mr-1.5 h-3.5 w-3.5 text-givit-ember" />
       Connect Google Calendar
     </Button>
+  );
+
+  if (variant === "compact") return buttons;
+
+  return (
+    <div className="flex items-center justify-between gap-3 py-1">
+      <div>
+        <p className="text-sm font-semibold text-givit-ink">Google Calendar</p>
+        <p className="text-xs text-muted-foreground">{status === "connected" ? "Connected — stays in sync until you disconnect." : "Connect once, sync any time."}</p>
+      </div>
+      {buttons}
+    </div>
   );
 }
