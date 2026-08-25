@@ -36,8 +36,13 @@ function emailBody(title: string, body: string, notificationId?: string) {
 // (the shape Pinpoint/SNS two-way SMS delivers), so it isn't locked to one
 // specific AWS product's exact wire format.
 async function handleInboundSms(req: any, res: any) {
+  // Fails closed, not open: this endpoint can flip any user's SMS consent
+  // (STOP/START) given only their phone number, so an unset secret must
+  // reject every request rather than skip the check entirely -- the
+  // previous `if (expected && ...)` let anyone hit this unauthenticated
+  // for as long as SMS_INBOUND_SECRET was never configured.
   const expected = process.env.SMS_INBOUND_SECRET;
-  if (expected && req.query?.token !== expected) {
+  if (!expected || req.query?.token !== expected) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }

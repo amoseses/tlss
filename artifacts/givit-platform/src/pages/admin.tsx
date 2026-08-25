@@ -493,7 +493,7 @@ export default function AdminPage() {
                             {row.brand && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{row.brand}</span>}
                             {row.price && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">${row.price}</span>}
                             {row.category && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">{row.category}</span>}
-                            <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700 font-semibold">AI processed ✓</span>
+                            <span className="inline-flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700 font-semibold"><CheckCircle className="h-2.5 w-2.5" /> AI processed</span>
                           </div>
                         )}
                       </div>

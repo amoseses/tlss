@@ -55,13 +55,16 @@ export function RecentMemoryFeed() {
         <Brain className="h-4 w-4 text-givit-ember" />
         <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">What GIVIT remembers</h2>
       </div>
-      <div className="stagger-children grid gap-4 sm:grid-cols-2">
+      {/* A divided list instead of a grid of bordered cards -- four
+          near-identical boxes in a row reads as a dashboard template, and a
+          feed of memories is more naturally a list than a grid anyway. */}
+      <div className="stagger-children divide-y divide-border/40">
         {entries.map((entry) => (
-          <div key={entry.id} className="slide-up flex items-start gap-4 rounded-2xl border border-border/40 bg-card p-5 opacity-0">
+          <div key={entry.id} className="slide-up flex items-start gap-4 py-4 opacity-0 first:pt-0 last:pb-0">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full givit-gradient text-base font-bold text-white">
               {initials(entry.name)}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-base text-foreground">
                 <span className="font-semibold">{entry.name}</span>
                 <span className="text-muted-foreground"> · updated {timeAgo(entry.updatedAt)}</span>
@@ -71,10 +74,10 @@ export function RecentMemoryFeed() {
                   <span key={interest} className="rounded-full bg-givit-sand px-2.5 py-1 text-xs font-medium text-givit-ink">{interest}</span>
                 ))}
               </p>
-              <Link href={`/gift?q=${encodeURIComponent(`Gift for ${entry.name}`)}`} className="mt-2.5 inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
-                <Sparkles className="h-3.5 w-3.5" /> Find something for {entry.name.split(" ")[0]}
-              </Link>
             </div>
+            <Link href={`/gift?q=${encodeURIComponent(`Gift for ${entry.name}`)}`} className="shrink-0 self-center inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
+              <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Find something</span>
+            </Link>
           </div>
         ))}
       </div>

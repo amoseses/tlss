@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -34,7 +35,7 @@ export default function FeedbackPage() {
     return (
       <PageShell narrow>
         <div className="py-16 text-center">
-          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-givit-ember/10 text-3xl">✅</div>
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-givit-ember/10"><CheckCircle2 className="h-7 w-7 text-givit-ember" /></div>
           <h1 className="font-serif text-2xl font-bold text-givit-ink">Thank you!</h1>
           <p className="mt-2 text-muted-foreground">Your feedback has been received.</p>
         </div>

@@ -9,6 +9,7 @@ import { getUserOrders, getUserAutoGiftOrders, getUserAddresses, getUserPaymentM
 import { NotificationSettingsCard } from "@/components/personalization/notification-settings";
 import { getStripePromise } from "@/lib/stripe/client";
 import { createClient } from "@/lib/supabase/client";
+import { normalizePhoneE164 } from "@/lib/utils";
 
 async function authedFetch(path: string, init?: RequestInit) {
   const { data } = await createClient().auth.getSession();
@@ -130,12 +131,22 @@ export default function AccountPage() {
   async function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    // Stored unnormalized, a phone number silently breaks both outbound SMS
+    // (SNS requires E.164) and inbound STOP/START replies (matched back to
+    // a profile by exact E.164 string) -- rejecting an unrecognizable
+    // number here beats saving something that fails silently later.
+    const trimmedPhone = phone.trim();
+    const normalizedPhone = trimmedPhone ? normalizePhoneE164(trimmedPhone) : null;
+    if (trimmedPhone && !normalizedPhone) {
+      setProfileError("Enter a valid US phone number, e.g. (555) 123-4567.");
+      return;
+    }
     setSavingProfile(true);
     setProfileError("");
     try {
       const { data, error } = await updateProfile(user.id, {
         full_name: fullName.trim() || null,
-        phone: phone.trim() || null,
+        phone: normalizedPhone,
       });
       if (error) throw new Error(error.message || "Failed to update profile");
       setEditingProfile(false);
@@ -239,9 +250,10 @@ export default function AccountPage() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-muted-foreground">Phone</label>
                   <input
+                    type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Phone (optional)"
+                    placeholder="(555) 123-4567"
                     className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
                   />
                 </div>

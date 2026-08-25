@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { ArrowRight, Bell, CalendarPlus, Flower2, Pencil, Plus, Sparkles, Trash2, UserRound, X, Zap } from "lucide-react";
+import { ArrowRight, Bell, CalendarPlus, Flower2, Pencil, Plus, Sparkles, Trash2, UserRound, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -11,9 +11,10 @@ import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
 import { nextOccurrenceDate } from "@/lib/date-utils";
 import { trackEvent } from "@/lib/supabase/db";
-import { createClient } from "@/lib/supabase/client";
 import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
+import { CountUp } from "@/components/ui/count-up";
+import { GoogleCalendarConnect } from "@/components/calendar/google-calendar-connect";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Hanukkah", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
@@ -198,18 +199,29 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
       if (idx !== personIndex) return p;
       const occasions = [...p.occasions];
       const next = { ...occasions[occIndex], [field]: value };
-      if (field === "label" && LOCKED_OCCASION_LABELS.has(value)) {
-        next.date = nextHolidayDateString(value) ?? next.date;
+      if (field === "label" && LOCKED_OCCASION_LABELS.has(String(value))) {
+        next.date = nextHolidayDateString(String(value)) ?? next.date;
       }
       occasions[occIndex] = next;
       return { ...p, occasions };
     }));
   }
 
+  const [interestsError, setInterestsError] = useState<number | null>(null);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const valid = people.filter((p) => p.name.trim());
     if (valid.length === 0) return;
+    // Interests are what the recommendation engine actually matches gifts
+    // against -- skipping this field is exactly how "generic gift ideas"
+    // complaints happen, so it's required, not optional, per beta feedback.
+    const missingIndex = people.findIndex((p) => p.name.trim() && !p.aboutText.trim());
+    if (missingIndex !== -1) {
+      setInterestsError(missingIndex);
+      return;
+    }
+    setInterestsError(null);
     setSaving(true);
     try {
       const built = await Promise.all(valid.map(async (p) => {
@@ -295,16 +307,20 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
               </div>
               <div className="grid gap-1.5">
                 <label className="flex items-center gap-1.5 text-sm font-semibold">
-                  <Sparkles className="h-3.5 w-3.5 text-givit-ember" /> Tell us about them (optional)
+                  <Sparkles className="h-3.5 w-3.5 text-givit-ember" /> Tell us about them *
                 </label>
                 <textarea
                   value={person.aboutText}
-                  onChange={(e) => updatePerson(personIndex, "aboutText", e.target.value)}
+                  onChange={(e) => { updatePerson(personIndex, "aboutText", e.target.value); if (interestsError === personIndex) setInterestsError(null); }}
                   rows={2}
                   placeholder="e.g. Loves gardening, homemade food, and traveling. Already has lots of kitchen gadgets."
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                  className={`w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20 ${interestsError === personIndex ? "border-destructive" : "border-border"}`}
                 />
-                <p className="text-xs text-muted-foreground">Your Gift AI reads this and fills in interests and things to avoid automatically.</p>
+                {interestsError === personIndex ? (
+                  <p className="text-xs font-medium text-destructive">Add at least a couple interests — this is what Your Gift AI matches gifts against.</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Your Gift AI reads this and fills in interests and things to avoid automatically.</p>
+                )}
               </div>
             </div>
           ))}
@@ -376,8 +392,8 @@ function EditRecipientModal({
     setOccasions((prev) => prev.map((o, idx) => {
       if (idx !== i) return o;
       const next = { ...o, [field]: value };
-      if (field === "label" && LOCKED_OCCASION_LABELS.has(value)) {
-        next.date = nextHolidayDateString(value) ?? next.date;
+      if (field === "label" && LOCKED_OCCASION_LABELS.has(String(value))) {
+        next.date = nextHolidayDateString(String(value)) ?? next.date;
       }
       return next;
     }));
@@ -402,6 +418,14 @@ function EditRecipientModal({
         if (extracted.birthdayDate && !finalOccasions.some((o) => o.label === "Birthday")) {
           finalOccasions = [...finalOccasions, { label: "Birthday", date: extracted.birthdayDate }];
         }
+      }
+
+      // Interests are what the recommendation engine actually matches gifts
+      // against -- required, not optional, per beta feedback that generic
+      // recommendations trace back to this being skippable.
+      if (interests.length === 0) {
+        setError("Add at least one interest (or describe them below) so Your Gift AI has something to match against.");
+        return;
       }
 
       const [profileResult, occasionsResult] = await Promise.all([
@@ -530,93 +554,75 @@ function EditRecipientModal({
   );
 }
 
-function PersonProfileCard({ recipient, onDelete, onEdit, onToggleAutomation }: { recipient: Recipient; onDelete: () => void; onEdit: () => void; onToggleAutomation: () => void }) {
+function PersonProfileRow({ recipient, onDelete, onEdit, onToggleAutomation }: { recipient: Recipient; onDelete: () => void; onEdit: () => void; onToggleAutomation: () => void }) {
   const today = new Date();
   const upcoming = recipient.occasions
     .filter((o) => o.date)
     .map((o) => ({ ...o, parsed: nextOccurrenceDate(o.date, today) }))
     .sort((a, b) => a.parsed.getTime() - b.parsed.getTime())[0];
   const daysUntil = upcoming ? Math.ceil((upcoming.parsed.getTime() - today.getTime()) / 86400000) : null;
+  const lastGift = recipient.notes?.trim()?.split("\n").filter(Boolean).slice(-1)[0];
+
+  // The subtitle line does the job three separate blocks (interests pills,
+  // "usual budget," occasion list) used to do in the old card -- a roster
+  // row reads as a live line item, not a form field readout, when it's one
+  // scannable line instead of a stack of labeled facts.
+  const subtitleParts = [
+    recipient.interests?.length ? recipient.interests.join(", ") : null,
+    recipient.budgetCents ? `~$${(recipient.budgetCents / 100).toFixed(0)} budget` : null,
+  ].filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border/40 bg-card p-5">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full givit-gradient text-base font-bold text-white">
-            {initials(recipient.name)}
-          </div>
-          <div>
-            <p className="font-serif text-base font-bold text-givit-ink">{recipient.name}</p>
-            {recipient.relationship && <p className="text-xs text-muted-foreground">{recipient.relationship}</p>}
-          </div>
+    <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full givit-gradient text-sm font-bold text-white">
+          {initials(recipient.name)}
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <label
-            title={`AutoGift is ${recipient.automationEnabled !== false ? "on" : "off"} for ${recipient.name}`}
-            className="flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-1"
-          >
-            <Zap className={`h-3.5 w-3.5 transition-colors ${recipient.automationEnabled !== false ? "fill-emerald-500 text-emerald-500" : "text-muted-foreground"}`} />
-            <Switch
-              checked={recipient.automationEnabled !== false}
-              onCheckedChange={() => onToggleAutomation()}
-              className="data-[state=unchecked]:bg-muted-foreground/40 data-[state=checked]:bg-emerald-500"
-            />
-          </label>
-          <button type="button" onClick={onEdit} aria-label={`Edit ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button type="button" onClick={onDelete} aria-label={`Remove ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-baseline gap-x-2">
+            <span className="font-serif text-base font-bold text-givit-ink">{recipient.name}</span>
+            {recipient.relationship && <span className="text-xs text-muted-foreground">{recipient.relationship}</span>}
+          </p>
+          {subtitleParts.length > 0 ? (
+            <p className="truncate text-xs text-muted-foreground">{subtitleParts.join(" · ")}</p>
+          ) : (
+            <p className="text-xs italic text-muted-foreground/70">No interests learned yet</p>
+          )}
+          {lastGift && <p className="truncate text-[11px] text-givit-ember/80">{lastGift}</p>}
         </div>
       </div>
 
-      {recipient.interests && recipient.interests.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {recipient.interests.map((interest) => (
-            <span key={interest} className="rounded-full bg-givit-sand px-2.5 py-1 text-xs font-medium text-givit-ink">{interest}</span>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs italic text-muted-foreground">No interests learned yet: describe them next time you edit.</p>
-      )}
-
-      {recipient.budgetCents ? (
-        <p className="text-xs text-muted-foreground">Usual budget: <span className="font-semibold text-foreground">${(recipient.budgetCents / 100).toFixed(0)}</span></p>
-      ) : null}
-
-      {recipient.notes?.trim() && (
-        <div className="rounded-lg bg-givit-ember/5 p-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-givit-ember">Gift history</p>
-          <ul className="mt-1 space-y-0.5 text-xs leading-5 text-muted-foreground">
-            {recipient.notes.trim().split("\n").slice(-3).reverse().map((line, i) => <li key={i}>{line}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {recipient.occasions.length > 0 && (
-        <div className="space-y-1.5">
-          {recipient.occasions.slice(0, 3).map((occ, i) => (
-            <div key={i} className="flex items-center justify-between rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs">
-              <span className="font-medium text-foreground">{occ.label}</span>
-              <span className="text-muted-foreground">{new Date(occ.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {daysUntil !== null && (
-        <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${daysUntil <= 14 ? "bg-rose-50 text-rose-700" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
-          <Bell className="h-3 w-3" /> {upcoming?.label} in {daysUntil} day{daysUntil !== 1 ? "s" : ""}
-        </span>
-      )}
-
-      <Link
-        href={`/gift?q=${encodeURIComponent(`Gift for ${recipient.name}`)}`}
-        className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-full bg-givit-ember py-2 text-xs font-semibold text-white transition hover:bg-givit-ember-hover"
-      >
-        <Sparkles className="h-3.5 w-3.5" /> Shop for {recipient.name.split(" ")[0]}
-      </Link>
+      <div className="flex shrink-0 flex-wrap items-center gap-2 pl-[52px] sm:pl-0">
+        {daysUntil !== null && (
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${daysUntil <= 14 ? "bg-rose-50 text-rose-700" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+            <Bell className="h-3 w-3" /> {upcoming?.label} · {daysUntil}d
+          </span>
+        )}
+        <Link
+          href={`/gift?q=${encodeURIComponent(`Gift for ${recipient.name}`)}`}
+          title={`Shop for ${recipient.name}`}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-givit-ember/10 text-givit-ember transition hover:bg-givit-ember/20"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+        </Link>
+        <label
+          title={`AutoGift is ${recipient.automationEnabled !== false ? "on" : "off"} for ${recipient.name}`}
+          className="flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-1"
+        >
+          <span className={`text-[9px] font-bold uppercase tracking-widest ${recipient.automationEnabled !== false ? "text-emerald-600" : "text-muted-foreground/60"}`}>Auto</span>
+          <Switch
+            checked={recipient.automationEnabled !== false}
+            onCheckedChange={() => onToggleAutomation()}
+            className="data-[state=unchecked]:bg-muted-foreground/40 data-[state=checked]:bg-emerald-500"
+          />
+        </label>
+        <button type="button" onClick={onEdit} aria-label={`Edit ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button type="button" onClick={onDelete} aria-label={`Remove ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -673,104 +679,6 @@ function CancelRecipientModal({ name, onConfirm, onClose }: { name: string; onCo
 }
 
 type ImportRow = ParsedCalendarEvent & { selected: boolean; name: string; occasion: string };
-
-async function authedFetch(path: string, init?: RequestInit) {
-  const { data } = await createClient().auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("Not signed in.");
-  return fetch(path, {
-    ...init,
-    headers: { ...(init?.headers ?? {}), Authorization: `Bearer ${token}` },
-  });
-}
-
-// Google Calendar OAuth is live (see api/auth/google-calendar/*) — this is
-// the "reconnect any time" path once a person's actually granted access.
-// The .ics upload below stays as the zero-account fallback for Apple/Outlook
-// users, or for anyone who'd rather not connect an account at all.
-function GoogleCalendarConnect() {
-  const [status, setStatus] = useState<"loading" | "connected" | "disconnected">("loading");
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    authedFetch("/api/calendar/status")
-      .then((res) => res.json())
-      .then((data) => { if (!cancelled) setStatus(data.connected ? "connected" : "disconnected"); })
-      .catch(() => { if (!cancelled) setStatus("disconnected"); });
-    return () => { cancelled = true; };
-  }, []);
-
-  async function connect() {
-    setBusy(true);
-    try {
-      const res = await authedFetch("/api/auth/google-calendar/callback", { method: "POST" });
-      // Read as text first, not res.json() directly -- if the server ever
-      // returns something that isn't valid JSON (a platform-level crash
-      // page rather than our own handled error response), res.json()
-      // throws a generic "Unexpected token" parse error that hides
-      // whatever the server actually said. This guarantees the real
-      // response body shows up in the toast either way.
-      const raw = await res.text();
-      let data: any = {};
-      try { data = raw ? JSON.parse(raw) : {}; } catch { /* not JSON, handled below */ }
-      if (data.url) { window.location.href = data.url; return; }
-      throw new Error(data.error || (raw ? raw.slice(0, 200) : `Request failed (${res.status}).`));
-    } catch (err: any) {
-      toast.error(err.message || "Couldn't connect Google Calendar.");
-      setBusy(false);
-    }
-  }
-
-  async function disconnect() {
-    setBusy(true);
-    try {
-      await authedFetch("/api/auth/google-calendar/callback", { method: "DELETE" });
-      setStatus("disconnected");
-      toast.success("Google Calendar disconnected.");
-    } catch {
-      toast.error("Couldn't disconnect. Try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function syncNow() {
-    setBusy(true);
-    try {
-      const res = await authedFetch("/api/calendar/sync", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Sync failed.");
-      toast.success(`Synced: ${data.peopleCreated} new ${data.peopleCreated === 1 ? "person" : "people"}, ${data.occasionsAdded} date${data.occasionsAdded === 1 ? "" : "s"} added.`);
-      window.setTimeout(() => window.location.reload(), 1200);
-    } catch (err: any) {
-      toast.error(err.message || "Sync failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (status === "loading") return null;
-
-  return (
-    <div className="rounded-lg border border-border bg-muted/30 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-givit-ink">Google Calendar</p>
-          <p className="text-xs text-muted-foreground">{status === "connected" ? "Connected — stays in sync until you disconnect." : "Connect once, sync any time."}</p>
-        </div>
-        {status === "connected" ? (
-          <div className="flex shrink-0 gap-2">
-            <Button onClick={() => void syncNow()} disabled={busy} size="sm" className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">Sync now</Button>
-            <Button onClick={() => void disconnect()} disabled={busy} variant="outline" size="sm" className="rounded-full">Disconnect</Button>
-          </div>
-        ) : (
-          <Button onClick={() => void connect()} disabled={busy} size="sm" className="shrink-0 rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">Connect</Button>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function CalendarImportModal({
   recipients,
@@ -843,7 +751,7 @@ function CalendarImportModal({
 
         {!rows ? (
           <div className="space-y-4 p-5">
-            <GoogleCalendarConnect />
+            <GoogleCalendarConnect variant="card" />
 
             <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
@@ -990,7 +898,10 @@ export default function PeoplePage() {
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">People</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold uppercase tracking-widest text-givit-ember">
+            <span>GIVIT</span>
+            <span className="text-muted-foreground"><CountUp value={recipients.length} className="font-mono" /> {recipients.length === 1 ? "person" : "people"} saved</span>
+          </div>
           <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">The people you care about</h1>
           <p className="mt-1 text-sm text-muted-foreground">Interests, budgets, and dates: saved once, remembered by Your Gift AI every time.</p>
         </div>
@@ -1016,9 +927,14 @@ export default function PeoplePage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        // A registry, not a wall of cards -- one bordered box per person
+        // repeated across a grid is the single most recognizable "AI
+        // dashboard" cliche there is. Rows separated by a hairline read as
+        // a live roster GIVIT is actually keeping, closer to the memory-
+        // layer framing above than a Pinterest-style card grid ever did.
+        <div className="divide-y divide-border/40 border-t border-border/40">
           {recipients.map((r) => (
-            <PersonProfileCard
+            <PersonProfileRow
               key={r.id}
               recipient={r}
               onDelete={() => setCancelingId(r.id)}
@@ -1029,10 +945,9 @@ export default function PeoplePage() {
           <button
             type="button"
             onClick={() => setShowModal(true)}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/40 py-8 text-sm text-muted-foreground transition hover:border-givit-ember/40 hover:text-givit-ember"
+            className="flex w-full items-center gap-2 py-4 text-sm font-medium text-muted-foreground transition hover:text-givit-ember"
           >
-            <Plus className="h-6 w-6" />
-            Add person
+            <Plus className="h-4 w-4" /> Add another person
           </button>
         </div>
       )}

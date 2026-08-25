@@ -19,6 +19,20 @@ function redirect(res: any, path: string) {
   res.end();
 }
 
+// The connect button lives on both /calendar and /people -- without
+// tracking which page actually started the flow, this used to hardcode
+// the return trip to /people, so connecting from /calendar would silently
+// bounce the user to a different page than the one they were on (easy to
+// read as "the button did nothing" if the toast goes unnoticed). Allowlist
+// rather than trusting the client-supplied path outright, since it's only
+// signed into `state` (and thus tamper-proof) starting from this request,
+// not before it -- an open redirect otherwise.
+const SAFE_RETURN_PATHS = new Set(["/calendar", "/people"]);
+
+function resolveReturnTo(value: unknown): string {
+  return typeof value === "string" && SAFE_RETURN_PATHS.has(value) ? value : "/calendar";
+}
+
 async function start(req: any, res: any) {
   try {
     const user = await getUserFromRequest(req);
@@ -26,7 +40,8 @@ async function start(req: any, res: any) {
       res.status(401).json({ error: "Not signed in." });
       return;
     }
-    const state = signState({ userId: user.id });
+    const returnTo = resolveReturnTo(req.query?.returnTo);
+    const state = signState({ userId: user.id, returnTo });
     res.status(200).json({ url: buildAuthUrl(state) });
   } catch (error: any) {
     res.status(500).json({ error: error?.message ?? "Couldn't start Google Calendar connect." });
@@ -35,29 +50,30 @@ async function start(req: any, res: any) {
 
 async function callback(req: any, res: any) {
   const { code, state, error } = req.query ?? {};
+  const payload = typeof state === "string" ? verifyState(state) : null;
+  const returnTo = resolveReturnTo(payload?.returnTo);
 
   if (error) {
-    redirect(res, "/people?calendar=denied");
+    redirect(res, `${returnTo}?calendar=denied`);
     return;
   }
 
-  const payload = typeof state === "string" ? verifyState(state) : null;
   if (!payload?.userId || typeof code !== "string") {
-    redirect(res, "/people?calendar=error");
+    redirect(res, `${returnTo}?calendar=error`);
     return;
   }
 
   try {
     const tokens = await exchangeCodeForTokens(code);
     if (!tokens.refresh_token) {
-      redirect(res, "/people?calendar=error");
+      redirect(res, `${returnTo}?calendar=error`);
       return;
     }
     await saveConnection(payload.userId, tokens.refresh_token);
-    redirect(res, "/people?calendar=connected");
+    redirect(res, `${returnTo}?calendar=connected`);
   } catch (err: any) {
     console.error("google-calendar callback failed:", err?.message);
-    redirect(res, "/people?calendar=error");
+    redirect(res, `${returnTo}?calendar=error`);
   }
 }
 

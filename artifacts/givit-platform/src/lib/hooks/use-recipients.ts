@@ -123,7 +123,7 @@ function generateNotifications(recipients: Recipient[], defaultLeadDays = NOTIFI
  * reminders) so both pages read the same real Supabase data instead of
  * each maintaining its own copy.
  */
-export function useRecipients(user: User | null | undefined, defaultLeadDays: number = NOTIFICATION_LEAD_DAYS) {
+export function useRecipients(user: { id: string; email?: string } | User | null | undefined, defaultLeadDays: number = NOTIFICATION_LEAD_DAYS) {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [notifications, setNotifications] = useState<ConciergeNotification[]>([]);
   const [localReady, setLocalReady] = useState(false);

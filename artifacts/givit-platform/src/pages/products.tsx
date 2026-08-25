@@ -32,6 +32,7 @@ import { ProductGrid } from "@/components/product/product-grid";
 import { WishlistRail } from "@/components/product/wishlist-button";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
+import { CountUp } from "@/components/ui/count-up";
 import {
   GIFT_COLLECTIONS,
   MARKETPLACE_CATEGORIES,
@@ -46,10 +47,38 @@ import { getGiftRecipients } from "@/lib/supabase/db";
 import { formatMoney } from "@/lib/format";
 import { initials } from "@/lib/utils";
 
+// Pulled from the actual `occasions` tags present in the product catalog
+// (verified by grepping marketplace.ts), not guessed -- the previous list
+// was missing "Birthday" entirely (the single most common gift occasion)
+// while including "Valentine's Day", which no product in the seed catalog
+// is actually tagged with, so that option silently always returned zero
+// results.
 const OCCASIONS = [
-  "Christmas", "Valentine's Day", "Mother's Day", "Father's Day",
-  "Graduation", "Baby Shower", "Wedding", "Anniversary", "Retirement",
+  "Birthday", "Anniversary", "Wedding", "Baby Shower", "New Baby", "Graduation",
+  "Christmas", "Holiday", "Diwali", "Mother's Day", "Father's Day", "Housewarming",
+  "New Job", "Promotion", "Retirement", "Thank You", "Secret Santa", "White Elephant",
+  "Stocking Stuffer", "Goodbye Gift", "Travel",
 ];
+
+// The catalog doesn't carry a per-product age rating (nothing to filter on
+// there without inventing data), but it does carry real `recipients` life-
+// stage tags ("kid", "college student", "grandparent", ...) -- verified
+// present in marketplace.ts the same way OCCASIONS was. Age buckets map
+// onto those genuine tags instead of a fabricated field. No "Adults"
+// bucket: with no adult-specific tag to filter on, that option would be
+// identical to "Any age," which is already the default.
+const AGE_GROUPS: { value: string; label: string }[] = [
+  { value: "kid", label: "Kids" },
+  { value: "student", label: "Teens & students" },
+  { value: "parent", label: "Parents" },
+  { value: "senior", label: "Grandparents & seniors" },
+];
+const AGE_GROUP_TAGS: Record<string, string[]> = {
+  kid: ["kid"],
+  student: ["student", "college student", "graduate"],
+  parent: ["parent", "new parent", "busy parent"],
+  senior: ["grandparent"],
+};
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   tech: Cpu,
@@ -87,11 +116,85 @@ type ShoppingForPerson = {
   budgetCents: number | null;
 };
 
+// The occasion/price-range filters have always existed in the underlying
+// query logic (?occasion=, ?min=, ?max=) but had no actual control anywhere
+// on the page -- reachable only by hand-editing the URL. This is that
+// control, shared between the always-visible desktop sidebar and a
+// collapsible mobile panel so it's one definition, not two drifting copies.
+function MarketplaceFilters({ q, categorySlug, sortVal, occasion, ageGroup, minStr, maxStr }: {
+  q?: string;
+  categorySlug?: string;
+  sortVal: string;
+  occasion?: string;
+  ageGroup?: string;
+  minStr: string;
+  maxStr: string;
+}) {
+  const hasActiveFilters = Boolean(occasion) || Boolean(ageGroup) || Boolean(minStr) || Boolean(maxStr);
+  return (
+    <form method="get" action="/products" className="space-y-4">
+      {q ? <input type="hidden" name="q" value={q} /> : null}
+      {categorySlug ? <input type="hidden" name="category" value={categorySlug} /> : null}
+      <input type="hidden" name="sort" value={sortVal} />
+
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold text-foreground">Occasion</label>
+        <select
+          name="occasion"
+          defaultValue={occasion ?? ""}
+          className="h-9 w-full rounded-lg border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+        >
+          <option value="">Any occasion</option>
+          {OCCASIONS.map((o) => (
+            <option key={o} value={o.toLowerCase()}>{o}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold text-foreground">Recipient's age</label>
+        <select
+          name="age"
+          defaultValue={ageGroup ?? ""}
+          className="h-9 w-full rounded-lg border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+        >
+          <option value="">Any age</option>
+          {AGE_GROUPS.map((a) => (
+            <option key={a.value} value={a.value}>{a.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold text-foreground">Price range</label>
+        <div className="flex items-center gap-2">
+          <input type="number" name="min" min={0} step={1} defaultValue={minStr} placeholder="Min" className="h-9 w-full rounded-lg border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20" />
+          <span className="text-muted-foreground">–</span>
+          <input type="number" name="max" min={0} step={1} defaultValue={maxStr} placeholder="Max" className="h-9 w-full rounded-lg border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20" />
+        </div>
+      </div>
+
+      <button type="submit" className="w-full rounded-full bg-givit-ember py-2 text-xs font-semibold text-white transition hover:bg-givit-ember-hover">
+        Apply filters
+      </button>
+      {hasActiveFilters && (
+        <Link
+          href={`/products${categorySlug ? `?category=${encodeURIComponent(categorySlug)}` : ""}`}
+          className="block text-center text-xs font-medium text-muted-foreground hover:text-givit-ember"
+        >
+          Clear filters
+        </Link>
+      )}
+    </form>
+  );
+}
+
 export default function ProductsPage() {
   const { get } = useSearchParams();
   const categorySlug = get("category") || undefined;
   const q = get("q") || undefined;
   const occasion = get("occasion") || undefined;
+  const ageGroup = get("age") || undefined;
   const sortVal = get("sort") || "ranked";
   const minStr = get("min") || "";
   const maxStr = get("max") || "";
@@ -168,6 +271,10 @@ export default function ProductsPage() {
     if (occasion && !product.occasions.some((item) => item.toLowerCase().includes(occasion))) return false;
     if (minCents && product.price_cents < minCents) return false;
     if (maxCents && product.price_cents > maxCents) return false;
+    if (ageGroup) {
+      const tags = AGE_GROUP_TAGS[ageGroup] ?? [];
+      if (tags.length > 0 && !product.recipients.some((r) => tags.includes(r.toLowerCase()))) return false;
+    }
     return true;
   });
 
@@ -247,7 +354,8 @@ export default function ProductsPage() {
   // scroll down. Skip the very first render so landing on /products doesn't
   // yank the page.
   const resultsRef = useRef<HTMLDivElement>(null);
-  const resultsKey = `${categorySlug ?? ""}|${q ?? ""}|${occasion ?? ""}|${sortVal}|${minStr}|${maxStr}|${forId ?? ""}`;
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const resultsKey = `${categorySlug ?? ""}|${q ?? ""}|${occasion ?? ""}|${ageGroup ?? ""}|${sortVal}|${minStr}|${maxStr}|${forId ?? ""}`;
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -277,9 +385,11 @@ export default function ProductsPage() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
         <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-center">
           <div>
-            <p className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-givit-coral">
-              <Sparkles className="h-3 w-3" /> Editorially curated
-            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] font-bold uppercase tracking-widest text-white/50">
+              <span className="text-givit-coral">GIVIT</span>
+              <span>EDITORIALLY CURATED</span>
+              <span><CountUp value={sorted.length} className="font-mono" /> RESULT{sorted.length === 1 ? "" : "S"}</span>
+            </div>
             <h1 className="mt-4 font-serif text-4xl font-bold leading-[1.05] md:text-6xl">
               Marketplace
             </h1>
@@ -350,51 +460,77 @@ export default function ProductsPage() {
           exact same category list on desktop (lg+) -- showing both at once
           was pure duplication. This stays for small screens, where the
           sidebar is hidden. */}
-      <div className="mb-6 flex snap-x gap-2 overflow-x-auto pb-1 lg:hidden">
-        <Link
-          href="/products"
-          className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${cnPill(!categorySlug)}`}
+      <div className="mb-6 flex items-center gap-2 lg:hidden">
+        <div className="flex flex-1 snap-x gap-2 overflow-x-auto pb-1">
+          <Link
+            href="/products"
+            className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${cnPill(!categorySlug)}`}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" /> All
+          </Link>
+          {categories.map((c) => {
+            const Icon = CATEGORY_ICONS[c.slug] ?? LayoutGrid;
+            return (
+              <Link
+                key={c.id}
+                href={`/products?category=${encodeURIComponent(c.slug)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${cnPill(categorySlug === c.slug)}`}
+              >
+                <Icon className="h-3.5 w-3.5" /> {c.name}
+              </Link>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowMobileFilters((v) => !v)}
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${cnPill(showMobileFilters || Boolean(occasion) || Boolean(ageGroup) || Boolean(minStr) || Boolean(maxStr))}`}
         >
-          <LayoutGrid className="h-3.5 w-3.5" /> All
-        </Link>
-        {categories.map((c) => {
-          const Icon = CATEGORY_ICONS[c.slug] ?? LayoutGrid;
-          return (
-            <Link
-              key={c.id}
-              href={`/products?category=${encodeURIComponent(c.slug)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-              className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${cnPill(categorySlug === c.slug)}`}
-            >
-              <Icon className="h-3.5 w-3.5" /> {c.name}
-            </Link>
-          );
-        })}
+          <SlidersHorizontal className="h-3.5 w-3.5" /> Filters
+        </button>
       </div>
+
+      {showMobileFilters && (
+        <div className="mb-6 rounded-2xl border border-border/50 bg-card p-4 lg:hidden">
+          <MarketplaceFilters q={q} categorySlug={categorySlug} sortVal={sortVal} occasion={occasion} ageGroup={ageGroup} minStr={minStr} maxStr={maxStr} />
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
-          <div className="sticky top-40 space-y-1">
-            <h2 className="mb-2 flex items-center gap-2 px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              <Compass className="h-3.5 w-3.5" /> Departments
-            </h2>
-            <Link
-              href="/products"
-              className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${cnPill(!categorySlug)}`}
-            >
-              <LayoutGrid className="h-4 w-4 shrink-0" /> All categories
-            </Link>
-            {categories.map((c) => {
-              const Icon = CATEGORY_ICONS[c.slug] ?? LayoutGrid;
-              return (
-                <Link
-                  key={c.id}
-                  href={`/products?category=${encodeURIComponent(c.slug)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-                  className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${cnPill(categorySlug === c.slug)}`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" /> {c.name}
-                </Link>
-              );
-            })}
+          <div className="sticky top-40 space-y-6">
+            <div className="space-y-1">
+              <h2 className="mb-2 flex items-center gap-2 px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <Compass className="h-3.5 w-3.5" /> Departments
+              </h2>
+              <Link
+                href="/products"
+                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${cnPill(!categorySlug)}`}
+              >
+                <LayoutGrid className="h-4 w-4 shrink-0" /> All categories
+              </Link>
+              {categories.map((c) => {
+                const Icon = CATEGORY_ICONS[c.slug] ?? LayoutGrid;
+                return (
+                  <Link
+                    key={c.id}
+                    href={`/products?category=${encodeURIComponent(c.slug)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                    className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${cnPill(categorySlug === c.slug)}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" /> {c.name}
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="border-t border-border/40 pt-6">
+              <h2 className="mb-3 flex items-center gap-2 px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <SlidersHorizontal className="h-3.5 w-3.5" /> Filters
+              </h2>
+              <div className="px-3">
+                <MarketplaceFilters q={q} categorySlug={categorySlug} sortVal={sortVal} occasion={occasion} ageGroup={ageGroup} minStr={minStr} maxStr={maxStr} />
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -432,6 +568,11 @@ export default function ProductsPage() {
               <span className="font-semibold text-givit-ink">{sorted.length} ranked gift ideas</span>
               {q ? <span className="text-muted-foreground"> for "{q}"</span> : null}
               {activeCategory ? <span className="text-muted-foreground"> in {activeCategory.name}</span> : null}
+              {occasion ? <span className="text-muted-foreground"> · {occasion}</span> : null}
+              {ageGroup ? <span className="text-muted-foreground"> · {AGE_GROUPS.find((a) => a.value === ageGroup)?.label.toLowerCase()}</span> : null}
+              {minStr || maxStr ? (
+                <span className="text-muted-foreground"> · ${minStr || "0"}–{maxStr ? `$${maxStr}` : "any"}</span>
+              ) : null}
               {shoppingFor ? <span className="text-muted-foreground"> · sorted for {shoppingFor.name}'s interests</span> : null}
             </p>
             <div className="flex flex-wrap items-center gap-2">

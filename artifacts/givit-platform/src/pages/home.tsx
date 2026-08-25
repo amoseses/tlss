@@ -9,6 +9,7 @@ import { WelcomeTour } from "@/components/personalization/welcome-tour";
 import { Button } from "@/components/ui/button";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
 import { Reveal } from "@/components/ui/reveal";
+import { TypewriterText } from "@/components/ui/typewriter-text";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useScrollProgress } from "@/lib/hooks/use-scroll-progress";
 
@@ -92,38 +93,34 @@ export default function HomePage() {
 
         <div className="container relative py-16 md:py-24">
           <div className="slide-up mx-auto max-w-xl text-center" style={{ animationDelay: "0ms" }}>
-            <div className="pointer-events-none mx-auto mb-2 flex h-14 items-center justify-center">
-              <GiftBox3D size={56} />
+            {/* A dark instrument viewport for the mark, not a plain icon on
+                the page background -- the same charcoal used for the memory
+                graph, so the hero's "AI core" and the graph's "AI core"
+                read as one material, not two unrelated treatments. */}
+            <div className="pointer-events-none mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-[#16151a] shadow-lg shadow-black/30 ring-1 ring-white/5">
+              <GiftBox3D size={48} />
             </div>
-            <p className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-bold uppercase tracking-widest text-givit-coral">
-              <Sparkles className="h-3.5 w-3.5" /> Your AI gifting agent
-            </p>
-            <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-foreground md:text-5xl">
+            <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-widest text-givit-ember">GIVIT</p>
+            <h1 className="font-serif text-4xl font-bold leading-tight text-foreground md:text-5xl">
               Never send a bad gift again.
             </h1>
             <p className="mt-4 text-base leading-7 text-muted-foreground">
               GIVIT remembers everyone you care about, reasons about what they'd actually love, and lines it up before you approve it.
             </p>
 
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
               <Button asChild className="h-12 rounded-full bg-foreground px-6 text-sm font-bold text-background hover:bg-foreground/90">
                 <Link href="/people">
                   Add Your First Relationship <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-12 rounded-full px-6 text-sm font-semibold">
-                <Link href="/gift">
-                  <Sparkles className="h-4 w-4" /> Talk to GIVIT
-                </Link>
-              </Button>
+              <Link href="/gift" className="inline-flex items-center gap-1.5 border-b border-transparent pb-0.5 text-sm font-semibold text-foreground transition hover:border-foreground/40">
+                Talk to GIVIT <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           </div>
         </div>
       </section>
-
-      <p className="container py-6 text-center font-sans text-xl font-bold tracking-tight text-foreground md:text-2xl">
-        Never forget an important date again.
-      </p>
 
       {/* How it works — explains the mechanism before showing it in action below */}
       <HowItWorksScroll />
@@ -131,39 +128,48 @@ export default function HomePage() {
       {/* People dashboard — the actual front door for returning, logged-in users */}
       <PeopleDashboard />
 
-      {/* Visual map of who GIVIT remembers, right after the people it's about */}
-      <RelationshipGraph />
+      {/* Visual map of who GIVIT remembers, right after the people it's about --
+          a faint tint here (rather than the bare page background) is what
+          actually separates it from the sections above and below; without
+          it the whole run from the people grid through relationship
+          intelligence reads as one undifferentiated scroll. */}
+      <div className="bg-givit-sand/30">
+        <RelationshipGraph />
+      </div>
 
       {/* What GIVIT has learned recently — a real, growing memory feed, not a product rail */}
       <RecentMemoryFeed />
 
       {/* Relationship intelligence — what GIVIT knows and is doing for you, not a product rail */}
-      <RelationshipInsights />
+      <div className="bg-givit-sand/30">
+        <RelationshipInsights />
+      </div>
 
-      {/* Footer CTA */}
-      <Reveal variant="triangle">
-        <section className="container mt-4">
-          <div className="relative overflow-hidden rounded-xl border border-border/50 bg-card px-8 py-10 text-foreground md:px-12">
-            <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-givit-ember/10" />
-            <div className="relative max-w-2xl">
-              <h2 className="font-serif text-2xl font-bold md:text-3xl">Every AI conversation starts from zero. GIVIT starts with years of context.</h2>
-              <p className="mt-3 mb-6 text-sm leading-7 text-muted-foreground">
-                {user
-                  ? "AutoGift reminds you early and handles fulfillment once you approve."
-                  : (
-                    <><Link href="/login" className="givit-link underline">Sign in</Link> to let AutoGift remind you early and handle fulfillment once you approve.</>
-                  )}
-              </p>
-              {user ? (
-                <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
-                  <Link href="/concierge"><Zap className="h-4 w-4" /> Go to AutoGift</Link>
-                </Button>
-              ) : (
-                <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
-                  <Link href="/people"><Bell className="h-4 w-4" /> Add your first person</Link>
-                </Button>
-              )}
-            </div>
+      {/* Footer CTA -- deliberately not a card. This is the closing line of
+          the page, not one more panel in a stack of panels, so it gets
+          typed out rather than boxed in. */}
+      <Reveal variant="fade">
+        <section className="container mt-4 py-10 text-center md:py-14">
+          <div className="mx-auto max-w-2xl">
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">
+              <TypewriterText text="Every AI conversation starts from zero. GIVIT starts with years of context." />
+            </h2>
+            <p className="mt-3 mb-6 text-sm leading-7 text-muted-foreground">
+              {user
+                ? "AutoGift reminds you early and handles fulfillment once you approve."
+                : (
+                  <><Link href="/login" className="givit-link underline">Sign in</Link> to let AutoGift remind you early and handle fulfillment once you approve.</>
+                )}
+            </p>
+            {user ? (
+              <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
+                <Link href="/concierge"><Zap className="h-4 w-4" /> Go to AutoGift</Link>
+              </Button>
+            ) : (
+              <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
+                <Link href="/people"><Bell className="h-4 w-4" /> Add your first person</Link>
+              </Button>
+            )}
           </div>
         </section>
       </Reveal>

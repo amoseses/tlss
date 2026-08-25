@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Clock } from "lucide-react";
+import { Clock, Gift } from "lucide-react";
 
 export type RecentlyViewedItem = {
   slug: string;
@@ -70,7 +70,7 @@ export function RecentlyViewedRail({ compact = false }: { compact?: boolean }) {
               {item.image ? (
                 <img src={item.image} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
               ) : (
-                <div className="flex h-full items-center justify-center text-2xl">🎁</div>
+                <div className="flex h-full items-center justify-center"><Gift className="h-6 w-6 text-muted-foreground/40" /></div>
               )}
             </div>
             <p className="mt-2 line-clamp-2 text-xs font-semibold text-givit-ink">{item.name}</p>

@@ -207,9 +207,9 @@ export function GiftReviews({ productId }: { productId: string }) {
         </form>
       ) : null}
 
-      <div className="grid gap-3">
+      <div className="divide-y divide-border/50">
         {reviews.map((review) => (
-          <article key={review.id} className="rounded-2xl border border-border/70 p-5">
+          <article key={review.id} className="py-5 first:pt-0">
             <div className="flex flex-wrap items-center gap-2">
               <Stars value={review.rating} />
               <span className="font-semibold text-givit-ink">{review.title}</span>

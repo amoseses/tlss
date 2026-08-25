@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
+import { Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +55,7 @@ export default function SignupPage() {
     return (
       <AuthShell title="Almost there." subtitle="Confirm your email and you're set up for AutoGift reminders and AI picks.">
         <Card className="givit-panel rounded-2xl p-6 text-center shadow-md">
-          <div className="mx-auto mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-givit-ember/10 text-3xl">🎉</div>
+          <div className="mx-auto mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-givit-ember/10"><Mail className="h-7 w-7 text-givit-ember" /></div>
           <h2 className="font-serif text-2xl font-bold text-givit-ink">Check your email</h2>
           <p className="mt-2 text-muted-foreground">We sent a confirmation link to {email}. Click it to activate your account.</p>
           <Button asChild className="mt-6 rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">

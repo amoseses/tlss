@@ -173,7 +173,7 @@ function AddImageModal({ onAdd, onClose }: { onAdd: (img: BoardImage) => void; o
 
 function BoardCard({ board, onOpen, onDelete }: { board: UserBoard; onOpen: () => void; onDelete?: () => void }) {
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-card shadow-sm border border-border/40 transition-all hover:-translate-y-1 hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-xl bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10">
       <button type="button" onClick={onOpen} className="block w-full text-left">
         <div className="aspect-[4/3] overflow-hidden bg-givit-sand">
           {board.coverImage ? (
@@ -192,7 +192,7 @@ function BoardCard({ board, onOpen, onDelete }: { board: UserBoard; onOpen: () =
           <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
             <span>{board.images.length} product{board.images.length !== 1 ? "s" : ""}</span>
             <span>·</span>
-            <span>{board.likes} ♥</span>
+            <span className="inline-flex items-center gap-1">{board.likes} <Heart className="h-3 w-3" /></span>
           </div>
         </div>
       </button>
@@ -214,7 +214,7 @@ function PinterestGrid({ images, onRemove }: { images: BoardImage[]; onRemove?: 
   return (
     <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 [column-fill:balance]">
       {images.map((img) => (
-        <article key={img.id} className="group mb-4 break-inside-avoid overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <article key={img.id} className="group mb-4 break-inside-avoid overflow-hidden rounded-xl bg-card shadow-sm shadow-black/[0.04]">
           <div className="relative overflow-hidden bg-muted">
             <img src={img.src} alt={img.caption || "Gift board product"} className="w-full object-cover transition group-hover:scale-105" loading="lazy" />
             {onRemove && (
@@ -540,7 +540,8 @@ export default function BoardsPage() {
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-givit-ink">Gift boards</h1>
+          <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Gift boards</p>
+          <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Gift boards</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {user ? "Browse public boards or manage your own" : "Browse public gift boards, sign in to start your own"}
           </p>
@@ -614,7 +615,7 @@ export default function BoardsPage() {
         <>
           {userBoards.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-20 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10 text-3xl">📌</div>
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10"><Bookmark className="h-6 w-6 text-givit-ember" /></div>
               <p className="mt-4 font-serif text-xl font-bold text-givit-ink">No boards yet</p>
               <p className="mt-2 max-w-xs text-sm text-muted-foreground">Create your first board to collect gift ideas, add products, and share with friends.</p>
               {user ? (
@@ -660,7 +661,7 @@ export default function BoardsPage() {
 
               {selectedBoard.images.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-16 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10 text-2xl">🎁</div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10"><Sparkles className="h-6 w-6 text-givit-ember" /></div>
                   <p className="mt-4 font-serif text-xl font-bold text-givit-ink">No items yet</p>
                   <p className="mt-2 max-w-xs text-sm text-muted-foreground">Add marketplace products or custom products to build your gift board.</p>
                   <div className="mt-5 flex gap-3">

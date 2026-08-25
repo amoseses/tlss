@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ExternalLink, Play, Sparkles } from "lucide-react";
+import { ExternalLink, Play } from "lucide-react";
 
 import { WishlistButton } from "@/components/product/wishlist-button";
 import type { MarketplaceProduct } from "@/lib/data/marketplace";
 import { formatMoney } from "@/lib/format";
 import { productPhotoFallback, resolveProductImageSrc } from "@/lib/product-photo";
+import { useLocalizedPrice } from "@/lib/hooks/use-localized-price";
 import type { Product, ProductImage } from "@/types/database";
 
 import { StarRating } from "./star-rating";
@@ -39,6 +40,10 @@ export function ProductCard({
   const [imageSrc, setImageSrc] = useState(src);
   const salePrice = marketplaceProduct.sale_price_cents;
   const priceLabel = salePrice ? formatMoney(salePrice) : marketplaceProduct.price_range ?? formatMoney(product.price_cents);
+  // Only estimate when there's an exact cents figure to convert -- when
+  // priceLabel falls back to a "$300-$400" range there's nothing precise
+  // to localize, so skip it rather than converting one end of a range.
+  const localizedEstimate = useLocalizedPrice(salePrice ?? (marketplaceProduct.price_range ? NaN : product.price_cents));
   // A "#47 in Tech" badge on a 700-item catalog isn't a credible ranking
   // signal — it reads as filler. Only surface the rank when it's genuinely
   // a top-10 standing; every other card just shows the honest basics
@@ -73,7 +78,7 @@ export function ProductCard({
     // to a horizontal row (centered image on the left, content + the
     // wishlist action beside it) at mobile widths, and reverts to the
     // regular vertical card from `sm` up.
-    <article className="group flex items-stretch gap-3 overflow-hidden rounded-2xl border border-border/50 bg-card p-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-givit-ember/30 hover:shadow-xl hover:shadow-black/10 sm:flex-col sm:gap-0 sm:p-0">
+    <article className="group flex items-stretch gap-3 overflow-hidden rounded-2xl bg-card p-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10 sm:flex-col sm:gap-0 sm:p-0">
       <Link href={`/products/${product.slug}`} className="flex flex-1 items-center gap-3 sm:flex-col sm:items-stretch sm:gap-0">
         <div className={`relative aspect-square w-24 shrink-0 self-center overflow-hidden rounded-xl bg-givit-sand sm:w-full sm:self-auto sm:rounded-none ${featured ? "sm:aspect-[4/3]" : "sm:aspect-square"}`}>
           <img
@@ -84,15 +89,14 @@ export function ProductCard({
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          {withinTop10 && (
-            <div className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-black/85 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
-              <Sparkles className="h-2 w-2 text-givit-coral sm:h-2.5 sm:w-2.5" />
-              <span className="line-clamp-1">{rankingLabel}</span>
-            </div>
-          )}
+          {/* At most one badge on the image, ever -- a rank pill and a sale
+              tag fighting for the same corner is the single most
+              recognizable "discount marketplace" tell there is. A real
+              price cut is the more useful signal when both apply; rank
+              moves down into the meta line below instead of disappearing. */}
           {salePrice ? (
-            <div className="absolute right-1.5 top-1.5 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm sm:right-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
-              Deal
+            <div className="absolute right-1.5 top-1.5 rounded-full bg-black/85 px-1.5 py-0.5 font-mono text-[8px] font-bold text-givit-coral shadow-sm backdrop-blur-sm sm:right-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
+              -{Math.round((1 - salePrice / product.price_cents) * 100)}%
             </div>
           ) : null}
           {marketplaceProduct.video_url && (
@@ -118,8 +122,15 @@ export function ProductCard({
         </div>
 
         <div className="flex flex-1 flex-col gap-1 sm:gap-1.5 sm:p-3">
-          {marketplaceProduct.brand && (
-            <p className="text-[10px] font-bold uppercase tracking-widest text-givit-ember/80">{marketplaceProduct.brand}</p>
+          {(marketplaceProduct.brand || withinTop10) && (
+            <p className="flex items-center gap-1.5 text-[10px]">
+              {marketplaceProduct.brand && <span className="font-bold uppercase tracking-widest text-givit-ember/80">{marketplaceProduct.brand}</span>}
+              {withinTop10 && (
+                <span className="font-mono uppercase tracking-widest text-muted-foreground">
+                  {marketplaceProduct.brand ? "· " : ""}{rankingLabel}
+                </span>
+              )}
+            </p>
           )}
 
           <p className={`line-clamp-2 text-left font-serif font-semibold leading-snug text-foreground transition-colors group-hover:text-givit-ember ${featured ? "text-lg" : "text-sm"}`}>
@@ -136,9 +147,10 @@ export function ProductCard({
             <StarRating value={avgRating} count={reviewCount} size={compact ? 12 : 14} />
           ) : null}
 
-          <div className="mt-auto flex items-center gap-2 pt-1.5">
+          <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-1.5">
             <p className="price-tag text-left text-base font-bold tabular-nums text-givit-ember">{priceLabel}</p>
             {salePrice ? <p className="text-xs text-muted-foreground line-through">{formatMoney(product.price_cents)}</p> : null}
+            {localizedEstimate && <p className="w-full text-[11px] text-muted-foreground">{localizedEstimate} · charged in USD</p>}
           </div>
         </div>
       </Link>

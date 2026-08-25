@@ -34,7 +34,7 @@ Copy `artifacts/givit-platform/.env.example` to `artifacts/givit-platform/.env.l
 | `SES_FROM_EMAIL` | SES verified from-address for transactional email. AWS credentials are resolved server-side by the AWS SDK. | `Givit <notifications@yourdomain.com>` |
 | `CRON_SECRET` | Shared secret the notification-dispatch cron checks on its `Authorization: Bearer` header. | any long random string |
 
-Givit AI needs `VITE_GROQ_API_KEY` — see §5.
+Givit AI needs `GROQ_API_KEY` — see §5.
 
 ### 2. Supabase Setup
 
@@ -79,7 +79,7 @@ SES_FROM_EMAIL=Givit <notifications@yourdomain.com>
 CRON_SECRET=...
 ```
 
-Givit AI needs `VITE_GROQ_API_KEY` added here — see §5. **Remember Vite env vars are baked in at build time**: adding or changing any `VITE_`-prefixed variable in Vercel requires a new deployment (redeploy) to actually take effect, not just a restart.
+Givit AI needs `GROQ_API_KEY` added here — see §5. It's server-only (no `VITE_` prefix), so a new deployment isn't strictly required the way it is for `VITE_`-prefixed variables, but redeploying after any env var change is still the safe default.
 
 > 🔴 **Security reminder:** an earlier commit in this repo's history accidentally included live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `SHIPPO_API_TOKEN` values before `.env.local` was git-ignored. If you haven't already, **rotate all three in the Stripe and Shippo dashboards** — removing the file from the latest commit doesn't invalidate keys still readable in git history/GitHub.
 
@@ -145,9 +145,9 @@ For production email testing, point your scheduler/email worker at rows in `gift
 
 ### 5. Givit AI (Groq chat completions API)
 
-Givit AI runs client-side through Groq's OpenAI-compatible chat completions API using `VITE_GROQ_API_KEY`. Set this in `.env.local` for local development and in Vercel → Project Settings → Environment Variables for production. The thin wrapper lives at `src/lib/ai/groq-client.ts`. (Previously ran on Gemini — moved to Groq since Gemini required billing to use at any real volume; Groq's free tier is generous enough to actually run on.)
+Givit AI calls Groq's OpenAI-compatible chat completions API through a server-side proxy, which reads `GROQ_API_KEY`. It's branched onto `api/metadata.ts` (POST → Groq, GET → the existing page-metadata scraper) rather than its own file, since this project sits at Vercel's Hobby-plan 12-function cap. Set the key in `.env.local` for local development and in Vercel → Project Settings → Environment Variables for production. The browser-side client (`src/lib/ai/groq-client.ts`) just POSTs to `/api/metadata` and never sees the key. (Previously ran on Gemini — moved to Groq since Gemini required billing to use at any real volume; Groq's free tier is generous enough to actually run on. The key also used to be a client-exposed `VITE_GROQ_API_KEY` before this proxy existed — if you have that old variable set anywhere, it's no longer read and can be removed.)
 
-Because `VITE_` variables are bundled into the browser, get your key from [console.groq.com/keys](https://console.groq.com/keys) — real Groq keys start with `gsk_`. The app still falls back to the existing deterministic rule-based matching if the AI call fails, so nothing crashes and results just get less personalized.
+Get your key from [console.groq.com/keys](https://console.groq.com/keys) — real Groq keys start with `gsk_`. The app still falls back to the existing deterministic rule-based matching if the AI call fails, so nothing crashes and results just get less personalized.
 
 Current AI entry points:
 
@@ -205,7 +205,7 @@ If users can't log in or sessions don't persist:
 - **Routing:** wouter (lightweight)
 - **Auth:** Supabase Auth (email/password)
 - **Data:** LocalStorage (boards, recipients, surveys, some orders) + Supabase DB (user profiles, products, orders, board likes/comments, AutoGift orders, push subscriptions)
-- **AI:** Groq chat completions API (client-side, via `VITE_GROQ_API_KEY`) — see §5 above
+- **AI:** Groq chat completions API (server-side proxy branched onto `api/metadata.ts`, via `GROQ_API_KEY`) — see §5 above
 - **Photos:** Microlink (scrapes real og:image metadata from product URLs) via `/api/photo` and `/api/metadata`
 - **Push notifications:** Web Push (VAPID) + a service worker at `public/sw.js` — see §6 above
 - **Payments:** Stripe (API keys configured, UI ready) — checkout itself is not wired up; the business model redirects to the retailer (Amazon, etc.) for affiliate commission rather than taking payment in-app, except for AutoGift concierge orders
