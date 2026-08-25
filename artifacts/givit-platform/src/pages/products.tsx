@@ -60,6 +60,26 @@ const OCCASIONS = [
   "Stocking Stuffer", "Goodbye Gift", "Travel",
 ];
 
+// The catalog doesn't carry a per-product age rating (nothing to filter on
+// there without inventing data), but it does carry real `recipients` life-
+// stage tags ("kid", "college student", "grandparent", ...) -- verified
+// present in marketplace.ts the same way OCCASIONS was. Age buckets map
+// onto those genuine tags instead of a fabricated field. No "Adults"
+// bucket: with no adult-specific tag to filter on, that option would be
+// identical to "Any age," which is already the default.
+const AGE_GROUPS: { value: string; label: string }[] = [
+  { value: "kid", label: "Kids" },
+  { value: "student", label: "Teens & students" },
+  { value: "parent", label: "Parents" },
+  { value: "senior", label: "Grandparents & seniors" },
+];
+const AGE_GROUP_TAGS: Record<string, string[]> = {
+  kid: ["kid"],
+  student: ["student", "college student", "graduate"],
+  parent: ["parent", "new parent", "busy parent"],
+  senior: ["grandparent"],
+};
+
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   tech: Cpu,
   gaming: Gamepad2,
@@ -101,15 +121,16 @@ type ShoppingForPerson = {
 // on the page -- reachable only by hand-editing the URL. This is that
 // control, shared between the always-visible desktop sidebar and a
 // collapsible mobile panel so it's one definition, not two drifting copies.
-function MarketplaceFilters({ q, categorySlug, sortVal, occasion, minStr, maxStr }: {
+function MarketplaceFilters({ q, categorySlug, sortVal, occasion, ageGroup, minStr, maxStr }: {
   q?: string;
   categorySlug?: string;
   sortVal: string;
   occasion?: string;
+  ageGroup?: string;
   minStr: string;
   maxStr: string;
 }) {
-  const hasActiveFilters = Boolean(occasion) || Boolean(minStr) || Boolean(maxStr);
+  const hasActiveFilters = Boolean(occasion) || Boolean(ageGroup) || Boolean(minStr) || Boolean(maxStr);
   return (
     <form method="get" action="/products" className="space-y-4">
       {q ? <input type="hidden" name="q" value={q} /> : null}
@@ -126,6 +147,20 @@ function MarketplaceFilters({ q, categorySlug, sortVal, occasion, minStr, maxStr
           <option value="">Any occasion</option>
           {OCCASIONS.map((o) => (
             <option key={o} value={o.toLowerCase()}>{o}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold text-foreground">Recipient's age</label>
+        <select
+          name="age"
+          defaultValue={ageGroup ?? ""}
+          className="h-9 w-full rounded-lg border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+        >
+          <option value="">Any age</option>
+          {AGE_GROUPS.map((a) => (
+            <option key={a.value} value={a.value}>{a.label}</option>
           ))}
         </select>
       </div>
@@ -159,6 +194,7 @@ export default function ProductsPage() {
   const categorySlug = get("category") || undefined;
   const q = get("q") || undefined;
   const occasion = get("occasion") || undefined;
+  const ageGroup = get("age") || undefined;
   const sortVal = get("sort") || "ranked";
   const minStr = get("min") || "";
   const maxStr = get("max") || "";
@@ -235,6 +271,10 @@ export default function ProductsPage() {
     if (occasion && !product.occasions.some((item) => item.toLowerCase().includes(occasion))) return false;
     if (minCents && product.price_cents < minCents) return false;
     if (maxCents && product.price_cents > maxCents) return false;
+    if (ageGroup) {
+      const tags = AGE_GROUP_TAGS[ageGroup] ?? [];
+      if (tags.length > 0 && !product.recipients.some((r) => tags.includes(r.toLowerCase()))) return false;
+    }
     return true;
   });
 
@@ -315,7 +355,7 @@ export default function ProductsPage() {
   // yank the page.
   const resultsRef = useRef<HTMLDivElement>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const resultsKey = `${categorySlug ?? ""}|${q ?? ""}|${occasion ?? ""}|${sortVal}|${minStr}|${maxStr}|${forId ?? ""}`;
+  const resultsKey = `${categorySlug ?? ""}|${q ?? ""}|${occasion ?? ""}|${ageGroup ?? ""}|${sortVal}|${minStr}|${maxStr}|${forId ?? ""}`;
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -444,7 +484,7 @@ export default function ProductsPage() {
         <button
           type="button"
           onClick={() => setShowMobileFilters((v) => !v)}
-          className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${cnPill(showMobileFilters || Boolean(occasion) || Boolean(minStr) || Boolean(maxStr))}`}
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${cnPill(showMobileFilters || Boolean(occasion) || Boolean(ageGroup) || Boolean(minStr) || Boolean(maxStr))}`}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" /> Filters
         </button>
@@ -452,7 +492,7 @@ export default function ProductsPage() {
 
       {showMobileFilters && (
         <div className="mb-6 rounded-2xl border border-border/50 bg-card p-4 lg:hidden">
-          <MarketplaceFilters q={q} categorySlug={categorySlug} sortVal={sortVal} occasion={occasion} minStr={minStr} maxStr={maxStr} />
+          <MarketplaceFilters q={q} categorySlug={categorySlug} sortVal={sortVal} occasion={occasion} ageGroup={ageGroup} minStr={minStr} maxStr={maxStr} />
         </div>
       )}
 
@@ -488,7 +528,7 @@ export default function ProductsPage() {
                 <SlidersHorizontal className="h-3.5 w-3.5" /> Filters
               </h2>
               <div className="px-3">
-                <MarketplaceFilters q={q} categorySlug={categorySlug} sortVal={sortVal} occasion={occasion} minStr={minStr} maxStr={maxStr} />
+                <MarketplaceFilters q={q} categorySlug={categorySlug} sortVal={sortVal} occasion={occasion} ageGroup={ageGroup} minStr={minStr} maxStr={maxStr} />
               </div>
             </div>
           </div>
@@ -529,6 +569,7 @@ export default function ProductsPage() {
               {q ? <span className="text-muted-foreground"> for "{q}"</span> : null}
               {activeCategory ? <span className="text-muted-foreground"> in {activeCategory.name}</span> : null}
               {occasion ? <span className="text-muted-foreground"> · {occasion}</span> : null}
+              {ageGroup ? <span className="text-muted-foreground"> · {AGE_GROUPS.find((a) => a.value === ageGroup)?.label.toLowerCase()}</span> : null}
               {minStr || maxStr ? (
                 <span className="text-muted-foreground"> · ${minStr || "0"}–{maxStr ? `$${maxStr}` : "any"}</span>
               ) : null}

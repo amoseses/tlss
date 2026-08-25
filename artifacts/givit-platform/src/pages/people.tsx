@@ -207,10 +207,21 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
     }));
   }
 
+  const [interestsError, setInterestsError] = useState<number | null>(null);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const valid = people.filter((p) => p.name.trim());
     if (valid.length === 0) return;
+    // Interests are what the recommendation engine actually matches gifts
+    // against -- skipping this field is exactly how "generic gift ideas"
+    // complaints happen, so it's required, not optional, per beta feedback.
+    const missingIndex = people.findIndex((p) => p.name.trim() && !p.aboutText.trim());
+    if (missingIndex !== -1) {
+      setInterestsError(missingIndex);
+      return;
+    }
+    setInterestsError(null);
     setSaving(true);
     try {
       const built = await Promise.all(valid.map(async (p) => {
@@ -296,16 +307,20 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
               </div>
               <div className="grid gap-1.5">
                 <label className="flex items-center gap-1.5 text-sm font-semibold">
-                  <Sparkles className="h-3.5 w-3.5 text-givit-ember" /> Tell us about them (optional)
+                  <Sparkles className="h-3.5 w-3.5 text-givit-ember" /> Tell us about them *
                 </label>
                 <textarea
                   value={person.aboutText}
-                  onChange={(e) => updatePerson(personIndex, "aboutText", e.target.value)}
+                  onChange={(e) => { updatePerson(personIndex, "aboutText", e.target.value); if (interestsError === personIndex) setInterestsError(null); }}
                   rows={2}
                   placeholder="e.g. Loves gardening, homemade food, and traveling. Already has lots of kitchen gadgets."
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                  className={`w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20 ${interestsError === personIndex ? "border-destructive" : "border-border"}`}
                 />
-                <p className="text-xs text-muted-foreground">Your Gift AI reads this and fills in interests and things to avoid automatically.</p>
+                {interestsError === personIndex ? (
+                  <p className="text-xs font-medium text-destructive">Add at least a couple interests — this is what Your Gift AI matches gifts against.</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Your Gift AI reads this and fills in interests and things to avoid automatically.</p>
+                )}
               </div>
             </div>
           ))}
@@ -403,6 +418,14 @@ function EditRecipientModal({
         if (extracted.birthdayDate && !finalOccasions.some((o) => o.label === "Birthday")) {
           finalOccasions = [...finalOccasions, { label: "Birthday", date: extracted.birthdayDate }];
         }
+      }
+
+      // Interests are what the recommendation engine actually matches gifts
+      // against -- required, not optional, per beta feedback that generic
+      // recommendations trace back to this being skippable.
+      if (interests.length === 0) {
+        setError("Add at least one interest (or describe them below) so Your Gift AI has something to match against.");
+        return;
       }
 
       const [profileResult, occasionsResult] = await Promise.all([
