@@ -15,50 +15,56 @@ export type SupportedRegion = {
   name: string;
   flag: string;
   gmt: string;
+  // ISO 4217 currency code + BCP-47 locale, used to show an estimated
+  // localized price (see lib/currency.ts) -- real, verifiable facts about
+  // each country, not guesses. Checkout itself still charges in USD via
+  // Stripe; this is a display-only estimate, always labeled as such.
+  currency: string;
+  locale: string;
 };
 
 export const SUPPORTED_REGIONS: SupportedRegion[] = [
   // North America
-  { code: "US", name: "United States", flag: "🇺🇸", gmt: "GMT-5" },
-  { code: "CA", name: "Canada", flag: "🇨🇦", gmt: "GMT-5" },
-  { code: "MX", name: "Mexico", flag: "🇲🇽", gmt: "GMT-6" },
+  { code: "US", name: "United States", flag: "🇺🇸", gmt: "GMT-5", currency: "USD", locale: "en-US" },
+  { code: "CA", name: "Canada", flag: "🇨🇦", gmt: "GMT-5", currency: "CAD", locale: "en-CA" },
+  { code: "MX", name: "Mexico", flag: "🇲🇽", gmt: "GMT-6", currency: "MXN", locale: "es-MX" },
   // Europe
-  { code: "GB", name: "United Kingdom", flag: "🇬🇧", gmt: "GMT+0" },
-  { code: "DE", name: "Germany", flag: "🇩🇪", gmt: "GMT+1" },
-  { code: "FR", name: "France", flag: "🇫🇷", gmt: "GMT+1" },
-  { code: "IT", name: "Italy", flag: "🇮🇹", gmt: "GMT+1" },
-  { code: "ES", name: "Spain", flag: "🇪🇸", gmt: "GMT+1" },
-  { code: "NL", name: "Netherlands", flag: "🇳🇱", gmt: "GMT+1" },
-  { code: "SE", name: "Sweden", flag: "🇸🇪", gmt: "GMT+1" },
-  { code: "CH", name: "Switzerland", flag: "🇨🇭", gmt: "GMT+1" },
-  { code: "PL", name: "Poland", flag: "🇵🇱", gmt: "GMT+1" },
-  { code: "IE", name: "Ireland", flag: "🇮🇪", gmt: "GMT+0" },
+  { code: "GB", name: "United Kingdom", flag: "🇬🇧", gmt: "GMT+0", currency: "GBP", locale: "en-GB" },
+  { code: "DE", name: "Germany", flag: "🇩🇪", gmt: "GMT+1", currency: "EUR", locale: "de-DE" },
+  { code: "FR", name: "France", flag: "🇫🇷", gmt: "GMT+1", currency: "EUR", locale: "fr-FR" },
+  { code: "IT", name: "Italy", flag: "🇮🇹", gmt: "GMT+1", currency: "EUR", locale: "it-IT" },
+  { code: "ES", name: "Spain", flag: "🇪🇸", gmt: "GMT+1", currency: "EUR", locale: "es-ES" },
+  { code: "NL", name: "Netherlands", flag: "🇳🇱", gmt: "GMT+1", currency: "EUR", locale: "nl-NL" },
+  { code: "SE", name: "Sweden", flag: "🇸🇪", gmt: "GMT+1", currency: "SEK", locale: "sv-SE" },
+  { code: "CH", name: "Switzerland", flag: "🇨🇭", gmt: "GMT+1", currency: "CHF", locale: "de-CH" },
+  { code: "PL", name: "Poland", flag: "🇵🇱", gmt: "GMT+1", currency: "PLN", locale: "pl-PL" },
+  { code: "IE", name: "Ireland", flag: "🇮🇪", gmt: "GMT+0", currency: "EUR", locale: "en-IE" },
   // Asia & Middle East
-  { code: "IN", name: "India", flag: "🇮🇳", gmt: "GMT+5:30" },
-  { code: "JP", name: "Japan", flag: "🇯🇵", gmt: "GMT+9" },
-  { code: "KR", name: "South Korea", flag: "🇰🇷", gmt: "GMT+9" },
-  { code: "CN", name: "China", flag: "🇨🇳", gmt: "GMT+8" },
-  { code: "SG", name: "Singapore", flag: "🇸🇬", gmt: "GMT+8" },
-  { code: "AE", name: "United Arab Emirates", flag: "🇦🇪", gmt: "GMT+4" },
-  { code: "SA", name: "Saudi Arabia", flag: "🇸🇦", gmt: "GMT+3" },
-  { code: "IL", name: "Israel", flag: "🇮🇱", gmt: "GMT+2" },
-  { code: "ID", name: "Indonesia", flag: "🇮🇩", gmt: "GMT+7" },
-  { code: "PH", name: "Philippines", flag: "🇵🇭", gmt: "GMT+8" },
-  { code: "TH", name: "Thailand", flag: "🇹🇭", gmt: "GMT+7" },
-  { code: "VN", name: "Vietnam", flag: "🇻🇳", gmt: "GMT+7" },
+  { code: "IN", name: "India", flag: "🇮🇳", gmt: "GMT+5:30", currency: "INR", locale: "en-IN" },
+  { code: "JP", name: "Japan", flag: "🇯🇵", gmt: "GMT+9", currency: "JPY", locale: "ja-JP" },
+  { code: "KR", name: "South Korea", flag: "🇰🇷", gmt: "GMT+9", currency: "KRW", locale: "ko-KR" },
+  { code: "CN", name: "China", flag: "🇨🇳", gmt: "GMT+8", currency: "CNY", locale: "zh-CN" },
+  { code: "SG", name: "Singapore", flag: "🇸🇬", gmt: "GMT+8", currency: "SGD", locale: "en-SG" },
+  { code: "AE", name: "United Arab Emirates", flag: "🇦🇪", gmt: "GMT+4", currency: "AED", locale: "ar-AE" },
+  { code: "SA", name: "Saudi Arabia", flag: "🇸🇦", gmt: "GMT+3", currency: "SAR", locale: "ar-SA" },
+  { code: "IL", name: "Israel", flag: "🇮🇱", gmt: "GMT+2", currency: "ILS", locale: "he-IL" },
+  { code: "ID", name: "Indonesia", flag: "🇮🇩", gmt: "GMT+7", currency: "IDR", locale: "id-ID" },
+  { code: "PH", name: "Philippines", flag: "🇵🇭", gmt: "GMT+8", currency: "PHP", locale: "en-PH" },
+  { code: "TH", name: "Thailand", flag: "🇹🇭", gmt: "GMT+7", currency: "THB", locale: "th-TH" },
+  { code: "VN", name: "Vietnam", flag: "🇻🇳", gmt: "GMT+7", currency: "VND", locale: "vi-VN" },
   // Oceania
-  { code: "AU", name: "Australia", flag: "🇦🇺", gmt: "GMT+10" },
-  { code: "NZ", name: "New Zealand", flag: "🇳🇿", gmt: "GMT+12" },
+  { code: "AU", name: "Australia", flag: "🇦🇺", gmt: "GMT+10", currency: "AUD", locale: "en-AU" },
+  { code: "NZ", name: "New Zealand", flag: "🇳🇿", gmt: "GMT+12", currency: "NZD", locale: "en-NZ" },
   // Latin America
-  { code: "BR", name: "Brazil", flag: "🇧🇷", gmt: "GMT-3" },
-  { code: "AR", name: "Argentina", flag: "🇦🇷", gmt: "GMT-3" },
-  { code: "CO", name: "Colombia", flag: "🇨🇴", gmt: "GMT-5" },
-  { code: "CL", name: "Chile", flag: "🇨🇱", gmt: "GMT-4" },
+  { code: "BR", name: "Brazil", flag: "🇧🇷", gmt: "GMT-3", currency: "BRL", locale: "pt-BR" },
+  { code: "AR", name: "Argentina", flag: "🇦🇷", gmt: "GMT-3", currency: "ARS", locale: "es-AR" },
+  { code: "CO", name: "Colombia", flag: "🇨🇴", gmt: "GMT-5", currency: "COP", locale: "es-CO" },
+  { code: "CL", name: "Chile", flag: "🇨🇱", gmt: "GMT-4", currency: "CLP", locale: "es-CL" },
   // Africa
-  { code: "ZA", name: "South Africa", flag: "🇿🇦", gmt: "GMT+2" },
-  { code: "NG", name: "Nigeria", flag: "🇳🇬", gmt: "GMT+1" },
-  { code: "KE", name: "Kenya", flag: "🇰🇪", gmt: "GMT+3" },
-  { code: "EG", name: "Egypt", flag: "🇪🇬", gmt: "GMT+2" },
+  { code: "ZA", name: "South Africa", flag: "🇿🇦", gmt: "GMT+2", currency: "ZAR", locale: "en-ZA" },
+  { code: "NG", name: "Nigeria", flag: "🇳🇬", gmt: "GMT+1", currency: "NGN", locale: "en-NG" },
+  { code: "KE", name: "Kenya", flag: "🇰🇪", gmt: "GMT+3", currency: "KES", locale: "en-KE" },
+  { code: "EG", name: "Egypt", flag: "🇪🇬", gmt: "GMT+2", currency: "EGP", locale: "ar-EG" },
 ];
 
 function formatIso(year: number, monthZeroBased: number, day: number): string {

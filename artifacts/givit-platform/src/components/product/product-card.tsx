@@ -6,6 +6,7 @@ import { WishlistButton } from "@/components/product/wishlist-button";
 import type { MarketplaceProduct } from "@/lib/data/marketplace";
 import { formatMoney } from "@/lib/format";
 import { productPhotoFallback, resolveProductImageSrc } from "@/lib/product-photo";
+import { useLocalizedPrice } from "@/lib/hooks/use-localized-price";
 import type { Product, ProductImage } from "@/types/database";
 
 import { StarRating } from "./star-rating";
@@ -39,6 +40,10 @@ export function ProductCard({
   const [imageSrc, setImageSrc] = useState(src);
   const salePrice = marketplaceProduct.sale_price_cents;
   const priceLabel = salePrice ? formatMoney(salePrice) : marketplaceProduct.price_range ?? formatMoney(product.price_cents);
+  // Only estimate when there's an exact cents figure to convert -- when
+  // priceLabel falls back to a "$300-$400" range there's nothing precise
+  // to localize, so skip it rather than converting one end of a range.
+  const localizedEstimate = useLocalizedPrice(salePrice ?? (marketplaceProduct.price_range ? NaN : product.price_cents));
   // A "#47 in Tech" badge on a 700-item catalog isn't a credible ranking
   // signal — it reads as filler. Only surface the rank when it's genuinely
   // a top-10 standing; every other card just shows the honest basics
@@ -142,9 +147,10 @@ export function ProductCard({
             <StarRating value={avgRating} count={reviewCount} size={compact ? 12 : 14} />
           ) : null}
 
-          <div className="mt-auto flex items-center gap-2 pt-1.5">
+          <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-1.5">
             <p className="price-tag text-left text-base font-bold tabular-nums text-givit-ember">{priceLabel}</p>
             {salePrice ? <p className="text-xs text-muted-foreground line-through">{formatMoney(product.price_cents)}</p> : null}
+            {localizedEstimate && <p className="w-full text-[11px] text-muted-foreground">{localizedEstimate} · charged in USD</p>}
           </div>
         </div>
       </Link>

@@ -20,6 +20,7 @@ import {
 import { fetchProductBySlug } from "@/lib/data/data-layer";
 import { formatMoney } from "@/lib/format";
 import { productPhotoFallback, resolveProductImageSrc } from "@/lib/product-photo";
+import { useLocalizedPrice } from "@/lib/hooks/use-localized-price";
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -39,6 +40,10 @@ export default function ProductDetailPage() {
   }, [slug, seedProduct]);
 
   const product = seedProduct ?? dbProduct;
+  // Called unconditionally, before the early returns below -- Rules of
+  // Hooks. NaN when there's no product yet, which useLocalizedPrice
+  // treats the same as "nothing precise to convert" and returns null for.
+  const localizedEstimate = useLocalizedPrice(product ? (product.sale_price_cents ?? (product.price_range ? NaN : product.price_cents)) : NaN);
 
   if (!product) {
     if (!dbChecked) {
@@ -125,12 +130,13 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            <div className="mt-4 flex items-baseline gap-3">
+            <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="text-2xl font-bold text-givit-ember">{displayPrice}</span>
               {product.sale_price_cents ? (
                 <span className="text-sm text-muted-foreground line-through">{formatMoney(product.price_cents)}</span>
               ) : null}
               {product.brand ? <span className="text-sm text-muted-foreground">by {product.brand}</span> : null}
+              {localizedEstimate && <span className="w-full text-xs text-muted-foreground">{localizedEstimate} · charged in USD</span>}
             </div>
             {product.ships_in_days ? (
               <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">

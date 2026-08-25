@@ -8,12 +8,16 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { useRecipients, nextOccurrenceDate } from "@/lib/hooks/use-recipients";
 import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
 import { GoogleCalendarConnect } from "@/components/calendar/google-calendar-connect";
-import { detectUserRegion, getHolidaysForRegion, SUPPORTED_REGIONS } from "@/lib/data/holidays";
+import { getHolidaysForRegion, SUPPORTED_REGIONS } from "@/lib/data/holidays";
+import { useUserRegion } from "@/lib/hooks/use-user-region";
 
 export default function CalendarPage() {
   const { user, profile, loading } = useAuth();
   const { recipients, notifications, localReady } = useRecipients(user, profile?.default_reminder_lead_days ?? undefined);
-  const [region, setRegion] = useState(() => detectUserRegion());
+  // Shared, persisted preference -- previously local-only state that reset
+  // to auto-detected on every reload. Now the same choice also drives the
+  // localized price estimate shown on marketplace listings.
+  const [region, setRegion] = useUserRegion();
   const [showRegionPicker, setShowRegionPicker] = useState(false);
 
   // Landing back here is how the Google OAuth redirect
