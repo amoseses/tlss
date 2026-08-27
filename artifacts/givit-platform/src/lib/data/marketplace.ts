@@ -112,6 +112,11 @@ const RESOLVED_PRODUCT_IMAGES: Record<string, string> = {
   // all -- swapped for the actual gift collection's product photo.
   "rainey-day-tea-sampler": "https://rareteacompany.com/cdn/shop/files/Rare-Tea-Company-The-Rare-Tea-Gift-Collection-1000x1000px-1.jpg?v=1753106265&width=1000",
   "yeti-rambler-bottle": "https://yeti-webmedia.imgix.net/asset/52f4e49a-ef2c-45a8-bd21-242ecda0004f/W/Site_Studio_Drinkware_Rambler_Flip_Chug_Bottle_26oz_Rescue_Red_Front_012_A.png?bg=0fff&auto=format,compress&w=1100&q=86",
+  "nanoleaf-lines": "https://nanoleaf.me/cdn/shop/files/nl-us-1-floating-nanoleaf-lines-light-smarter-starter-kit-9_1x_c4e94c0d-3c5b-474b-9464-8a7f466f6452.png?v=1786479842&width=1200",
+  "tile-mate": "https://images.ctfassets.net/nywvtjnh7p05/FLmb3L6wCBFAUn9LM5bl9/1630e1b493dcd715578be07210952808/Core_Tile_1.webp?w=1920&fm=webp",
+  "ps5-dualsense-edge": "https://media.direct.playstation.com/is/image/sierialto/dualsense-edge-ps5-controller-front",
+  "8bitdo-ultimate-controller": "https://www.8bitdo.com/images/2022/ultimate-bluetooth-controller/01-s.jpg",
+  "fellow-stagg-ekg-kettle": "https://fellowproducts.com/cdn/shop/files/Web_PDP_StaggEKGElectricKettle-Pro_Woodland_Walnut_1.png?v=1773351258",
 };
 
 const IMAGE_POOLS: Record<string, string[]> = {

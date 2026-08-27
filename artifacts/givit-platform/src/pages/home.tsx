@@ -96,11 +96,15 @@ export default function HomePage() {
             {/* A dark instrument viewport for the mark, not a plain icon on
                 the page background -- the same charcoal used for the memory
                 graph, so the hero's "AI core" and the graph's "AI core"
-                read as one material, not two unrelated treatments. */}
-            <div className="pointer-events-none mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-[#16151a] shadow-lg shadow-black/30 ring-1 ring-white/5">
+                read as one material, not two unrelated treatments. A
+                gradient + top sheen + ember-tinted glow give it depth so it
+                reads as a lit glass tile in light mode too, instead of a
+                flat black square with nothing around it to blend into. */}
+            <div className="pointer-events-none relative mx-auto mb-5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-[#232228] via-[#18171c] to-[#0a0a0d] shadow-lg shadow-givit-ember/20 ring-1 ring-white/10">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent" />
               <GiftBox3D size={48} />
             </div>
-            <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-widest text-givit-ember">GIVIT</p>
+            <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-widest text-givit-ember">Agentic, personalized gifting</p>
             <h1 className="font-serif text-4xl font-bold leading-tight text-foreground md:text-5xl">
               Never send a bad gift again.
             </h1>
