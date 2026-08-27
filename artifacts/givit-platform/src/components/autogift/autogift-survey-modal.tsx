@@ -237,7 +237,7 @@ export function GiftSurveyModal({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold">What are they into? (pick 2-4)</label>
+                <label className="text-sm font-semibold">What are they into?</label>
                 <div className="flex flex-wrap gap-2">
                   {INTEREST_OPTIONS.map(interest => (
                     <button
@@ -245,10 +245,6 @@ export function GiftSurveyModal({
                       type="button"
                       onClick={() => setInterests(prev => {
                         if (prev.includes(interest)) return prev.filter(i => i !== interest);
-                        // "(pick 2-4)" was purely a label -- nothing actually
-                        // stopped a 5th, 6th, etc. selection. Capped here so
-                        // the label is a real constraint, not just copy.
-                        if (prev.length >= 4) return prev;
                         return [...prev, interest];
                       })}
                       className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
@@ -264,7 +260,7 @@ export function GiftSurveyModal({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold">How would you describe them? (pick 1-3)</label>
+                <label className="text-sm font-semibold">How would you describe them?</label>
                 <div className="flex flex-wrap gap-2">
                   {PERSONALITY_OPTIONS.map(trait => (
                     <button
@@ -272,7 +268,6 @@ export function GiftSurveyModal({
                       type="button"
                       onClick={() => setPersonality(prev => {
                         if (prev.includes(trait)) return prev.filter(t => t !== trait);
-                        if (prev.length >= 3) return prev;
                         return [...prev, trait];
                       })}
                       className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
