@@ -37,6 +37,14 @@ onlyBuiltDependencies:
 overrides:
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.27.3"
+  # nodeLinker: hoisted (above) otherwise lets pnpm resolve two different
+  # @types/react patch versions into two different node_modules -- both
+  # satisfy the catalog's "^19.2.0" range, so nothing warns, but having two
+  # copies makes every component using a typed ref (forwardRef, etc.) fail
+  # to typecheck against itself. An exact pin (not another range) forces
+  # one copy everywhere instead of just re-permitting the same spread.
+  "@types/react": 19.2.18
+  "@types/react-dom": 19.2.5
 
 allowBuilds:
   esbuild: true
