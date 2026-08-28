@@ -117,6 +117,19 @@ const RESOLVED_PRODUCT_IMAGES: Record<string, string> = {
   "ps5-dualsense-edge": "https://media.direct.playstation.com/is/image/sierialto/dualsense-edge-ps5-controller-front",
   "8bitdo-ultimate-controller": "https://www.8bitdo.com/images/2022/ultimate-bluetooth-controller/01-s.jpg",
   "fellow-stagg-ekg-kettle": "https://fellowproducts.com/cdn/shop/files/Web_PDP_StaggEKGElectricKettle-Pro_Woodland_Walnut_1.png?v=1773351258",
+  "folio-society-classic": "https://www.foliosociety.com/tco-images/unsafe/filters:upscale():fill(white)/https://www.foliosociety.com/static/cms/media/HOML-the-iliad-the-odyssey-clive-hicks-jenkins-limited-edition-1.jpg",
+  "lamy-safari-fountain-pen": "https://cdn.shopify.com/s/files/1/0854/1890/1838/files/LAMY-0C7-safari-Fountain-pen-meteora-1.webp?v=1784033178",
+  "moleskine-smart-writing-set": "https://www.moleskine.com/dw/image/v2/BFRN_PRD/on/demandware.static/-/Sites-siteCatalog_Moleskine/default/dwfef72683/menu_sws.jpg?sw=1000&sh=1000",
+  "baronfig-confidant": "https://baronfig.com/cdn/shop/products/confidant_flagship_charcoal_buy_square_01.jpg?v=1669038182",
+  "aesop-resurrection-hand-care": "https://www.aesop.com/dw/image/v2/AANG_PRD/on/demandware.static/-/Sites-aesop-us-master-catalog/default/dw45c2fc06/images/products/BT13/ContentEnhancement/Aesop_Hand_Resurrection_Aromatique_Hand_Wash_500mL_Web_Front_2000x2000px.png",
+  "barkbox-subscription": "https://bark.co/cdn/shop/files/Generic-nobox-BaseKit.png?v=1751978246&width=1200",
+  "cricut-joy-xtra": "https://cricut.com/dw/image/v2/BHBM_PRD/on/demandware.static/-/Library-Sites-cricut-content-na01/default/dw71ce0a2d/Navigation/nav_120x60_2x/JoyXtra.png?sw=800",
+  "blick-studio-acrylic-set": "https://cld-assets.dick-blick.com/image/upload/f_auto/q_auto/v1748012735/01637-group-14-4ww.jpg",
+  "atlas-coffee-club": "https://atlascoffeeclub.com/cdn/shop/files/Home-hero-2880-916-2x_446f734a-9b00-45c2-9d68-e17829761637.jpg?crop=center&v=1679515250&width=1500",
+  "murray-cheese-board": "https://murrayscheese.imgix.net/s5dwcgukupfrl4ble0qu5lm300ml?ixlib=rails-4.3.1",
+  "secretlab-magnus-desk-mat": "https://images.secretlab.co/main/tr:n-display_gallery/MMAT15SU-BLKSU.jpg",
+  "oxo-cold-brew-maker": "https://www.oxo.com/media/catalog/product/cache/b2f1ce2dfe10d3d31bf2056bf6e0d10f/b/r/brew_1272880v2_coldbrewcoffeemaker_apdp_00_wcmain_4.jpg",
+  "prismacolor-premier-pencils": "https://s7d1.scene7.com/is/image/NewellBrands/1799879_prismacolor-colored-pencils-150ct?wid=1000&hei=1000",
 };
 
 const IMAGE_POOLS: Record<string, string[]> = {

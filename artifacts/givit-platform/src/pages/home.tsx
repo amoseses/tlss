@@ -102,7 +102,13 @@ export default function HomePage() {
                 flat black square with nothing around it to blend into. */}
             <div className="pointer-events-none relative mx-auto mb-5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-[#232228] via-[#18171c] to-[#0a0a0d] shadow-lg shadow-givit-ember/20 ring-1 ring-white/10">
               <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent" />
-              <GiftBox3D size={48} />
+              {/* Sized down from the viewport and nudged a couple px lower --
+                  the bow sits above the box's own bounding size via
+                  translateZ, and as it spins that pushed it right up against
+                  the top edge of this tile at the old size. */}
+              <div className="mt-1.5">
+                <GiftBox3D size={40} />
+              </div>
             </div>
             <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-widest text-givit-ember">Agentic, personalized gifting</p>
             <h1 className="font-serif text-4xl font-bold leading-tight text-foreground md:text-5xl">
