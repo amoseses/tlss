@@ -422,14 +422,22 @@ export default function AccountPage() {
               {paymentFetching ? (
                 <p className="text-sm text-muted-foreground">Loading payment form…</p>
               ) : paymentClientSecret ? (
-                <>
-                  {!paymentReady && <p className="text-sm text-muted-foreground">Loading payment form…</p>}
-                  <div className={paymentReady ? "" : "hidden"}>
+                <div className="relative">
+                  {/* opacity, not `hidden`/display:none -- Stripe's PaymentElement
+                      renders in an iframe that needs real layout dimensions to
+                      initialize. Hide it under `display:none` and it never gets
+                      a size to measure, so it never fires onReady -- which was
+                      the actual "form doesn't load" bug: it was waiting to be
+                      un-hidden by a ready event it could never reach while hidden. */}
+                  {!paymentReady && (
+                    <p className="absolute inset-0 flex items-center text-sm text-muted-foreground">Loading payment form…</p>
+                  )}
+                  <div className={paymentReady ? "" : "opacity-0"}>
                     <Elements stripe={getStripePromise()} options={{ clientSecret: paymentClientSecret }}>
                       <PaymentElementForm ref={paymentFormRef} onReady={handlePaymentReady} onLoadError={handlePaymentLoadError} />
                     </Elements>
                   </div>
-                </>
+                </div>
               ) : (
                 <p className="text-sm text-destructive">Couldn't load the payment form. Please try again.</p>
               )}

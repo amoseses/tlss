@@ -396,18 +396,24 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-givit-ember border-t-transparent" />
                 </div>
               ) : paymentClientSecret ? (
-                <>
+                <div className="relative">
+                  {/* opacity, not `hidden`/display:none -- Stripe's PaymentElement
+                      renders in an iframe that needs real layout dimensions to
+                      initialize. Hide it under `display:none` and it never gets
+                      a size to measure, so it never fires onReady -- which was
+                      the actual "form doesn't load" bug: it was waiting to be
+                      un-hidden by a ready event it could never reach while hidden. */}
                   {!paymentReady && (
-                    <div className="flex h-32 items-center justify-center rounded-lg border border-border/40">
+                    <div className="absolute inset-0 flex h-32 items-center justify-center rounded-lg border border-border/40 bg-background">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-givit-ember border-t-transparent" />
                     </div>
                   )}
-                  <div className={paymentReady ? "" : "hidden"}>
+                  <div className={paymentReady ? "" : "opacity-0"}>
                     <Elements stripe={getStripePromise()} options={{ clientSecret: paymentClientSecret }}>
                       <PaymentElementForm ref={paymentFormRef} onReady={handlePaymentReady} onLoadError={handlePaymentLoadError} />
                     </Elements>
                   </div>
-                </>
+                </div>
               ) : null}
               <div className="flex gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
