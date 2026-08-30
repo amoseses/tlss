@@ -6,6 +6,7 @@ import { personalizeBundlesWithAI } from "@/lib/autogift/ai-personalize";
 import { trackUserEvent } from "@/lib/monitoring";
 import { useAuth } from "@/lib/auth/use-auth";
 import { saveAutoGiftOrderToDb } from "@/lib/supabase/db";
+import { addressValidationError } from "@/lib/validation/autogift";
 
 const INTEREST_OPTIONS = [
   "tech", "reading", "cooking", "fitness", "music", "coffee",
@@ -53,6 +54,7 @@ export function GiftSurveyModal({
   const [placingOrder, setPlacingOrder] = useState(false);
   const [addressOptions, setAddressOptions] = useState<Array<{ label?: string; line1: string; city: string; state: string; zip: string }>>([]);
   const [address, setAddress] = useState({ label: "", line1: "", city: "", state: "", zip: "" });
+  const [addressError, setAddressError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [itemNotes, setItemNotes] = useState<Record<string, string>>({});
@@ -157,6 +159,9 @@ export function GiftSurveyModal({
 
   async function handlePlaceOrder() {
     if (!user) return;
+    const invalidAddress = addressValidationError(address);
+    if (invalidAddress) { setAddressError(invalidAddress); return; }
+    setAddressError(null);
     const selectedItems = selectedBundle.items
       .map(s => ({
         productName: s.name,
@@ -420,6 +425,7 @@ export function GiftSurveyModal({
                   <input value={address.state} onChange={(e) => setAddress(a => ({ ...a, state: e.target.value }))} placeholder="State *" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
                   <input value={address.zip} onChange={(e) => setAddress(a => ({ ...a, zip: e.target.value }))} placeholder="ZIP *" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
                 </div>
+                {addressError && <p className="text-xs font-medium text-destructive">{addressError}</p>}
               </div>
 
               <div className="space-y-2">

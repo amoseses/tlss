@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 import { createNotification, saveGiftOccasion, saveGiftRecipient, saveUserAddress, saveUserPaymentMethod, updateProfile } from "@/lib/supabase/db";
 import { SPECIAL_DATES } from "@/lib/data/special-dates";
-import { getStripePromise } from "@/lib/stripe/client";
+import { getStripePromise, hasStripePublishableKey } from "@/lib/stripe/client";
 import { createClient } from "@/lib/supabase/client";
+import { addressValidationError, birthdayValidationError } from "@/lib/validation/autogift";
 
 type Step = "welcome" | "address" | "payment" | "recipient" | "done";
 
@@ -58,7 +59,8 @@ type PaymentFormHandle = { submit: () => Promise<{ ok: true; method: ConfirmedPa
 // Card fields never touch GIVIT's own state or servers -- Stripe's
 // PaymentElement runs inside Stripe's own iframe, and confirmSetup() only
 // ever hands this component back an opaque payment_method ID.
-const PaymentElementForm = forwardRef<PaymentFormHandle>(function PaymentElementForm(_props, ref) {
+type PaymentElementFormProps = { onReady?: () => void; onLoadError?: (message: string) => void };
+const PaymentElementForm = forwardRef<PaymentFormHandle, PaymentElementFormProps>(function PaymentElementForm({ onReady, onLoadError }, ref) {
   const stripe = useStripe();
   const elements = useElements();
 
@@ -82,7 +84,15 @@ const PaymentElementForm = forwardRef<PaymentFormHandle>(function PaymentElement
     },
   }));
 
-  return <PaymentElement options={{ layout: "tabs" }} />;
+  return (
+    <PaymentElement
+      options={{ layout: "tabs" }}
+      onReady={onReady}
+      onLoadError={(event) =>
+        onLoadError?.(event.error.message || "The payment form couldn't load. Check your connection or disable ad blockers, then try again.")
+      }
+    />
+  );
 });
 
 function readDraft(): Partial<Draft> {
@@ -110,13 +120,23 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
   // Stripe-issued payment_method id + brand/last4 once confirmSetup succeeds.
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [paymentFetching, setPaymentFetching] = useState(false);
+  const [paymentReady, setPaymentReady] = useState(false);
   const [confirmedMethod, setConfirmedMethod] = useState<ConfirmedPaymentMethod | null>(null);
   const paymentFormRef = useRef<PaymentFormHandle>(null);
+  const paymentReadyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Recipients
   const [recipients, setRecipients] = useState<RecipientDraft[]>(savedDraft.recipients?.length ? savedDraft.recipients : [emptyRecipient()]);
 
   useEffect(() => {
     if (step !== "payment" || paymentClientSecret || paymentFetching) return;
+    // Fetching a clientSecret would only leave the card fields stuck
+    // silently "loading" forever if Stripe.js itself can never initialize --
+    // this environment simply isn't configured to take payments, so say so
+    // up front instead.
+    if (!hasStripePublishableKey()) {
+      setError("Payments aren't configured for this environment yet. Please try again later or contact support.");
+      return;
+    }
     setPaymentFetching(true);
     authedFetch("/api/stripe/setup-intent", { method: "POST" })
       .then(async (res) => {
@@ -128,6 +148,31 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
       .finally(() => setPaymentFetching(false));
   }, [step]);
 
+  // Once a clientSecret comes back, Stripe Elements still has to load its
+  // own iframe before the card fields actually work -- if that never
+  // happens (blocked script, revoked/invalid key, flaky network) the form
+  // would otherwise just sit there indefinitely with no explanation.
+  useEffect(() => {
+    if (!paymentClientSecret) return;
+    setPaymentReady(false);
+    paymentReadyTimeoutRef.current = setTimeout(() => {
+      setError("The payment form is taking too long to load. Check your connection or disable ad blockers, then try again.");
+    }, 12000);
+    return () => {
+      if (paymentReadyTimeoutRef.current) clearTimeout(paymentReadyTimeoutRef.current);
+    };
+  }, [paymentClientSecret]);
+
+  function handlePaymentReady() {
+    if (paymentReadyTimeoutRef.current) clearTimeout(paymentReadyTimeoutRef.current);
+    setPaymentReady(true);
+  }
+
+  function handlePaymentLoadError(message: string) {
+    if (paymentReadyTimeoutRef.current) clearTimeout(paymentReadyTimeoutRef.current);
+    setError(message);
+  }
+
   useEffect(() => {
     window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, addresses, recipients }));
   }, [step, addresses, recipients]);
@@ -136,8 +181,14 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
     setError("");
     if (step === "welcome") setStep("address");
     else if (step === "address") {
-      if (!addresses.some((address) => address.line1 && address.city && address.state && address.zip)) {
+      const started = addresses.filter((address) => address.line1 || address.city || address.state || address.zip);
+      if (started.length === 0) {
         setError("Shipping address is required before AutoGift can continue.");
+        return;
+      }
+      const invalid = started.map((address) => addressValidationError(address)).find((message) => message);
+      if (invalid) {
+        setError(invalid);
         return;
       }
       setStep("payment");
@@ -156,8 +207,17 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
       setConfirmedMethod(result.method);
       setStep("recipient");
     } else if (step === "recipient") {
-      if (!recipients.some((r) => r.name.trim() && r.occasionDate)) {
+      const started = recipients.filter((r) => r.name.trim() && r.occasionDate);
+      if (started.length === 0) {
         setError("Add at least one recipient with a date so AutoGift knows what to plan for.");
+        return;
+      }
+      const invalidBirthday = started
+        .filter((r) => r.occasionLabel === "Birthday" && !standardHoliday(r.occasionLabel))
+        .map((r) => birthdayValidationError(r.occasionDate))
+        .find((message) => message);
+      if (invalidBirthday) {
+        setError(invalidBirthday);
         return;
       }
       setStep("done");
@@ -336,9 +396,18 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-givit-ember border-t-transparent" />
                 </div>
               ) : paymentClientSecret ? (
-                <Elements stripe={getStripePromise()} options={{ clientSecret: paymentClientSecret }}>
-                  <PaymentElementForm ref={paymentFormRef} />
-                </Elements>
+                <>
+                  {!paymentReady && (
+                    <div className="flex h-32 items-center justify-center rounded-lg border border-border/40">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-givit-ember border-t-transparent" />
+                    </div>
+                  )}
+                  <div className={paymentReady ? "" : "hidden"}>
+                    <Elements stripe={getStripePromise()} options={{ clientSecret: paymentClientSecret }}>
+                      <PaymentElementForm ref={paymentFormRef} onReady={handlePaymentReady} onLoadError={handlePaymentLoadError} />
+                    </Elements>
+                  </div>
+                </>
               ) : null}
               <div className="flex gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
@@ -425,7 +494,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
               </button>
             )}
             {step !== "done" ? (
-              <Button onClick={next} disabled={saving || (step === "payment" && !paymentClientSecret)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+              <Button onClick={next} disabled={saving || (step === "payment" && !paymentReady)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
                 {saving ? "Saving..." : <>Continue <ArrowRight className="ml-1 h-4 w-4" /></>}
               </Button>
             ) : (

@@ -7,9 +7,10 @@ import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getUserOrders, getUserAutoGiftOrders, getUserAddresses, getUserPaymentMethods, getWishlist, updateProfile, saveUserAddress, saveUserPaymentMethod, deleteUserAddress, deleteUserPaymentMethod } from "@/lib/supabase/db";
 import { NotificationSettingsCard } from "@/components/personalization/notification-settings";
-import { getStripePromise } from "@/lib/stripe/client";
+import { getStripePromise, hasStripePublishableKey } from "@/lib/stripe/client";
 import { createClient } from "@/lib/supabase/client";
 import { normalizePhoneE164 } from "@/lib/utils";
+import { addressValidationError } from "@/lib/validation/autogift";
 
 async function authedFetch(path: string, init?: RequestInit) {
   const { data } = await createClient().auth.getSession();
@@ -28,7 +29,8 @@ type PaymentFormHandle = { submit: () => Promise<{ ok: true; method: ConfirmedPa
 // fields never touch GIVIT's own state or servers, Stripe's PaymentElement
 // runs inside Stripe's own iframe, and confirmSetup() only ever hands this
 // component back an opaque payment_method ID.
-const PaymentElementForm = forwardRef<PaymentFormHandle>(function PaymentElementForm(_props, ref) {
+type PaymentElementFormProps = { onReady?: () => void; onLoadError?: (message: string) => void };
+const PaymentElementForm = forwardRef<PaymentFormHandle, PaymentElementFormProps>(function PaymentElementForm({ onReady, onLoadError }, ref) {
   const stripe = useStripe();
   const elements = useElements();
 
@@ -52,7 +54,15 @@ const PaymentElementForm = forwardRef<PaymentFormHandle>(function PaymentElement
     },
   }));
 
-  return <PaymentElement options={{ layout: "tabs" }} />;
+  return (
+    <PaymentElement
+      options={{ layout: "tabs" }}
+      onReady={onReady}
+      onLoadError={(event) =>
+        onLoadError?.(event.error.message || "The payment form couldn't load. Check your connection or disable ad blockers, then try again.")
+      }
+    />
+  );
 });
 
 export default function AccountPage() {
@@ -79,12 +89,39 @@ export default function AccountPage() {
   const [addingPayment, setAddingPayment] = useState(false);
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [paymentFetching, setPaymentFetching] = useState(false);
+  const [paymentReady, setPaymentReady] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const paymentFormRef = useRef<PaymentFormHandle>(null);
+  const paymentReadyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate("/login?next=/account");
   }, [loading, user, navigate]);
+
+  // Same reasoning as the AutoGift onboarding wizard: a clientSecret alone
+  // doesn't guarantee Stripe Elements will ever finish loading its iframe --
+  // without this, a blocked script or revoked key left the card fields
+  // (and the "Loading payment form…" text right above them) stuck forever.
+  useEffect(() => {
+    if (!paymentClientSecret) return;
+    setPaymentReady(false);
+    paymentReadyTimeoutRef.current = setTimeout(() => {
+      setAccountNotice("The payment form is taking too long to load. Check your connection or disable ad blockers, then try again.");
+    }, 12000);
+    return () => {
+      if (paymentReadyTimeoutRef.current) clearTimeout(paymentReadyTimeoutRef.current);
+    };
+  }, [paymentClientSecret]);
+
+  function handlePaymentReady() {
+    if (paymentReadyTimeoutRef.current) clearTimeout(paymentReadyTimeoutRef.current);
+    setPaymentReady(true);
+  }
+
+  function handlePaymentLoadError(message: string) {
+    if (paymentReadyTimeoutRef.current) clearTimeout(paymentReadyTimeoutRef.current);
+    setAccountNotice(message);
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -160,6 +197,8 @@ export default function AccountPage() {
   async function handleAddressSave(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    const addressError = addressValidationError(addressForm);
+    if (addressError) { setAccountNotice(addressError); return; }
     const { error } = await saveUserAddress({ user_id: user.id, ...addressForm, is_default: addresses.length === 0 });
     if (error) { setAccountNotice(error.message); return; }
     setAddresses(await getUserAddresses(user.id));
@@ -188,6 +227,10 @@ export default function AccountPage() {
     setAddingPayment(true);
     setAccountNotice("");
     if (paymentClientSecret || paymentFetching) return;
+    if (!hasStripePublishableKey()) {
+      setAccountNotice("Payments aren't configured for this environment yet. Please try again later or contact support.");
+      return;
+    }
     setPaymentFetching(true);
     try {
       const res = await authedFetch("/api/stripe/setup-intent", { method: "POST" });
@@ -376,15 +419,22 @@ export default function AccountPage() {
           ) : (
             <div className="mb-4 space-y-3 rounded-lg border border-border/40 p-4">
               <p className="text-xs text-muted-foreground">Card details are handled directly by Stripe — they never touch GIVIT's own servers.</p>
-              {paymentFetching || !paymentClientSecret ? (
+              {paymentFetching ? (
                 <p className="text-sm text-muted-foreground">Loading payment form…</p>
+              ) : paymentClientSecret ? (
+                <>
+                  {!paymentReady && <p className="text-sm text-muted-foreground">Loading payment form…</p>}
+                  <div className={paymentReady ? "" : "hidden"}>
+                    <Elements stripe={getStripePromise()} options={{ clientSecret: paymentClientSecret }}>
+                      <PaymentElementForm ref={paymentFormRef} onReady={handlePaymentReady} onLoadError={handlePaymentLoadError} />
+                    </Elements>
+                  </div>
+                </>
               ) : (
-                <Elements stripe={getStripePromise()} options={{ clientSecret: paymentClientSecret }}>
-                  <PaymentElementForm ref={paymentFormRef} />
-                </Elements>
+                <p className="text-sm text-destructive">Couldn't load the payment form. Please try again.</p>
               )}
               <div className="flex gap-2">
-                <Button type="button" size="sm" disabled={!paymentClientSecret || savingPayment} onClick={handlePaymentSave} className="w-fit rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+                <Button type="button" size="sm" disabled={!paymentReady || savingPayment} onClick={handlePaymentSave} className="w-fit rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
                   {savingPayment ? "Saving…" : "Save payment method"}
                 </Button>
                 <Button type="button" size="sm" variant="outline" className="rounded-md" onClick={() => { setAddingPayment(false); setPaymentClientSecret(null); }}>Cancel</Button>

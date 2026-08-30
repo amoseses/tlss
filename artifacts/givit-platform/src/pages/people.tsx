@@ -15,6 +15,7 @@ import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
 import { CountUp } from "@/components/ui/count-up";
 import { GoogleCalendarConnect } from "@/components/calendar/google-calendar-connect";
+import { birthdayValidationError } from "@/lib/validation/autogift";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASION_TYPES = ["Birthday", "Anniversary", "Christmas", "Hanukkah", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
@@ -222,12 +223,22 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
       return;
     }
     setInterestsError(null);
+    for (const p of valid) {
+      for (const o of p.occasions) {
+        if (o.label !== "Birthday" || !o.date) continue;
+        const birthdayError = birthdayValidationError(o.date);
+        if (birthdayError) {
+          toast.error(`${p.name.trim() || "This person"}: ${birthdayError}`);
+          return;
+        }
+      }
+    }
     setSaving(true);
     try {
       const built = await Promise.all(valid.map(async (p) => {
         const extracted = await extractRecipientProfile(p.aboutText);
         let occasions = p.occasions.filter((o) => o.date);
-        if (extracted.birthdayDate && !occasions.some((o) => o.label === "Birthday")) {
+        if (extracted.birthdayDate && !occasions.some((o) => o.label === "Birthday") && !birthdayValidationError(extracted.birthdayDate)) {
           occasions = [...occasions, { label: "Birthday", date: extracted.birthdayDate }];
         }
         return {
@@ -402,6 +413,14 @@ function EditRecipientModal({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
+    for (const o of occasions) {
+      if (o.label !== "Birthday" || !o.date) continue;
+      const birthdayError = birthdayValidationError(o.date);
+      if (birthdayError) {
+        setError(birthdayError);
+        return;
+      }
+    }
     setSaving(true);
     setError(null);
     try {
@@ -415,7 +434,7 @@ function EditRecipientModal({
         interests = Array.from(new Set([...interests, ...extracted.interests]));
         avoidTerms = Array.from(new Set([...avoidTerms, ...extracted.avoidTerms]));
         if (!budgetCents && extracted.budgetCents) budgetCents = extracted.budgetCents;
-        if (extracted.birthdayDate && !finalOccasions.some((o) => o.label === "Birthday")) {
+        if (extracted.birthdayDate && !finalOccasions.some((o) => o.label === "Birthday") && !birthdayValidationError(extracted.birthdayDate)) {
           finalOccasions = [...finalOccasions, { label: "Birthday", date: extracted.birthdayDate }];
         }
       }
