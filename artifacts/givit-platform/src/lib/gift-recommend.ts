@@ -479,6 +479,19 @@ function scoreProduct(
   );
 }
 
+// Deterministic per query, not per render -- same query text always
+// produces the same hash, so results don't flicker between re-renders of
+// the same search, but two different recipients (different query text)
+// land on different values.
+function hashSeed(text: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
 // A plain top-N-by-score slice tends to return near-duplicates (e.g. five
 // different kitchen gadgets for "mom who loves cooking") whenever several
 // items in the same category happen to score similarly — it reads as
@@ -486,11 +499,28 @@ function scoreProduct(
 // This greedily caps how many results can come from one category, then
 // backfills from the leftover ranking if the pool wasn't diverse enough to
 // fill every slot, so variety is never bought at the cost of a short list.
+//
+// It also breaks near-ties with a seeded jitter instead of always favoring
+// the lower catalog rank -- without this, any two recipients with similar
+// enough interest signal (which is common: broad tags like "home" or
+// "self care" hit a lot of the same products) deterministically converged
+// on the exact same top pick every time, which is what actually caused
+// AutoGift bundles to keep surfacing the same handful of "safe" generic
+// items (e.g. Audible Membership) for very different people. The jitter is
+// small relative to a real score gap, so a genuinely stronger match still
+// always wins -- it only reorders picks that were already close to tied.
 function selectDiverseTopN(
   scored: { product: MarketplaceProduct; score: number }[],
   limit: number,
+  seedText = "",
 ): { product: MarketplaceProduct; score: number }[] {
-  const sorted = [...scored].sort((a, b) => b.score - a.score || a.product.rank - b.product.rank);
+  const seed = hashSeed(seedText);
+  const jitter = (id: string) => (hashSeed(`${seed}:${id}`) % 1000) / 1000 * 3; // 0-3 points
+  const sorted = [...scored].sort((a, b) => {
+    const diff = (b.score + jitter(b.product.id)) - (a.score + jitter(a.product.id));
+    if (Math.abs(diff) > 0.001) return diff;
+    return a.product.rank - b.product.rank;
+  });
   const MAX_PER_CATEGORY = 2;
   const picked: typeof sorted = [];
   const categoryCounts = new Map<string, number>();
@@ -711,7 +741,7 @@ export function recommendGifts(
   const scoredCandidates = candidatePool
     .map((product) => ({ product, score: scoreProduct(product, trimmed, tags, budget, learningProfile, avoidTerms) }))
     .filter(({ score }) => score > 1.25 || tags.length === 0);
-  const results = selectDiverseTopN(scoredCandidates, resultLimit)
+  const results = selectDiverseTopN(scoredCandidates, resultLimit, trimmed)
     .map(({ product }, index) => {
       const factors = giftScoreFactors(product, tags, budget, learningProfile, avoidTerms);
       return toGiftResult(product, {

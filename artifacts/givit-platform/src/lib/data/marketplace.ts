@@ -98,7 +98,10 @@ const RESOLVED_PRODUCT_IMAGES: Record<string, string> = {
   // Previous URL here pointed at a seasonal cat-treat marketing banner from
   // catit.com's homepage carousel (wrong product entirely, just same domain)
   // -- swapped for the actual flower fountain's own product-page hero photo.
-  "catit-flower-fountain": "https://www.catit.com/wp-content/uploads/2021/11/Catit-Original-Flower-Fountain-Hero.jpg.webp",
+  // That "hero" photo was itself a wide marketing banner, though -- cropped
+  // to the site's square product-card aspect ratio it zoomed in too far to
+  // see the fountain. This one is an isolated product-only shot instead.
+  "catit-flower-fountain": "https://www.catit.com/wp-content/uploads/2026/06/43621-Catit-Flower-Fountain-grey.jpg.webp",
   "wild-one-walk-kit": "https://wildone.com/cdn/shop/files/WO_VM_WalkKitHarness_Bubblegum_OnDog_PDP_01_4x5_Web_1.jpg?v=1771436060",
   "furbo-360-dog-camera": "https://cdn.shopify.com/s/files/1/1362/5949/files/dog_cat_thumbnail.jpg?v=1769160413",
   "tuft-paw-cove-litter-box": "https://www.tuftandpaw.com/cdn/shop/files/CovePDP-1.jpg?crop=center&height=630&v=1764682754&width=1200",
@@ -130,6 +133,11 @@ const RESOLVED_PRODUCT_IMAGES: Record<string, string> = {
   "secretlab-magnus-desk-mat": "https://images.secretlab.co/main/tr:n-display_gallery/MMAT15SU-BLKSU.jpg",
   "oxo-cold-brew-maker": "https://www.oxo.com/media/catalog/product/cache/b2f1ce2dfe10d3d31bf2056bf6e0d10f/b/r/brew_1272880v2_coldbrewcoffeemaker_apdp_00_wcmain_4.jpg",
   "prismacolor-premier-pencils": "https://s7d1.scene7.com/is/image/NewellBrands/1799879_prismacolor-colored-pencils-150ct?wid=1000&hei=1000",
+  "lego-botanicals-orchid": "https://www.lego.com/cdn/cs/set/assets/blt08ea230311e717b8/10311.png?fit=bounds&format=jpg&quality=80&width=1500&height=1500&dpr=1",
+  // Previous URL ("...-03.jpg") was a close-up detail shot of the frame's
+  // molding/edge, not the full frame -- cropped to a square card it read as
+  // an unrecognizable zoomed-in texture. This is the full-frame hero shot.
+  "framebridge-mercer-slim-frame": "https://www.framebridge.com/cdn/shop/files/Mercer_Slim_R2.png?v=1763734293",
 };
 
 const IMAGE_POOLS: Record<string, string[]> = {

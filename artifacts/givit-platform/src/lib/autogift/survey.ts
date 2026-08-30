@@ -1,4 +1,4 @@
-import { recommendGifts } from "@/lib/gift-recommend";
+import { recommendGifts, type GiftScore } from "@/lib/gift-recommend";
 import { getAllMarketplaceProducts } from "@/lib/data/marketplace";
 
 /**
@@ -47,6 +47,10 @@ export type GiftSuggestion = {
   reason: string;
   category: string;
   rating: number;
+  // Real per-factor breakdown from the recommendation engine (gift-recommend.ts)
+  // for catalog picks -- absent for hand-authored add-ons (card/flowers) that
+  // never went through scoring, so the UI shows only the overall rating for those.
+  scoreFactors?: GiftScore["factors"];
   imageUrl?: string;
   productUrl?: string;
   fulfillmentNotes?: string;
@@ -242,6 +246,7 @@ export function generateGiftSuggestions(response: SurveyResponse, context: Sugge
       productUrl: `/products/${result.slug}`,
       category: result.category_slug === "experiences" ? "activity" : "gift",
       rating: result.gift_score?.total ?? 80,
+      scoreFactors: result.gift_score?.factors,
       fulfillmentNotes: result.avoidance_warning ?? undefined,
     });
   }

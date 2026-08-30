@@ -8,6 +8,37 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { saveAutoGiftOrderToDb } from "@/lib/supabase/db";
 import { addressValidationError } from "@/lib/validation/autogift";
 
+// Real per-factor scoring from the recommendation engine (gift-recommend.ts's
+// giftScoreFactors), not a fabricated visual -- interests/quality/uniqueness/
+// priceFit are each independently computed from the recipient's actual
+// interest tags, the product's rating data, and their budget. Add-on items
+// (card/flowers) never go through that scoring, so they only get the overall
+// badge with no factor breakdown.
+function MatchScore({ rating, factors }: { rating: number; factors?: NonNullable<GiftSuggestion["scoreFactors"]> }) {
+  const rows: Array<[string, number]> = factors
+    ? [["Interests", factors.interests], ["Quality", factors.quality], ["Unique", factors.uniqueness], ["Value fit", factors.priceFit]]
+    : [];
+  return (
+    <div className="mt-2">
+      <span className="inline-flex items-center gap-1 rounded-full bg-givit-ember/10 px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums text-givit-ember">
+        {rating}% match
+      </span>
+      {rows.length > 0 && (
+        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-lg bg-muted/40 p-2">
+          {rows.map(([label, value]) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <span className="w-14 shrink-0 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">{label}</span>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border">
+                <div className="h-full rounded-full bg-givit-ember" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const INTEREST_OPTIONS = [
   "tech", "reading", "cooking", "fitness", "music", "coffee",
   "gaming", "travel", "plants", "art", "fashion", "outdoor", "pets",
@@ -389,6 +420,7 @@ export function GiftSurveyModal({
                       <div key={item.id} className="rounded-xl border border-border bg-card p-3">
                         {item.imageUrl && <img src={item.imageUrl} alt="" className="mb-3 h-36 w-full rounded-lg object-cover" />}
                         <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-foreground">{item.name}</p><p className="text-xs text-muted-foreground">{item.reason}</p></div><span className="font-bold text-givit-ember">${(item.price / 100).toFixed(2)}</span></div>
+                        <MatchScore rating={item.rating} factors={item.scoreFactors} />
                         {item.productUrl && <a href={item.productUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-givit-ember underline">View exact product</a>}
                         <textarea value={itemNotes[item.id] || ""} onChange={(e) => setItemNotes((prev) => ({ ...prev, [item.id]: e.target.value }))} rows={2} placeholder="Notes for this item: color, size, allergies, delivery timing..." className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
                         <div className="mt-2 grid gap-2 sm:grid-cols-2"><input value={item.name} onChange={(e) => updateBundleItem(selectedBundle.id, item.id, { name: e.target.value })} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /><input type="number" value={(item.price / 100).toFixed(2)} onChange={(e) => updateBundleItem(selectedBundle.id, item.id, { price: Math.round(Number(e.target.value || 0) * 100) })} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /></div>
@@ -431,14 +463,21 @@ export function GiftSurveyModal({
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Digital gift card</label>
                 <p className="text-xs text-muted-foreground">This is what {recipientName} sees attached to the gift. Edit the message below and the card updates live.</p>
+                {/* This card's background is intentionally always a light
+                    "paper note" gradient, not theme-aware -- but text-givit-ink
+                    and text-muted-foreground DO flip to light-on-dark colors in
+                    dark mode, which on this permanently-light card meant the
+                    message rendered as near-white text on a near-white
+                    background. Literal dark colors here instead, since the
+                    card's own background never changes. */}
                 <div className="relative overflow-hidden rounded-2xl border border-givit-ember/25 bg-gradient-to-br from-givit-sand via-white to-white p-6 shadow-sm">
                   <Sparkles className="pointer-events-none absolute right-5 top-5 h-5 w-5 text-givit-ember/25" />
                   <Heart className="pointer-events-none absolute bottom-5 left-5 h-4 w-4 text-givit-coral/20" />
                   <p className="text-[11px] font-bold uppercase tracking-widest text-givit-ember">For {recipientName} &middot; {occasion}</p>
-                  <p className="mt-4 min-h-[4.5rem] font-serif text-lg italic leading-relaxed text-givit-ink">
+                  <p className="mt-4 min-h-[4.5rem] font-serif text-lg italic leading-relaxed text-[#1a1208]">
                     {cardMessage || "Your personalized message will appear here once Your Gift AI drafts one, or write your own below."}
                   </p>
-                  <p className="mt-4 text-right text-xs font-medium text-muted-foreground">Sent with GIVIT</p>
+                  <p className="mt-4 text-right text-xs font-medium text-[#6b6558]">Sent with GIVIT</p>
                 </div>
                 <textarea
                   value={cardMessage}
@@ -504,8 +543,8 @@ export function GiftSurveyModal({
                 <div className="relative mx-auto mt-5 max-w-sm overflow-hidden rounded-2xl border border-givit-ember/25 bg-gradient-to-br from-givit-sand via-white to-white p-5 text-left shadow-sm">
                   <Sparkles className="pointer-events-none absolute right-4 top-4 h-4 w-4 text-givit-ember/25" />
                   <p className="text-[11px] font-bold uppercase tracking-widest text-givit-ember">For {recipientName} &middot; {occasion}</p>
-                  <p className="mt-3 font-serif text-base italic leading-relaxed text-givit-ink">{cardMessage}</p>
-                  <p className="mt-3 text-right text-xs font-medium text-muted-foreground">Sent with GIVIT</p>
+                  <p className="mt-3 font-serif text-base italic leading-relaxed text-[#1a1208]">{cardMessage}</p>
+                  <p className="mt-3 text-right text-xs font-medium text-[#6b6558]">Sent with GIVIT</p>
                 </div>
               )}
               {address.line1 && <p className="mt-4 text-xs text-muted-foreground">Shipping to: {address.line1}, {address.city}, {address.state} {address.zip}</p>}
