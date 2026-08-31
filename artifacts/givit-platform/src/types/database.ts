@@ -9,6 +9,7 @@ export type Profile = {
   email: string;
   full_name: string | null;
   company_name: string | null;
+  avatar_url: string | null;
   role: UserRole;
   is_banned: boolean;
   banned_at: string | null;

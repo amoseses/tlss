@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   email TEXT,
   company_name TEXT,
   phone TEXT,
+  avatar_url TEXT,
   role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'seller')),
   is_banned BOOLEAN DEFAULT false,
   stripe_connect_account_id TEXT,
@@ -677,3 +678,11 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_opt_in BOOLEAN NOT NULL DEFAUL
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_opt_in_at TIMESTAMPTZ;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_consent_text TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_opted_out_at TIMESTAMPTZ;
+
+-- ============================================================
+-- PROFILE PHOTO
+-- Uploaded via the existing S3 presigned-upload flow (api/upload/url.ts,
+-- lib/upload.ts) -- same one gift boards already use -- so no new
+-- storage plumbing, just a place on the profile row to keep the result.
+-- ============================================================
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;

@@ -10,6 +10,7 @@ type Profile = {
   default_reminder_lead_days?: number | null;
   sms_opt_in?: boolean | null;
   sms_opted_out_at?: string | null;
+  avatar_url?: string | null;
 };
 
 type AuthContext = {

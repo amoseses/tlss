@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useLocation, Link } from "wouter";
-import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2 } from "lucide-react";
+import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2, Camera } from "lucide-react";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -11,6 +11,7 @@ import { getStripePromise, hasStripePublishableKey } from "@/lib/stripe/client";
 import { createClient } from "@/lib/supabase/client";
 import { normalizePhoneE164 } from "@/lib/utils";
 import { addressValidationError } from "@/lib/validation/autogift";
+import { uploadFileToS3 } from "@/lib/upload";
 
 async function authedFetch(path: string, init?: RequestInit) {
   const { data } = await createClient().auth.getSession();
@@ -82,6 +83,28 @@ export default function AccountPage() {
   const [profileError, setProfileError] = useState("");
   const [addressForm, setAddressForm] = useState({ label: "Home", line1: "", city: "", state: "", zip: "", country: "US" });
   const [accountNotice, setAccountNotice] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleAvatarSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) { setAccountNotice("Please choose an image file."); return; }
+    if (file.size > 5 * 1024 * 1024) { setAccountNotice("Image is too large -- please choose one under 5MB."); return; }
+    setUploadingAvatar(true);
+    setAccountNotice("");
+    try {
+      const { url } = await uploadFileToS3(file, "avatars");
+      const { error } = await updateProfile(user.id, { avatar_url: url });
+      if (error) { setAccountNotice(error.message); return; }
+      refresh();
+    } catch (err: any) {
+      setAccountNotice(err.message || "Couldn't upload that photo. Please try again.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
 
   // Payment via real Stripe Elements -- clientSecret is fetched fresh each
   // time "Add a card" is opened rather than kept around, same reasoning as
@@ -275,8 +298,28 @@ export default function AccountPage() {
     <PageShell className="max-w-4xl">
       <div className="mb-6 overflow-hidden rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-givit-ember/10">
-            <User className="h-7 w-7 text-givit-ember" />
+          <div className="group/avatar relative h-16 w-16 shrink-0">
+            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-givit-ember/10">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <User className="h-7 w-7 text-givit-ember" />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              aria-label="Change profile photo"
+              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-transparent transition group-hover/avatar:bg-black/40 group-hover/avatar:text-white disabled:cursor-wait"
+            >
+              {uploadingAvatar ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Camera className="h-5 w-5" />
+              )}
+            </button>
+            <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarSelected} className="hidden" />
           </div>
           <div className="flex-1 py-1">
             {editingProfile ? (
