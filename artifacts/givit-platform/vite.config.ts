@@ -29,21 +29,21 @@ function aiApiDevMiddleware(env: Record<string, string>): Plugin {
       const photoUrl = pathToFileURL(
         path.resolve(
           import.meta.dirname,
-          "../../api/_lib/photo.mjs"
+          "../../server/api-lib/photo.mjs"
         )
       ).href;
 
       const metadataUrl = pathToFileURL(
         path.resolve(
           import.meta.dirname,
-          "../../api/_lib/metadata.mjs"
+          "../../server/api-lib/metadata.mjs"
         )
       ).href;
 
       const pushUrl = pathToFileURL(
         path.resolve(
           import.meta.dirname,
-          "../../api/_lib/push.mjs"
+          "../../server/api-lib/push.mjs"
         )
       ).href;
 
@@ -55,7 +55,14 @@ function aiApiDevMiddleware(env: Record<string, string>): Plugin {
          * ============================================================
          */
 
-        if (req.url === "/api/groq" && req.method === "POST") {
+        // Production branches POST /api/metadata to the Groq chat proxy and
+        // GET /api/metadata to the page-metadata lookup (see api/metadata.ts
+        // -- consolidated onto one function to stay under Vercel's Hobby
+        // 12-function cap). groq-client.ts posts to /api/metadata to match;
+        // this dev route used to point at a separate /api/groq that nothing
+        // calls anymore, which meant every local Groq call 404'd and every
+        // AI-personalization feature silently fell back to its non-AI path.
+        if (req.url === "/api/metadata" && req.method === "POST") {
           try {
             const apiKey =
               process.env.GROQ_API_KEY ||
