@@ -158,6 +158,9 @@ export type SuggestionContext = {
   recipientName?: string;
   occasion?: string;
   excludeIds?: string[];
+  // The GIFTER's own gifting-personality traits (see lib/data/gifting-cohorts.ts)
+  // -- threaded through to recommendGifts as a light tie-breaking nudge.
+  gifterTraits?: string[];
 };
 
 /**
@@ -234,6 +237,7 @@ export function generateGiftSuggestions(response: SurveyResponse, context: Sugge
   const { results } = recommendGifts(query, {}, 10, {
     catalog: getAllMarketplaceProducts(),
     excludeIds: context.excludeIds,
+    gifterTraits: context.gifterTraits,
   });
 
   for (const result of results) {

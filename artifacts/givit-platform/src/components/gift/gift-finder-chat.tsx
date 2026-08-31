@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients, saveGiftRecipient } from "@/lib/supabase/db";
 import { parseBatchGiftRequest, runBatchGiftSearch, type BatchGiftPlan } from "@/lib/gift-batch";
 import { parseCompareRequest, findBestProductMatch } from "@/lib/gift-compare";
+import { getCohort } from "@/lib/data/gifting-cohorts";
 
 type GiftResult = GiftRecommendResult;
 
@@ -291,7 +292,7 @@ function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index
 }
 
 export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {}) {
-  const { user } = useAuth();
+  const { user, profile: authProfile } = useAuth();
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -467,7 +468,8 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     try {
       await new Promise((resolve) => setTimeout(resolve, 250));
       const profile = await readLearningProfile();
-      const recommendOptions = { priorContext: contextRef.current, excludeIds, catalog: catalogRef.current };
+      const gifterTraits = getCohort(authProfile?.gifting_cohort)?.traits ?? [];
+      const recommendOptions = { priorContext: contextRef.current, excludeIds, catalog: catalogRef.current, gifterTraits };
       // If the message names someone already saved (typed "gift for Mom"
       // rather than tapping her chip), fold in what's already known about
       // her so the AI doesn't ask questions it has the answers to; the

@@ -10,6 +10,7 @@ export type Profile = {
   full_name: string | null;
   company_name: string | null;
   avatar_url: string | null;
+  gifting_cohort: string | null;
   role: UserRole;
   is_banned: boolean;
   banned_at: string | null;

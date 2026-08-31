@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { ArrowRight, Bell, Gift, Heart, PackageCheck, Sparkles, UserRound, Zap } from "lucide-react";
 
 import { PeopleDashboard } from "@/components/personalization/people-dashboard";
+import { ProfileCompletionCard } from "@/components/personalization/profile-completion-card";
 import { RecentMemoryFeed } from "@/components/personalization/recent-memory-feed";
 import { RelationshipGraph } from "@/components/personalization/relationship-graph";
 import { RelationshipInsights } from "@/components/personalization/relationship-insights";
@@ -134,6 +135,12 @@ export default function HomePage() {
 
       {/* How it works — explains the mechanism before showing it in action below */}
       <HowItWorksScroll />
+
+      {user && (
+        <div className="container mt-6">
+          <ProfileCompletionCard />
+        </div>
+      )}
 
       {/* People dashboard — the actual front door for returning, logged-in users */}
       <PeopleDashboard />

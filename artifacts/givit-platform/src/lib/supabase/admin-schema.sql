@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   company_name TEXT,
   phone TEXT,
   avatar_url TEXT,
+  gifting_cohort TEXT,
   role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'seller')),
   is_banned BOOLEAN DEFAULT false,
   stripe_connect_account_id TEXT,
@@ -686,3 +687,12 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_opted_out_at TIMESTAMPTZ;
 -- storage plumbing, just a place on the profile row to keep the result.
 -- ============================================================
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+-- ============================================================
+-- GIFTING PERSONALITY COHORT
+-- Self-reported via a short quiz (src/lib/data/gifting-cohorts.ts holds the
+-- 6 cohorts + questions), stored as the cohort id (e.g. "poet", "anchor").
+-- Used as a light tie-breaking nudge in gift-recommend.ts, not a hard
+-- filter -- see that file's cohortBoost for how it's weighted.
+-- ============================================================
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gifting_cohort TEXT;

@@ -11,6 +11,7 @@ type Profile = {
   sms_opt_in?: boolean | null;
   sms_opted_out_at?: string | null;
   avatar_url?: string | null;
+  gifting_cohort?: string | null;
 };
 
 type AuthContext = {

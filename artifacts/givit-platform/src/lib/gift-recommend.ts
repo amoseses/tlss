@@ -447,6 +447,7 @@ function scoreProduct(
   budget: number | null,
   learningProfile: LearningProfile,
   avoidTerms: string[],
+  gifterTraits: string[] = [],
 ) {
   const text = productTokens(product);
   const queryTerms = query.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length > 2);
@@ -464,6 +465,13 @@ function scoreProduct(
   const tagBoost = product.interests.reduce((total, tag) => total + (learningProfile.tagWeights?.[tag] ?? 0), 0);
   const avoidPenalty = avoidTerms.some((term) => text.includes(term)) ? 1.35 : 0;
   const dealBoost = product.sale_price_cents && product.gift_match_score >= 88 ? 0.28 : 0;
+  // "Gifting is a two-way street": a light nudge toward products that match
+  // the GIFTER's own self-reported style (src/lib/data/gifting-cohorts.ts),
+  // not just the recipient's interests. Deliberately weighted well below
+  // tagHits (recipient-interest match) so it only ever breaks ties or gives
+  // a small push -- it should never beat a genuinely strong recipient match.
+  const cohortHits = gifterTraits.filter((trait) => product.interests.includes(trait)).length;
+  const cohortBoost = cohortHits * 0.3;
 
   return (
     product.gift_match_score / 100 +
@@ -473,7 +481,8 @@ function scoreProduct(
     budgetScore * 0.65 +
     productBoost * 0.8 +
     tagBoost * 0.25 +
-    dealBoost -
+    dealBoost +
+    cohortBoost -
     avoidPenalty -
     product.category_rank * 0.015
   );
@@ -634,9 +643,10 @@ export function recommendGifts(
   query: string,
   learningProfile: LearningProfile = {},
   resultLimit = 5,
-  options: { priorContext?: ParsedContext; excludeIds?: string[]; catalog?: MarketplaceProduct[] } = {},
+  options: { priorContext?: ParsedContext; excludeIds?: string[]; catalog?: MarketplaceProduct[]; gifterTraits?: string[] } = {},
 ): GiftRecommendResponse {
   const priorContext = options.priorContext ?? EMPTY_CONTEXT;
+  const gifterTraits = options.gifterTraits ?? [];
   const excludeIds = new Set(options.excludeIds ?? []);
   const trimmed = query.trim();
   if (!trimmed) {
@@ -739,7 +749,7 @@ export function recommendGifts(
   const budgetFiltered = budget ? availableCandidates.filter((product) => product.price_cents <= budget * 100 * 1.15) : availableCandidates;
   const candidatePool = budgetFiltered.length > 0 ? budgetFiltered : availableCandidates;
   const scoredCandidates = candidatePool
-    .map((product) => ({ product, score: scoreProduct(product, trimmed, tags, budget, learningProfile, avoidTerms) }))
+    .map((product) => ({ product, score: scoreProduct(product, trimmed, tags, budget, learningProfile, avoidTerms, gifterTraits) }))
     .filter(({ score }) => score > 1.25 || tags.length === 0);
   const results = selectDiverseTopN(scoredCandidates, resultLimit, trimmed)
     .map(({ product }, index) => {

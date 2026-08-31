@@ -7,6 +7,7 @@ import { trackUserEvent } from "@/lib/monitoring";
 import { useAuth } from "@/lib/auth/use-auth";
 import { saveAutoGiftOrderToDb } from "@/lib/supabase/db";
 import { addressValidationError } from "@/lib/validation/autogift";
+import { getCohort } from "@/lib/data/gifting-cohorts";
 
 // Real per-factor scoring from the recommendation engine (gift-recommend.ts's
 // giftScoreFactors), not a fabricated visual -- interests/quality/uniqueness/
@@ -68,7 +69,7 @@ export function GiftSurveyModal({
   occasionDate: string;
   onClose: () => void;
 }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [step, setStep] = useState<"survey" | "suggestions" | "review" | "done">("survey");
   const [interests, setInterests] = useState<string[]>([]);
   const [budget, setBudget] = useState(50);
@@ -126,7 +127,7 @@ export function GiftSurveyModal({
     const nextBundles = generateGiftBundles(
       { ...response, notes: `${response.notes} Variation ${nextRegenerationCount}.` },
       3,
-      { recipientName, occasion, excludeIds },
+      { recipientName, occasion, excludeIds, gifterTraits: getCohort(profile?.gifting_cohort)?.traits },
     );
     for (const bundle of nextBundles) {
       for (const item of bundle.items) {

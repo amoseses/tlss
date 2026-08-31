@@ -4,6 +4,8 @@ import { Bell, PackageCheck, UserRound, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
+import { updateProfile } from "@/lib/supabase/db";
+import { GiftingQuizModal } from "@/components/personalization/gifting-quiz-modal";
 
 const KEY = "givit-show-welcome-tour";
 
@@ -20,8 +22,13 @@ const STEPS = [
 // there was no onboarding at all after signup, but the ask was to simplify
 // the pre-account experience, not replace it with a longer one.
 export function WelcomeTour() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const [open, setOpen] = useState(false);
+  // Chained after the tour card closes, not shown alongside it -- one
+  // decision at a time reads as onboarding, both at once reads as a wall
+  // of dialogs. Skippable like every other step here: closing the tour
+  // without the quiz just means ProfileCompletionCard offers it again later.
+  const [showQuiz, setShowQuiz] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -30,6 +37,22 @@ export function WelcomeTour() {
       setOpen(true);
     }
   }, [user]);
+
+  function closeTourThenQuiz() {
+    setOpen(false);
+    setShowQuiz(true);
+  }
+
+  async function saveCohort(cohortId: string) {
+    if (!user) return;
+    await updateProfile(user.id, { gifting_cohort: cohortId });
+    refresh();
+    setShowQuiz(false);
+  }
+
+  if (showQuiz) {
+    return <GiftingQuizModal onClose={() => setShowQuiz(false)} onComplete={saveCohort} />;
+  }
 
   if (!open) return null;
 
@@ -63,10 +86,10 @@ export function WelcomeTour() {
         </ol>
 
         <div className="mt-6 flex flex-col gap-2">
-          <Button asChild className="w-full rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={() => setOpen(false)}>
+          <Button asChild className="w-full rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={closeTourThenQuiz}>
             <Link href="/people">Add your first person</Link>
           </Button>
-          <Button asChild variant="outline" className="w-full rounded-full" onClick={() => setOpen(false)}>
+          <Button asChild variant="outline" className="w-full rounded-full" onClick={closeTourThenQuiz}>
             <Link href="/gift">Or just ask Your Gift AI</Link>
           </Button>
         </div>
