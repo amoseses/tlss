@@ -102,6 +102,15 @@ function Router() {
   const { displayLocation, opacity } = usePageTransition(routePath);
   const isLanding = displayLocation === "/";
   const isBetaTesting = displayLocation === "/beta";
+  // Marketplace browsing is explicitly meant to work for guests (the
+  // landing page's own "browse as guest" path leads here) -- a full-page
+  // login-nudge modal popping up 500ms after landing blocked the entire
+  // page behind a backdrop, including the filters sidebar, which is what
+  // actually looked like "the filters disappeared" to someone testing it.
+  // Also skip it on the auth pages themselves: a "log in" nudge on top of
+  // the login/signup form is redundant at best.
+  const AUTH_PATHS = new Set(["/login", "/signup", "/forgot-password", "/reset-password", "/auth-callback"]);
+  const skipLoginPrompt = isLanding || isBetaTesting || routePath === "/products" || routePath.startsWith("/products/") || AUTH_PATHS.has(routePath);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -140,7 +149,7 @@ function Router() {
         </Switch>
       </main>
       {!isLanding && <SiteFooter />}
-      {!isLanding && !isBetaTesting && <LoginPrompt />}
+      {!skipLoginPrompt && <LoginPrompt />}
       <BetaFeedbackWidget betaMode={isBetaTesting} />
     </div>
   );
