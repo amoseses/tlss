@@ -467,51 +467,53 @@ export default function AccountPage() {
         )}
       </div>
 
-      {/* Quick Links */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-5">
-        <Link href="/people" className="givit-panel flex items-center gap-3 p-4 transition hover:border-givit-ember/30">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-givit-ember/10">
+      {/* Quick Links -- ramps up gradually (2 -> 3 -> 5 columns) instead of
+          jumping straight to 5 equal columns at the "sm" (640px) breakpoint,
+          which crammed each card into ~110px and wrapped labels unevenly. */}
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Link href="/people" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <User className="h-5 w-5 text-givit-ember" />
           </div>
-          <div>
-            <p className="font-semibold text-givit-ink">People</p>
-            <p className="text-xs text-muted-foreground">Manage saved people</p>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-givit-ink">People</p>
+            <p className="truncate text-xs text-muted-foreground">Manage saved people</p>
           </div>
         </Link>
-        <Link href="/concierge" className="givit-panel flex items-center gap-3 p-4 transition hover:border-givit-ember/30">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-givit-ember/10">
+        <Link href="/concierge" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Settings className="h-5 w-5 text-givit-ember" />
           </div>
-          <div>
-            <p className="font-semibold text-givit-ink">AutoGift</p>
-            <p className="text-xs text-muted-foreground">Manage gift automation</p>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-givit-ink">AutoGift</p>
+            <p className="truncate text-xs text-muted-foreground">Manage gift automation</p>
           </div>
         </Link>
-        <Link href="/gift" className="givit-panel flex items-center gap-3 p-4 transition hover:border-givit-ember/30">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-givit-ember/10">
+        <Link href="/gift" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Gift className="h-5 w-5 text-givit-ember" />
           </div>
-          <div>
-            <p className="font-semibold text-givit-ink">Your Gift AI</p>
-            <p className="text-xs text-muted-foreground">Find gifts with AI</p>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-givit-ink">Your Gift AI</p>
+            <p className="truncate text-xs text-muted-foreground">Find gifts with AI</p>
           </div>
         </Link>
-        <Link href="/submit-product" className="givit-panel flex items-center gap-3 p-4 transition hover:border-givit-ember/30">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-givit-ember/10">
+        <Link href="/submit-product" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <PlusCircle className="h-5 w-5 text-givit-ember" />
           </div>
-          <div>
-            <p className="font-semibold text-givit-ink">Submit product</p>
-            <p className="text-xs text-muted-foreground">Add a gift for admin approval</p>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-givit-ink">Submit product</p>
+            <p className="truncate text-xs text-muted-foreground">Add a gift for admin approval</p>
           </div>
         </Link>
-        <Link href="/boards" className="givit-panel flex items-center gap-3 p-4 transition hover:border-givit-ember/30">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-givit-ember/10">
+        <Link href="/boards" className="givit-panel col-span-2 flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30 sm:col-span-1">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Star className="h-5 w-5 text-givit-ember" />
           </div>
-          <div>
-            <p className="font-semibold text-givit-ink">Gift Boards</p>
-            <p className="text-xs text-muted-foreground">Your curated boards</p>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-givit-ink">Gift Boards</p>
+            <p className="truncate text-xs text-muted-foreground">Your curated boards</p>
           </div>
         </Link>
       </div>
