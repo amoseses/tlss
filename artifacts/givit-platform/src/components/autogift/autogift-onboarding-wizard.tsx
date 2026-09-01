@@ -253,7 +253,11 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
         concierge_onboarding_completed: true,
         gift_automation_enabled: true,
       });
-      const validAddresses = addresses.filter((address) => address.line1.trim() && address.city.trim() && address.state.trim() && address.zip.trim());
+      // Non-empty isn't the same as valid -- "Skip for now" on the address
+      // step bypasses the next()-step gate entirely, so a garbage address
+      // typed in before clicking Skip would otherwise still get saved here
+      // unvalidated.
+      const validAddresses = addresses.filter((address) => !addressValidationError(address));
       for (const [index, address] of validAddresses.entries()) {
         await saveUserAddress({
           user_id: user.id,
