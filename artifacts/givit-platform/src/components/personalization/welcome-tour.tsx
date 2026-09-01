@@ -17,44 +17,44 @@ const STEPS = [
 
 // Shown once, right after a real signup completes — the flag is set in
 // signup.tsx and consumed (removed) here on the very next page that mounts
-// this component, same one-shot pattern as LoginPrompt's own flag. Kept to
-// a single short card instead of a multi-screen wizard: a reviewer flagged
+// this component, same one-shot pattern as LoginPrompt's own flag. The quiz
+// leads (not the tour card) -- it's the one piece of onboarding that
+// actually shapes what GIVIT does for this person from the first
+// recommendation on, so a brand-new account sees it before anything else,
+// not as a secondary step behind two other buttons. Still just a single
+// short tour card after it, not a multi-screen wizard: a reviewer flagged
 // there was no onboarding at all after signup, but the ask was to simplify
 // the pre-account experience, not replace it with a longer one.
+type Stage = "quiz" | "tour" | null;
+
 export function WelcomeTour() {
   const { user, refresh } = useAuth();
-  const [open, setOpen] = useState(false);
-  // Chained after the tour card closes, not shown alongside it -- one
-  // decision at a time reads as onboarding, both at once reads as a wall
-  // of dialogs. Skippable like every other step here: closing the tour
-  // without the quiz just means ProfileCompletionCard offers it again later.
-  const [showQuiz, setShowQuiz] = useState(false);
+  const [stage, setStage] = useState<Stage>(null);
 
   useEffect(() => {
     if (!user) return;
     if (window.localStorage.getItem(KEY)) {
       window.localStorage.removeItem(KEY);
-      setOpen(true);
+      setStage("quiz");
     }
   }, [user]);
 
-  function closeTourThenQuiz() {
-    setOpen(false);
-    setShowQuiz(true);
-  }
-
   async function saveCohort(cohortId: string) {
-    if (!user) return;
-    await updateProfile(user.id, { gifting_cohort: cohortId });
-    refresh();
-    setShowQuiz(false);
+    if (user) {
+      await updateProfile(user.id, { gifting_cohort: cohortId });
+      refresh();
+    }
+    setStage("tour");
   }
 
-  if (showQuiz) {
-    return <GiftingQuizModal onClose={() => setShowQuiz(false)} onComplete={saveCohort} />;
+  if (stage === "quiz") {
+    // Skippable via its own close button, same as every other onboarding
+    // step here -- skipping just means ProfileCompletionCard offers it
+    // again later, and moves straight on to the tour card either way.
+    return <GiftingQuizModal onClose={() => setStage("tour")} onComplete={saveCohort} />;
   }
 
-  if (!open) return null;
+  if (stage !== "tour") return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 p-4 backdrop-blur-sm sm:items-center">
@@ -67,7 +67,7 @@ export function WelcomeTour() {
           <button
             type="button"
             aria-label="Close welcome tour"
-            onClick={() => setOpen(false)}
+            onClick={() => setStage(null)}
             className="rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-givit-ink"
           >
             <X className="h-4 w-4" />
@@ -86,10 +86,10 @@ export function WelcomeTour() {
         </ol>
 
         <div className="mt-6 flex flex-col gap-2">
-          <Button asChild className="w-full rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={closeTourThenQuiz}>
+          <Button asChild className="w-full rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover" onClick={() => setStage(null)}>
             <Link href="/people">Add your first person</Link>
           </Button>
-          <Button asChild variant="outline" className="w-full rounded-full" onClick={closeTourThenQuiz}>
+          <Button asChild variant="outline" className="w-full rounded-full" onClick={() => setStage(null)}>
             <Link href="/gift">Or just ask Your Gift AI</Link>
           </Button>
         </div>

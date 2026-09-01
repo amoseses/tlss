@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { useRecipients } from "@/lib/hooks/use-recipients";
 import { updateProfile } from "@/lib/supabase/db";
 import { getCohort } from "@/lib/data/gifting-cohorts";
-import { GiftingQuizModal } from "@/components/personalization/gifting-quiz-modal";
+import { GiftingQuizModal, CohortMark } from "@/components/personalization/gifting-quiz-modal";
 
 const DISMISS_KEY = "givit-profile-completion-dismissed";
 
@@ -53,12 +53,14 @@ export function ProfileCompletionCard() {
       <div className="givit-panel p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-givit-ember/10">
-              <UserIcon className="h-4 w-4 text-givit-ember" />
-            </div>
+            {cohort ? <CohortMark cohort={cohort} size="sm" /> : (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-givit-ember/10">
+                <UserIcon className="h-4 w-4 text-givit-ember" />
+              </div>
+            )}
             <div>
               <p className="text-sm font-semibold text-givit-ink">
-                {cohort ? <>Your profile · <span className="text-givit-ember">{cohort.emoji} {cohort.name}</span></> : "Complete your profile"}
+                {cohort ? <>Your profile · <span className="text-givit-ember">{cohort.name}</span></> : "Complete your profile"}
               </p>
               <p className="text-xs text-muted-foreground">{pct}% complete</p>
             </div>

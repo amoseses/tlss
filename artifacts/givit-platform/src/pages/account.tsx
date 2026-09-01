@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 import { normalizePhoneE164 } from "@/lib/utils";
 import { addressValidationError } from "@/lib/validation/autogift";
 import { uploadFileToS3 } from "@/lib/upload";
+import { getCohort } from "@/lib/data/gifting-cohorts";
+import { GiftingQuizModal, CohortMark } from "@/components/personalization/gifting-quiz-modal";
 
 async function authedFetch(path: string, init?: RequestInit) {
   const { data } = await createClient().auth.getSession();
@@ -85,6 +87,15 @@ export default function AccountPage() {
   const [accountNotice, setAccountNotice] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const cohort = getCohort(profile?.gifting_cohort);
+
+  async function saveCohort(cohortId: string) {
+    if (!user) return;
+    await updateProfile(user.id, { gifting_cohort: cohortId });
+    refresh();
+    setShowQuiz(false);
+  }
 
   async function handleAvatarSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -358,6 +369,24 @@ export default function AccountPage() {
                 {profile?.role === "admin" && (
                   <span className="inline-block rounded-full bg-givit-ember/10 px-2.5 py-0.5 text-xs font-semibold text-givit-ember">Admin</span>
                 )}
+                {cohort ? (
+                  <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-card/60 px-3 py-2">
+                    <CohortMark cohort={cohort} size="sm" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-givit-ink">{cohort.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{cohort.tagline}</p>
+                    </div>
+                    <button type="button" onClick={() => setShowQuiz(true)} className="ml-auto shrink-0 text-xs font-semibold text-givit-ember hover:underline">Retake</button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowQuiz(true)}
+                    className="flex w-fit items-center gap-1.5 rounded-full border border-givit-ember/30 bg-givit-ember/5 px-3 py-1.5 text-xs font-semibold text-givit-ember transition hover:bg-givit-ember/10"
+                  >
+                    Find your gifting personality →
+                  </button>
+                )}
                 <button
                   onClick={() => setEditingProfile(true)}
                   className="flex items-center gap-1 text-xs font-semibold text-givit-ember hover:underline"
@@ -560,6 +589,7 @@ export default function AccountPage() {
           </div>
         </Link>
       </div>
+      {showQuiz && <GiftingQuizModal onClose={() => setShowQuiz(false)} onComplete={saveCohort} />}
     </PageShell>
   );
 }

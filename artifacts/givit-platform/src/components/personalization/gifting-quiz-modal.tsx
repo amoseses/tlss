@@ -1,8 +1,26 @@
 import { useEffect, useState } from "react";
-import { X, Share2, Check } from "lucide-react";
+import { X, Share2, Check, PenLine, Gem, Anchor, Zap, Users, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { QUIZ_QUESTIONS, GIFTING_COHORTS, scoreQuiz, getCohort } from "@/lib/data/gifting-cohorts";
+import { QUIZ_QUESTIONS, GIFTING_COHORTS, scoreQuiz, getCohort, type GiftingCohort } from "@/lib/data/gifting-cohorts";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
+
+// Same dark "instrument viewport" tile as the home hero's mark and this
+// modal's own sorting screen, not a flat emoji-in-a-circle -- ties the
+// gift-box/cohort iconography into one consistent material instead of a
+// generic quiz-app badge.
+export const COHORT_ICONS: Record<GiftingCohort["icon"], typeof PenLine> = { PenLine, Gem, Anchor, Zap, Users, Building2 };
+
+export function CohortMark({ cohort, size = "md" }: { cohort: GiftingCohort; size?: "sm" | "md" }) {
+  const Icon = COHORT_ICONS[cohort.icon];
+  const dims = size === "sm" ? "h-10 w-10" : "h-16 w-16";
+  const iconDims = size === "sm" ? "h-4 w-4" : "h-6 w-6";
+  return (
+    <div className={`relative flex ${dims} shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#232228] via-[#18171c] to-[#0a0a0d] shadow-lg shadow-givit-ember/20 ring-1 ring-white/10`}>
+      <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent" />
+      <Icon className={`relative ${iconDims} text-givit-ember`} strokeWidth={1.75} />
+    </div>
+  );
+}
 
 type Props = {
   onClose: () => void;
@@ -110,7 +128,7 @@ export function GiftingQuizModal({ onClose, onComplete }: Props) {
           </div>
         ) : resultCohort ? (
           <div className="text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-givit-ember/10 text-3xl">{resultCohort.emoji}</div>
+            <div className="mx-auto"><CohortMark cohort={resultCohort} /></div>
             <h2 className="mt-3 font-serif text-2xl font-bold text-givit-ink">{resultCohort.name}</h2>
             <p className="mt-1 text-sm font-medium italic text-givit-ember">{resultCohort.tagline}</p>
             <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-muted-foreground">{resultCohort.description}</p>

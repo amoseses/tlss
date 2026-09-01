@@ -17,12 +17,21 @@
 // same way a horoscope or a Buzzfeed quiz is treated: a fun, honest-effort
 // personalization signal, not a scientific claim.
 
+// `icon` names a lucide-react component (matching the icon language used
+// everywhere else in the app) -- kept as a string here rather than
+// importing React components into a plain data file, resolved via
+// COHORT_ICONS in the UI components that render it. `emoji` is kept
+// separately, only for share text (a text message benefits from an emoji;
+// the actual on-site UI doesn't use it anymore -- raw emoji-in-a-circle
+// badges read as generic "quiz app" decoration next to the rest of the
+// site's considered, single-color icon treatment).
 export type GiftingCohort = {
   id: string;
   name: string;
   tagline: string;
   description: string;
   traits: string[];
+  icon: "PenLine" | "Gem" | "Anchor" | "Zap" | "Users" | "Building2";
   emoji: string;
 };
 
@@ -33,6 +42,7 @@ export const GIFTING_COHORTS: GiftingCohort[] = [
     tagline: "You gift what can't be bought off a shelf.",
     description: "You reach for something with meaning behind it -- a note, a story, a detail only they'd catch. The wrapping matters as much as what's inside.",
     traits: ["keepsake", "reading", "writing", "journaling", "art"],
+    icon: "PenLine",
     emoji: "🖋️",
   },
   {
@@ -41,6 +51,7 @@ export const GIFTING_COHORTS: GiftingCohort[] = [
     tagline: "You'd rather give one perfect thing than five good ones.",
     description: "You have a specific eye, and it shows in what you pick. Generic gift sets aren't really your thing -- you're after something that feels chosen, not grabbed.",
     traits: ["unique", "lifestyle", "art", "creative"],
+    icon: "Gem",
     emoji: "🎨",
   },
   {
@@ -49,6 +60,7 @@ export const GIFTING_COHORTS: GiftingCohort[] = [
     tagline: "You gift what people actually reach for.",
     description: "Useful beats flashy. You're the one who remembers what someone mentioned needing weeks ago and shows up with exactly that.",
     traits: ["tools", "desk setup", "organization", "office"],
+    icon: "Anchor",
     emoji: "🔧",
   },
   {
@@ -57,6 +69,7 @@ export const GIFTING_COHORTS: GiftingCohort[] = [
     tagline: "You gift moments, not objects.",
     description: "A ticket, a trip, a reservation -- if it can turn into a memory, you're in. Stuff sits on a shelf; experiences don't.",
     traits: ["fun", "travel", "outdoor", "entertainment"],
+    icon: "Zap",
     emoji: "✨",
   },
   {
@@ -65,6 +78,7 @@ export const GIFTING_COHORTS: GiftingCohort[] = [
     tagline: "You gift to make someone feel remembered.",
     description: "You track birthdays other people forget and notice when someone's had a rough month. Your gifts say \"I see you\" more than \"happy birthday.\"",
     traits: ["home", "family", "self care", "comfort"],
+    icon: "Users",
     emoji: "🤝",
   },
   {
@@ -73,6 +87,7 @@ export const GIFTING_COHORTS: GiftingCohort[] = [
     tagline: "You gift things built to last.",
     description: "Quality over quantity, always. You'd rather someone unwrap one well-made thing they'll still be using in five years than a pile of stuff.",
     traits: ["coffee", "kitchen", "tech", "professional"],
+    icon: "Building2",
     emoji: "🏛️",
   },
 ];
