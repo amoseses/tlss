@@ -262,7 +262,11 @@ export function generateGiftSuggestions(response: SurveyResponse, context: Sugge
     suggestions.push({
       id: `general-${crypto.randomUUID()}`,
       name: "GIVIT Marketplace Gift Card",
-      price: Math.max(2500, response.budget * 50),
+      // response.budget is dollars (the survey's own slider), so this needs
+      // the same x100 dollars->cents conversion every other price in this
+      // file uses -- was x50, silently making this fallback gift card half
+      // of whatever budget the customer actually asked for.
+      price: Math.max(2500, response.budget * 100),
       reason: "Let them choose exactly what they want from our curated marketplace.",
       category: "gift",
       rating: 80,

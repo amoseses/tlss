@@ -239,9 +239,15 @@ export function useRecipients(user: { id: string; email?: string } | User | null
   }
 
   async function deleteRecipient(id: string) {
-    const next = recipients.filter((r) => r.id !== id);
-    setRecipients(next);
-    window.localStorage.setItem(recipientsKey(user?.id), JSON.stringify(next));
+    // Functional updater, same reasoning as updateRecipient/updateOccasions
+    // above: deriving the next list from the `recipients` closed over at
+    // call time would silently lose whatever a concurrently-resolving
+    // update call had just changed, if this happens to resolve second.
+    setRecipients((prev) => {
+      const next = prev.filter((r) => r.id !== id);
+      window.localStorage.setItem(recipientsKey(user?.id), JSON.stringify(next));
+      return next;
+    });
     if (user) {
       const { error } = await deleteGiftRecipient(id);
       if (error) console.error("Failed to delete recipient:", error);
