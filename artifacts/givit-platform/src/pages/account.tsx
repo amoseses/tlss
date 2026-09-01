@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useLocation, Link } from "wouter";
-import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2, Camera } from "lucide-react";
+import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2, Camera, Shuffle } from "lucide-react";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -539,10 +539,12 @@ export default function AccountPage() {
         )}
       </div>
 
-      {/* Quick Links -- ramps up gradually (2 -> 3 -> 5 columns) instead of
-          jumping straight to 5 equal columns at the "sm" (640px) breakpoint,
-          which crammed each card into ~110px and wrapped labels unevenly. */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {/* Quick Links -- ramps up gradually (2 -> 3 -> 6 columns) instead of
+          jumping straight to equal columns at the "sm" (640px) breakpoint,
+          which crammed each card into ~110px and wrapped labels unevenly.
+          6 items divides evenly at every one of those column counts, so
+          unlike the 5-item version this doesn't need an odd-card-out span. */}
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Link href="/people" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <User className="h-5 w-5 text-givit-ember" />
@@ -579,13 +581,22 @@ export default function AccountPage() {
             <p className="text-xs text-muted-foreground">Add a gift for admin approval</p>
           </div>
         </Link>
-        <Link href="/boards" className="givit-panel col-span-2 flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30 sm:col-span-1">
+        <Link href="/boards" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Star className="h-5 w-5 text-givit-ember" />
           </div>
           <div className="min-w-0">
             <p className="font-semibold text-givit-ink">Gift Boards</p>
             <p className="text-xs text-muted-foreground">Your curated boards</p>
+          </div>
+        </Link>
+        <Link href="/secret-santa" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
+            <Shuffle className="h-5 w-5 text-givit-ember" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-givit-ink">Secret Santa</p>
+            <p className="text-xs text-muted-foreground">Group gift exchanges</p>
           </div>
         </Link>
       </div>

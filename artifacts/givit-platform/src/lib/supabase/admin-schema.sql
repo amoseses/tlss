@@ -367,6 +367,50 @@ CREATE TABLE IF NOT EXISTS gift_board_items (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 26. SECRET SANTA GROUPS
+CREATE TABLE IF NOT EXISTS secret_santa_groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  organizer_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  occasion TEXT,
+  budget_cents INTEGER,
+  event_date DATE,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'shuffled')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 27. SECRET SANTA PARTICIPANTS
+-- One row per person in a group -- name/email/wishlist_notes/interests are
+-- all readable by the organizer (they invited these people, no secrecy
+-- there). Deliberately does NOT hold who gives to whom -- see
+-- secret_santa_assignments below for why that lives in its own table.
+CREATE TABLE IF NOT EXISTS secret_santa_participants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID NOT NULL REFERENCES secret_santa_groups(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  email TEXT NOT NULL,
+  name TEXT NOT NULL,
+  wishlist_notes TEXT,
+  interests TEXT[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (group_id, email)
+);
+
+-- 28. SECRET SANTA ASSIGNMENTS
+-- The actual "who gives to whom" mapping -- kept in its own table, RLS
+-- enabled with NO policies at all (see below), so it's reachable only
+-- through shuffle_secret_santa_group() / get_my_secret_santa_recipient()
+-- -- not even the organizer can read it via a direct query. That's
+-- deliberate: real Secret Santa staying a secret from the organizer too is
+-- the actual point, and column-level hiding isn't something RLS can do on
+-- a shared table, so the mapping needed a table of its own to lock down.
+CREATE TABLE IF NOT EXISTS secret_santa_assignments (
+  group_id UUID NOT NULL REFERENCES secret_santa_groups(id) ON DELETE CASCADE,
+  giver_id UUID NOT NULL REFERENCES secret_santa_participants(id) ON DELETE CASCADE,
+  recipient_id UUID NOT NULL REFERENCES secret_santa_participants(id) ON DELETE CASCADE,
+  PRIMARY KEY (giver_id)
+);
+
 -- ============================================================
 -- ENABLE ROW LEVEL SECURITY
 -- ============================================================
@@ -395,6 +439,9 @@ ALTER TABLE user_payment_methods ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wishlist_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gift_boards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gift_board_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE secret_santa_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE secret_santa_participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE secret_santa_assignments ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- RLS POLICIES
@@ -489,6 +536,45 @@ CREATE POLICY "Board items are viewable with board" ON gift_board_items FOR SELE
 CREATE POLICY "Users can manage their own board items" ON gift_board_items FOR ALL USING (
   EXISTS (SELECT 1 FROM gift_boards WHERE id = board_id AND user_id = auth.uid())
 );
+
+-- SECRET SANTA GROUPS -- visible to the organizer and to anyone who is a
+-- participant (so a giver can see the group's name/occasion/budget/status),
+-- but only the organizer can create/edit/delete it.
+CREATE POLICY "Members can view their group" ON secret_santa_groups FOR SELECT USING (
+  organizer_id = auth.uid() OR EXISTS (
+    SELECT 1 FROM secret_santa_participants sp WHERE sp.group_id = secret_santa_groups.id AND sp.user_id = auth.uid()
+  )
+);
+CREATE POLICY "Organizer can create groups" ON secret_santa_groups FOR INSERT WITH CHECK (organizer_id = auth.uid());
+CREATE POLICY "Organizer can update their group" ON secret_santa_groups FOR UPDATE USING (organizer_id = auth.uid());
+CREATE POLICY "Organizer can delete their group" ON secret_santa_groups FOR DELETE USING (organizer_id = auth.uid());
+
+-- SECRET SANTA PARTICIPANTS -- a participant sees their own row (so they
+-- can edit their own wishlist); the organizer sees every participant row
+-- in groups they organize (name/email/wishlist/interests -- they invited
+-- these people). Neither of those grants access to who's assigned to
+-- whom, because that isn't stored on this table at all.
+CREATE POLICY "See your own participant row" ON secret_santa_participants FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY "Organizer can view participants in their group" ON secret_santa_participants FOR SELECT USING (
+  EXISTS (SELECT 1 FROM secret_santa_groups g WHERE g.id = group_id AND g.organizer_id = auth.uid())
+);
+CREATE POLICY "Organizer can add participants" ON secret_santa_participants FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM secret_santa_groups g WHERE g.id = group_id AND g.organizer_id = auth.uid())
+);
+CREATE POLICY "Organizer can remove participants" ON secret_santa_participants FOR DELETE USING (
+  EXISTS (SELECT 1 FROM secret_santa_groups g WHERE g.id = group_id AND g.organizer_id = auth.uid())
+);
+CREATE POLICY "Participants can update their own wishlist" ON secret_santa_participants FOR UPDATE USING (user_id = auth.uid());
+
+-- SECRET SANTA ASSIGNMENTS -- deliberately zero policies below. RLS is
+-- enabled with no CREATE POLICY at all for this table, which means every
+-- role (including the organizer, including an admin using their own
+-- anon/authenticated session) gets zero rows back from a direct query,
+-- full stop. shuffle_secret_santa_group() and get_my_secret_santa_recipient()
+-- are SECURITY DEFINER, so they run with elevated privileges that bypass
+-- RLS entirely -- they are the only way in, and each does its own
+-- authorization check (organizer-only to write; caller-can-only-read-their-
+-- own-assignment to read) before touching anything.
 
 -- ============================================================
 -- AUTO-CREATE PROFILE ON SIGNUP
@@ -696,3 +782,76 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 -- filter -- see that file's cohortBoost for how it's weighted.
 -- ============================================================
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gifting_cohort TEXT;
+
+-- ============================================================
+-- SECRET SANTA: SHUFFLE + PRIVATE ASSIGNMENT LOOKUP
+-- Both SECURITY DEFINER, both do their own authorization check (RLS is
+-- bypassed for the duration of the function body, so the check has to be
+-- explicit rather than left to a policy). See the secret_santa_assignments
+-- table comment above for why the mapping lives in its own, policy-less
+-- table instead of a column on secret_santa_participants.
+-- ============================================================
+
+-- A single random cyclic permutation of the participant ids: shuffle them,
+-- then assign each person to the next one in the shuffled order (wrapping
+-- around). For any group of 3+, this guarantees zero self-assignments
+-- (person i never equals person i+1 in a cycle of length >= 2) and that
+-- everyone gives exactly once and receives exactly once, without the
+-- retry-until-it-works awkwardness of rejection-sampling a general
+-- derangement.
+CREATE OR REPLACE FUNCTION shuffle_secret_santa_group(p_group_id UUID)
+RETURNS VOID
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_organizer UUID;
+  v_ids UUID[];
+  v_count INT;
+  i INT;
+BEGIN
+  SELECT organizer_id INTO v_organizer FROM secret_santa_groups WHERE id = p_group_id;
+  IF v_organizer IS NULL THEN
+    RAISE EXCEPTION 'Group not found';
+  END IF;
+  IF v_organizer != auth.uid() THEN
+    RAISE EXCEPTION 'Only the organizer can shuffle this group';
+  END IF;
+
+  SELECT array_agg(id ORDER BY random()) INTO v_ids
+  FROM secret_santa_participants WHERE group_id = p_group_id;
+
+  v_count := COALESCE(array_length(v_ids, 1), 0);
+  IF v_count < 3 THEN
+    RAISE EXCEPTION 'Need at least 3 participants to shuffle';
+  END IF;
+
+  DELETE FROM secret_santa_assignments WHERE group_id = p_group_id;
+  FOR i IN 1..v_count LOOP
+    INSERT INTO secret_santa_assignments (group_id, giver_id, recipient_id)
+    VALUES (p_group_id, v_ids[i], v_ids[(i % v_count) + 1]);
+  END LOOP;
+
+  UPDATE secret_santa_groups SET status = 'shuffled' WHERE id = p_group_id;
+END;
+$$;
+
+-- Returns exactly one row: the recipient the CALLING user was assigned to
+-- give to in the given group. Nothing else -- there's no way to pass in
+-- someone else's participant id and get their assignment back instead,
+-- because the join is anchored on `me.user_id = auth.uid()`, not on any
+-- caller-supplied id.
+CREATE OR REPLACE FUNCTION get_my_secret_santa_recipient(p_group_id UUID)
+RETURNS TABLE(name TEXT, wishlist_notes TEXT, interests TEXT[])
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT r.name, r.wishlist_notes, r.interests
+  FROM secret_santa_participants me
+  JOIN secret_santa_assignments a ON a.giver_id = me.id AND a.group_id = p_group_id
+  JOIN secret_santa_participants r ON r.id = a.recipient_id
+  WHERE me.group_id = p_group_id AND me.user_id = auth.uid();
+$$;

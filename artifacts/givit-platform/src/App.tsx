@@ -33,6 +33,8 @@ import SubmitProductPage from "@/pages/submit-product";
 import AccountPage from "@/pages/account";
 import OrdersPage from "@/pages/orders";
 import WishlistPage from "@/pages/wishlist";
+import SecretSantaPage from "@/pages/secret-santa";
+import SecretSantaGroupPage from "@/pages/secret-santa-group";
 import AdminPage from "@/pages/admin";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
@@ -143,6 +145,8 @@ function Router() {
           <Route path="/account" component={AccountPage} />
           <Route path="/orders" component={OrdersPage} />
           <Route path="/wishlist" component={WishlistPage} />
+          <Route path="/secret-santa" component={SecretSantaPage} />
+          <Route path="/secret-santa/:id" component={SecretSantaGroupPage} />
           <Route path="/admin" component={AdminPage} />
           <Route path="/privacy" component={PrivacyPage} />
           <Route path="/terms" component={TermsPage} />
