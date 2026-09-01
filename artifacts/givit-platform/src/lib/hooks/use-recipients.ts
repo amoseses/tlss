@@ -18,9 +18,23 @@ export type Recipient = {
   automationEnabled?: boolean;
 };
 
-const NOTIFICATION_KEY = "givit-notifications";
 const NOTIFICATION_LEAD_DAYS = 35; // 5 weeks before -- default when an occasion doesn't set its own
 export const MIN_LEAD_DAYS = 7; // 1 week -- below this, standard shipping usually can't make the date
+
+// Both localStorage keys below used to be one fixed global string with no
+// user in it at all -- on any browser where more than one GIVIT account had
+// ever signed in (a shared computer, or just testing a second account), a
+// brand-new account with genuinely zero saved people would fall back to
+// this key (see the `rows.length > 0` fallback below) and silently inherit
+// whatever the PREVIOUS account had left there. Scoping by user id (a fixed
+// "guest" bucket when logged out) makes each account's local copy actually
+// its own.
+function recipientsKey(userId?: string | null) {
+  return `givit-recipients:${userId ?? "guest"}`;
+}
+function notificationsKey(userId?: string | null) {
+  return `givit-notifications:${userId ?? "guest"}`;
+}
 
 export type ConciergeNotification = {
   id: string;
@@ -32,14 +46,14 @@ export type ConciergeNotification = {
   createdAt: string;
 };
 
-function getStoredNotifications(): ConciergeNotification[] {
+function getStoredNotifications(userId?: string | null): ConciergeNotification[] {
   try {
-    return JSON.parse(window.localStorage.getItem(NOTIFICATION_KEY) ?? "[]");
+    return JSON.parse(window.localStorage.getItem(notificationsKey(userId)) ?? "[]");
   } catch { return []; }
 }
 
-function saveStoredNotifications(notifications: ConciergeNotification[]) {
-  window.localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
+function saveStoredNotifications(notifications: ConciergeNotification[], userId?: string | null) {
+  window.localStorage.setItem(notificationsKey(userId), JSON.stringify(notifications));
 }
 
 function scheduledSurveySendAt(occasionDate: string, leadDays: number) {
@@ -85,8 +99,8 @@ async function scheduleOccasionNotifications(
   });
 }
 
-function generateNotifications(recipients: Recipient[], defaultLeadDays = NOTIFICATION_LEAD_DAYS): ConciergeNotification[] {
-  const existing = getStoredNotifications();
+function generateNotifications(recipients: Recipient[], defaultLeadDays = NOTIFICATION_LEAD_DAYS, userId?: string | null): ConciergeNotification[] {
+  const existing = getStoredNotifications(userId);
   const existingKeys = new Set(existing.map((n) => `${n.recipientName}-${n.occasion}-${n.date}`));
   const now = new Date();
   const newNotifications: ConciergeNotification[] = [];
@@ -113,7 +127,7 @@ function generateNotifications(recipients: Recipient[], defaultLeadDays = NOTIFI
   }
 
   const merged = [...newNotifications, ...existing];
-  saveStoredNotifications(merged);
+  saveStoredNotifications(merged, userId);
   return merged;
 }
 
@@ -155,7 +169,7 @@ export function useRecipients(user: { id: string; email?: string } | User | null
                 automationEnabled: row.automation_enabled ?? true,
               })) as Recipient[];
               setRecipients(mapped);
-              setNotifications(generateNotifications(mapped, defaultLeadDays));
+              setNotifications(generateNotifications(mapped, defaultLeadDays, user.id));
               setLocalReady(true);
               return;
             }
@@ -163,11 +177,22 @@ export function useRecipients(user: { id: string; email?: string } | User | null
             console.error("Failed to load AutoGift recipients from Supabase, falling back to local copy:", err);
           }
         }
-        const saved = window.localStorage.getItem("givit-recipients");
+        // One-time migration from the old unscoped key, guest-only: a
+        // logged-in user inheriting it is exactly the cross-account bug
+        // this scoping fixes, but a guest browser has no DB fallback at
+        // all, so without this they'd lose a locally-built list outright
+        // the first time this loads post-update.
+        if (!user) {
+          const legacy = window.localStorage.getItem("givit-recipients");
+          if (legacy && !window.localStorage.getItem(recipientsKey(null))) {
+            window.localStorage.setItem(recipientsKey(null), legacy);
+          }
+        }
+        const saved = window.localStorage.getItem(recipientsKey(user?.id));
         if (saved && !cancelled) {
           const parsed = JSON.parse(saved) as Recipient[];
           setRecipients(parsed);
-          setNotifications(generateNotifications(parsed, defaultLeadDays));
+          setNotifications(generateNotifications(parsed, defaultLeadDays, user?.id));
         }
       } catch (err) {
         console.error("Failed to load AutoGift recipients:", err);
@@ -181,8 +206,8 @@ export function useRecipients(user: { id: string; email?: string } | User | null
 
   async function saveRecipients(list: Recipient[]) {
     setRecipients(list);
-    window.localStorage.setItem("givit-recipients", JSON.stringify(list));
-    setNotifications(generateNotifications(list));
+    window.localStorage.setItem(recipientsKey(user?.id), JSON.stringify(list));
+    setNotifications(generateNotifications(list, defaultLeadDays, user?.id));
 
     if (!user) return;
     const added = list.filter((recipient) => !recipients.some((existing) => existing.id === recipient.id));
@@ -216,7 +241,7 @@ export function useRecipients(user: { id: string; email?: string } | User | null
   async function deleteRecipient(id: string) {
     const next = recipients.filter((r) => r.id !== id);
     setRecipients(next);
-    window.localStorage.setItem("givit-recipients", JSON.stringify(next));
+    window.localStorage.setItem(recipientsKey(user?.id), JSON.stringify(next));
     if (user) {
       const { error } = await deleteGiftRecipient(id);
       if (error) console.error("Failed to delete recipient:", error);
@@ -240,7 +265,7 @@ export function useRecipients(user: { id: string; email?: string } | User | null
     // freshly typed interest) the moment it resolved second.
     setRecipients((prev) => {
       const nextAll = prev.map((r) => (r.id === id ? next : r));
-      window.localStorage.setItem("givit-recipients", JSON.stringify(nextAll));
+      window.localStorage.setItem(recipientsKey(user?.id), JSON.stringify(nextAll));
       return nextAll;
     });
     if (!user) return { error: null };
@@ -322,8 +347,8 @@ export function useRecipients(user: { id: string; email?: string } | User | null
     // drop whatever updateRecipient had just changed.
     setRecipients((prev) => {
       const nextAll = prev.map((r) => (r.id === recipientId ? { ...r, occasions: saved } : r));
-      window.localStorage.setItem("givit-recipients", JSON.stringify(nextAll));
-      setNotifications(generateNotifications(nextAll));
+      window.localStorage.setItem(recipientsKey(user?.id), JSON.stringify(nextAll));
+      setNotifications(generateNotifications(nextAll, defaultLeadDays, user?.id));
       return nextAll;
     });
     return { error: null };
@@ -344,7 +369,7 @@ export function useRecipients(user: { id: string; email?: string } | User | null
   function dismissNotification(id: string) {
     const updated = notifications.map((n) => (n.id === id ? { ...n, dismissed: true } : n));
     setNotifications(updated);
-    saveStoredNotifications(updated);
+    saveStoredNotifications(updated, user?.id);
   }
 
   return {
