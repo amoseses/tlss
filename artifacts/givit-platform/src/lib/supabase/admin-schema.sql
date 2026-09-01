@@ -713,8 +713,10 @@ CREATE TABLE IF NOT EXISTS autogift_orders (
   customer_notes TEXT,
   admin_notes TEXT,
   approved_at TIMESTAMPTZ,
+  stripe_payment_intent_id TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE autogift_orders ADD COLUMN IF NOT EXISTS stripe_payment_intent_id TEXT;
 
 ALTER TABLE autogift_orders ENABLE ROW LEVEL SECURITY;
 

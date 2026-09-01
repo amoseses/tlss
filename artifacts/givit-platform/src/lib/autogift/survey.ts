@@ -417,9 +417,15 @@ export function createAutoGiftOrder(params: {
     subtotal,
     serviceFee,
     total,
-    status: "pending_approval",
+    // createAutoGiftOrder is only ever called from handlePlaceOrder, after
+    // the customer has already picked a bundle and clicked to place the
+    // order -- so by the time a row exists at all, approval has already
+    // happened. "pending_approval" doesn't correspond to any real state in
+    // this flow; starting at "approved" lets the admin "Charge saved card"
+    // action pick it up immediately.
+    status: "approved",
     chargeMode: "saved_card_after_approval",
-    chargeNote: "Customer must approve; then charge the saved card from AutoGift onboarding / first AutoGift checkout before admin fulfillment.",
+    chargeNote: "Customer approved this bundle. Charge the saved default card, then fulfill and ship to the saved address.",
     shippingAddress: params.shippingAddress,
     cardMessage: params.cardMessage,
     createdAt: new Date().toISOString(),
@@ -440,18 +446,6 @@ export function getAutoGiftOrders(): AutoGiftOrder[] {
 
 function saveAutoGiftOrders(orders: AutoGiftOrder[]) {
   window.localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
-}
-
-export function approveAutoGiftOrder(orderId: string) {
-  const orders = getAutoGiftOrders().map(o =>
-    o.id === orderId ? {
-      ...o,
-      status: "admin_fulfillment" as const,
-      approvedAt: new Date().toISOString(),
-      adminNotes: "Approved by customer. Charge saved card for the calculated total, then source/package items and ship to the saved recipient address.",
-    } : o
-  );
-  saveAutoGiftOrders(orders);
 }
 
 export function cancelAutoGiftOrder(orderId: string) {
