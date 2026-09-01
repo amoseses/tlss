@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useRecipients, nextOccurrenceDate } from "@/lib/hooks/use-recipients";
+import { upcomingAge, isMilestoneAge } from "@/lib/date-utils";
 import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
 import { GoogleCalendarConnect } from "@/components/calendar/google-calendar-connect";
 import { getHolidaysForRegion, SUPPORTED_REGIONS } from "@/lib/data/holidays";
@@ -41,13 +42,21 @@ export default function CalendarPage() {
 
   const upcomingPersonal = recipients
     .flatMap((r) =>
-      r.occasions.filter((o) => o.date).map((o) => ({
-        recipient: r.name,
-        label: o.label,
-        date: o.date,
-        parsed: nextOccurrenceDate(o.date),
-        isHoliday: false,
-      }))
+      r.occasions.filter((o) => o.date).map((o) => {
+        // Age only means anything for an actual birthday -- other occasion
+        // types (anniversaries, etc.) reuse the same date field but a
+        // stored year there isn't someone's birth year.
+        const age = o.label === "Birthday" ? upcomingAge(o.date) : null;
+        return {
+          recipient: r.name,
+          label: o.label,
+          date: o.date,
+          parsed: nextOccurrenceDate(o.date),
+          isHoliday: false,
+          age,
+          milestone: isMilestoneAge(age),
+        };
+      })
     );
 
   const upcomingHolidays = holidays.map((h) => ({
@@ -56,6 +65,8 @@ export default function CalendarPage() {
     date: h.date,
     parsed: nextOccurrenceDate(h.date),
     isHoliday: true,
+    age: null as number | null,
+    milestone: false,
   }));
 
   const upcomingAll = [...upcomingPersonal, ...upcomingHolidays]
@@ -195,7 +206,12 @@ export default function CalendarPage() {
                         {o.isHoliday ? <Sparkles className="h-4 w-4 text-white" /> : o.recipient[0]?.toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">{o.recipient}</p>
+                        <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
+                          {o.recipient}
+                          {o.milestone && (
+                            <span className="shrink-0 rounded-full bg-givit-ember/10 px-1.5 py-0.5 text-[10px] font-bold text-givit-ember">Turning {o.age}</span>
+                          )}
+                        </p>
                         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                           {o.isHoliday ? (
                             <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Public Holiday</span>

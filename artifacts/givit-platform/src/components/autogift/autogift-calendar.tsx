@@ -2,10 +2,11 @@ import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Bell, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Globe, Sparkles } from "lucide-react";
 import { getHolidaysForRegion } from "@/lib/data/holidays";
+import { upcomingAge, isMilestoneAge } from "@/lib/date-utils";
 
 type Occasion = { label: string; date: string };
-type Recipient = { id: string; name: string; occasions: Occasion[] };
-type DayOccasion = { recipient: string; label: string; date: string; isHoliday?: boolean; category?: string };
+type Recipient = { id: string; name: string; relationship?: string; interests?: string[]; occasions: Occasion[] };
+type DayOccasion = { recipient: string; label: string; date: string; isHoliday?: boolean; category?: string; relationship?: string; topInterest?: string; age?: number | null; milestone?: boolean };
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -66,7 +67,16 @@ export function AutoGiftCalendar({
           const d = new Date(`${o.date}T12:00:00`);
           if (Number.isNaN(d.getTime()) || d.getMonth() !== cursor.month) continue;
           const day = d.getDate();
-          map.set(day, [...(map.get(day) ?? []), { recipient: r.name, label: o.label, date: o.date }]);
+          const age = o.label === "Birthday" ? upcomingAge(o.date) : null;
+          map.set(day, [...(map.get(day) ?? []), {
+            recipient: r.name,
+            label: o.label,
+            date: o.date,
+            relationship: r.relationship,
+            topInterest: r.interests?.[0],
+            age,
+            milestone: isMilestoneAge(age),
+          }]);
         }
       }
     }
@@ -252,8 +262,8 @@ export function AutoGiftCalendar({
           // Personal recipients on this date, or if it's a general holiday, fallback to recipients list
           const personalPeople = dayOccasions?.filter((o) => !o.isHoliday) ?? [];
           const peopleForPopover = personalPeople.length > 0
-            ? personalPeople.map((o) => ({ name: o.recipient, label: o.label }))
-            : recipients.slice(0, 4).map((r) => ({ name: r.name, label: holidayItem?.recipient || "Holiday" }));
+            ? personalPeople.map((o) => ({ name: o.recipient, label: o.label, milestone: o.milestone, age: o.age }))
+            : recipients.slice(0, 4).map((r) => ({ name: r.name, label: holidayItem?.recipient || "Holiday", milestone: false, age: null as number | null }));
 
           return (
             <div
@@ -336,7 +346,10 @@ export function AutoGiftCalendar({
                       return (
                         <div key={idx} className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 p-1.5">
                           <div className="min-w-0 flex-1">
-                            <p className="truncate font-semibold text-foreground">{p.name}</p>
+                            <p className="flex items-center gap-1 truncate font-semibold text-foreground">
+                              {p.name}
+                              {p.milestone && <span className="shrink-0 rounded-full bg-givit-ember/10 px-1 py-0.5 text-[9px] font-bold text-givit-ember">{p.age}</span>}
+                            </p>
                             <p className="truncate text-[10px] text-muted-foreground">{p.label}</p>
                           </div>
                           <Link
@@ -375,7 +388,15 @@ export function AutoGiftCalendar({
                     ) : (
                       <span>{o.recipient} · {o.label}</span>
                     )}
+                    {o.milestone && (
+                      <span className="rounded-full bg-givit-ember/10 px-1.5 py-0.5 text-[10px] font-bold text-givit-ember">Turning {o.age}</span>
+                    )}
                   </p>
+                  {!o.isHoliday && (o.relationship || o.topInterest) && (
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      {[o.relationship, o.topInterest ? `loves ${o.topInterest}` : null].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
                   <p className="mt-0.5 flex items-center gap-1 text-muted-foreground">
                     {o.isHoliday ? (
                       <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Public Holiday</span>
