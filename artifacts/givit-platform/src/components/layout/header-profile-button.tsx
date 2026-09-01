@@ -20,9 +20,10 @@ type Props = {
   email?: string;
   displayName?: string;
   role?: UserRole;
+  avatarUrl?: string | null;
 };
 
-export function HeaderProfileButton({ loggedIn, email, displayName, role }: Props) {
+export function HeaderProfileButton({ loggedIn, email, displayName, role, avatarUrl: realAvatarUrl }: Props) {
   const [, navigate] = useLocation();
   // The header's own background now flips light/dark with the theme (it
   // used to always be black), so this icon/button needs to track it too --
@@ -44,7 +45,7 @@ export function HeaderProfileButton({ loggedIn, email, displayName, role }: Prop
   }
 
   const isAdmin = role === "admin";
-  const avatarUrl = generatedProfilePhotoUrl(email || displayName);
+  const avatarUrl = realAvatarUrl || generatedProfilePhotoUrl(email || displayName);
 
   async function signOut() {
     const supabase = createClient();
@@ -66,18 +67,12 @@ export function HeaderProfileButton({ loggedIn, email, displayName, role }: Prop
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate("/account")}>Account</DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate("/orders")}>Orders</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/products")}>Wishlist</DropdownMenuItem>
-        {isAdmin ? (
+        <DropdownMenuItem onClick={() => navigate("/wishlist")}>Wishlist</DropdownMenuItem>
+        {isAdmin && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate("/manager")}>Manager console</DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/admin")}>Admin products</DropdownMenuItem>
-          </>
-        ) : (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/people")}>People</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/concierge")}>AutoGift</DropdownMenuItem>
           </>
         )}
         <DropdownMenuSeparator />

@@ -9,6 +9,7 @@ export function UserMenu() {
       email={profile?.email}
       displayName={profile?.full_name ?? undefined}
       role={profile?.role}
+      avatarUrl={profile?.avatar_url}
     />
   );
 }

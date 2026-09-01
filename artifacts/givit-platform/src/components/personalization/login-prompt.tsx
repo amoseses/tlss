@@ -3,13 +3,20 @@ import { Link } from "wouter";
 import { Gift, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth/use-auth";
 
 const KEY = "givit-login-prompt-dismissed";
 
 export function LoginPrompt() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    // Nudging someone to log in when they already are makes no sense --
+    // this had no auth check at all before, so a signed-in user who'd
+    // never happened to dismiss it (e.g. on a fresh device/browser) would
+    // still get a full-page "log in" modal.
+    if (user) { setOpen(false); return; }
     const dismissed = window.localStorage.getItem(KEY);
     // Check if user just signed up - dismiss automatically
     const justSignedUp = window.localStorage.getItem("givit-just-signed-up");
@@ -20,7 +27,7 @@ export function LoginPrompt() {
     }
     const timer = window.setTimeout(() => setOpen(!dismissed), 500);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [user]);
 
   if (!open) return null;
 

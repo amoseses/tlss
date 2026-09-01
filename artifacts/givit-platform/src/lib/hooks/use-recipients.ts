@@ -133,23 +133,34 @@ export function useRecipients(user: { id: string; email?: string } | User | null
     async function load() {
       try {
         if (user) {
-          const rows = await getGiftRecipients(user.id);
-          if (!cancelled && rows.length > 0) {
-            const mapped = rows.map((row: any) => ({
-              id: row.id,
-              name: row.name,
-              relationship: row.relationship || "",
-              occasions: (row.gift_occasions ?? []).map((occ: any) => ({ id: occ.id, label: occ.occasion, date: occ.occasion_date, leadDays: occ.approval_lead_days ?? defaultLeadDays })),
-              interests: row.interests ?? [],
-              avoidTerms: row.avoid_terms ?? [],
-              budgetCents: row.default_budget_cents ?? null,
-              notes: row.notes ?? null,
-              automationEnabled: row.automation_enabled ?? true,
-            })) as Recipient[];
-            setRecipients(mapped);
-            setNotifications(generateNotifications(mapped, defaultLeadDays));
-            setLocalReady(true);
-            return;
+          // A thrown fetch (network blip, transient RLS/auth timing) used
+          // to propagate straight to the outer catch below, which left
+          // `recipients` at its empty initial state with no fallback and
+          // no retry -- rendering as "0 people" for someone who genuinely
+          // has several saved, indistinguishable from actually having
+          // none. Catching it here instead lets execution fall through to
+          // the same localStorage fallback a logged-out session uses.
+          try {
+            const rows = await getGiftRecipients(user.id);
+            if (!cancelled && rows.length > 0) {
+              const mapped = rows.map((row: any) => ({
+                id: row.id,
+                name: row.name,
+                relationship: row.relationship || "",
+                occasions: (row.gift_occasions ?? []).map((occ: any) => ({ id: occ.id, label: occ.occasion, date: occ.occasion_date, leadDays: occ.approval_lead_days ?? defaultLeadDays })),
+                interests: row.interests ?? [],
+                avoidTerms: row.avoid_terms ?? [],
+                budgetCents: row.default_budget_cents ?? null,
+                notes: row.notes ?? null,
+                automationEnabled: row.automation_enabled ?? true,
+              })) as Recipient[];
+              setRecipients(mapped);
+              setNotifications(generateNotifications(mapped, defaultLeadDays));
+              setLocalReady(true);
+              return;
+            }
+          } catch (err) {
+            console.error("Failed to load AutoGift recipients from Supabase, falling back to local copy:", err);
           }
         }
         const saved = window.localStorage.getItem("givit-recipients");

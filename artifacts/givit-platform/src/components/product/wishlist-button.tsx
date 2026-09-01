@@ -8,7 +8,7 @@ import { addToWishlist, removeFromWishlist } from "@/lib/supabase/db";
 
 const STORAGE_KEY = "givit-wishlist";
 
-type WishlistItem = {
+export type WishlistItem = {
   slug: string;
   name: string;
   href: string;
@@ -18,7 +18,7 @@ type WishlistItem = {
   wishlistId?: string;
 };
 
-function readWishlist(): WishlistItem[] {
+export function readWishlist(): WishlistItem[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -28,7 +28,7 @@ function readWishlist(): WishlistItem[] {
   }
 }
 
-function writeWishlist(items: WishlistItem[]) {
+export function writeWishlist(items: WishlistItem[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   window.dispatchEvent(new CustomEvent("givit:wishlist", { detail: items }));
 }
@@ -73,9 +73,18 @@ export function WishlistButton({ item, compact = false }: { item: WishlistItem; 
       let wishlistId: string | undefined;
       if (user) {
         try {
+          // product_id is a real UUID FK into `products` -- almost nothing
+          // passes item.productId (the seed catalog's ids look like
+          // "gift-<slug>", not UUIDs), so this used to fall back to the
+          // slug string here, which Postgres rejected as invalid UUID
+          // syntax on every insert. Caught silently (see catch below), so
+          // wishlist saves *looked* like they worked (localStorage still
+          // updated) while nothing ever actually reached the database.
+          // product_slug is the real, reliable identifier -- always sent.
           const { data, error } = await addToWishlist({
             user_id: user.id,
-            product_id: item.productId || item.slug,
+            product_id: item.productId || null,
+            product_slug: item.slug,
             product_name: item.name,
             product_image: item.image,
             product_price_cents: item.price ? Math.round(parseFloat(item.price) * 100) : null,

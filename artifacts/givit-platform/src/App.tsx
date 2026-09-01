@@ -32,6 +32,7 @@ import BetaTesterSurveyPage from "@/pages/beta-tester-survey";
 import SubmitProductPage from "@/pages/submit-product";
 import AccountPage from "@/pages/account";
 import OrdersPage from "@/pages/orders";
+import WishlistPage from "@/pages/wishlist";
 import AdminPage from "@/pages/admin";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
@@ -141,6 +142,7 @@ function Router() {
           <Route path="/submit-product" component={SubmitProductPage} />
           <Route path="/account" component={AccountPage} />
           <Route path="/orders" component={OrdersPage} />
+          <Route path="/wishlist" component={WishlistPage} />
           <Route path="/admin" component={AdminPage} />
           <Route path="/privacy" component={PrivacyPage} />
           <Route path="/terms" component={TermsPage} />

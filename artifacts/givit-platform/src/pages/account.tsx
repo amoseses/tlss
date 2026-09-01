@@ -427,7 +427,7 @@ export default function AccountPage() {
                 </div>
               ))}
               {wishlist.length > 3 && (
-                <Link href="/products" className="block pt-1 text-center text-sm font-semibold text-givit-ember hover:underline">
+                <Link href="/wishlist" className="block pt-1 text-center text-sm font-semibold text-givit-ember hover:underline">
                   View all {wishlist.length} items →
                 </Link>
               )}
@@ -519,8 +519,8 @@ export default function AccountPage() {
             <User className="h-5 w-5 text-givit-ember" />
           </div>
           <div className="min-w-0">
-            <p className="truncate font-semibold text-givit-ink">People</p>
-            <p className="truncate text-xs text-muted-foreground">Manage saved people</p>
+            <p className="font-semibold text-givit-ink">People</p>
+            <p className="text-xs text-muted-foreground">Manage saved people</p>
           </div>
         </Link>
         <Link href="/concierge" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
@@ -528,8 +528,8 @@ export default function AccountPage() {
             <Settings className="h-5 w-5 text-givit-ember" />
           </div>
           <div className="min-w-0">
-            <p className="truncate font-semibold text-givit-ink">AutoGift</p>
-            <p className="truncate text-xs text-muted-foreground">Manage gift automation</p>
+            <p className="font-semibold text-givit-ink">AutoGift</p>
+            <p className="text-xs text-muted-foreground">Manage gift automation</p>
           </div>
         </Link>
         <Link href="/gift" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
@@ -537,8 +537,8 @@ export default function AccountPage() {
             <Gift className="h-5 w-5 text-givit-ember" />
           </div>
           <div className="min-w-0">
-            <p className="truncate font-semibold text-givit-ink">Your Gift AI</p>
-            <p className="truncate text-xs text-muted-foreground">Find gifts with AI</p>
+            <p className="font-semibold text-givit-ink">Your Gift AI</p>
+            <p className="text-xs text-muted-foreground">Find gifts with AI</p>
           </div>
         </Link>
         <Link href="/submit-product" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
@@ -546,8 +546,8 @@ export default function AccountPage() {
             <PlusCircle className="h-5 w-5 text-givit-ember" />
           </div>
           <div className="min-w-0">
-            <p className="truncate font-semibold text-givit-ink">Submit product</p>
-            <p className="truncate text-xs text-muted-foreground">Add a gift for admin approval</p>
+            <p className="font-semibold text-givit-ink">Submit product</p>
+            <p className="text-xs text-muted-foreground">Add a gift for admin approval</p>
           </div>
         </Link>
         <Link href="/boards" className="givit-panel col-span-2 flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30 sm:col-span-1">
@@ -555,8 +555,8 @@ export default function AccountPage() {
             <Star className="h-5 w-5 text-givit-ember" />
           </div>
           <div className="min-w-0">
-            <p className="truncate font-semibold text-givit-ink">Gift Boards</p>
-            <p className="truncate text-xs text-muted-foreground">Your curated boards</p>
+            <p className="font-semibold text-givit-ink">Gift Boards</p>
+            <p className="text-xs text-muted-foreground">Your curated boards</p>
           </div>
         </Link>
       </div>

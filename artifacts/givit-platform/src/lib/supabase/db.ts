@@ -93,11 +93,17 @@ export async function getUserOrders(userId: string) {
 // ============================================================
 export async function getGiftRecipients(userId: string) {
   const supabase = getDb();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("gift_recipients")
     .select("*, gift_occasions(*)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+  // Errors used to be swallowed here (data came back undefined, silently
+  // treated as "genuinely zero recipients") -- throwing lets the caller
+  // (use-recipients.ts) tell "the fetch failed" apart from "this account
+  // really has no saved people yet" and fall back to the local copy
+  // instead of confidently rendering an empty list.
+  if (error) throw error;
   return data ?? [];
 }
 
