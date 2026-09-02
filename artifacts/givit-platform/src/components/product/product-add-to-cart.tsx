@@ -43,7 +43,7 @@ export function ProductAddToCart({ productId, minOrderQty, stock }: Props) {
           max={stock}
           defaultValue={minOrderQty}
           required
-          className="h-10 rounded-sm"
+          className="h-10 rounded-xl"
         />
         <p className="text-muted-foreground text-xs">
           Minimum order {minOrderQty} units · {stock} in stock
@@ -51,7 +51,7 @@ export function ProductAddToCart({ productId, minOrderQty, stock }: Props) {
       </div>
       <Button
         type="submit"
-        className="h-10 w-full rounded-sm bg-primary text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+        className="h-10 w-full rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
         disabled={pending || stock < minOrderQty}
       >
         {stock < minOrderQty ? "Out of stock" : pending ? "Adding…" : "Add to Cart"}

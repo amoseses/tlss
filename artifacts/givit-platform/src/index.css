@@ -50,6 +50,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -93,6 +94,11 @@
   --accent-foreground: #7c3010;
 
   --destructive: #dc2626;
+  /* The one semantic color missing from the token set -- "on/confirmed/
+     positive" states (AutoGift toggle, "N active" pills, on-time badges)
+     had nowhere to reach except raw Tailwind emerald-*, copy-pasted
+     independently across several files with no shared definition. */
+  --success: #059669;
   --border: #e8e2d8;
   --input: #e8e2d8;
   --ring: #ff5a3d;
@@ -138,6 +144,7 @@
   --accent: #2a1f30;
   --accent-foreground: #ffd9c2;
   --destructive: #ff5470;
+  --success: #34d399;
   --border: #29272d;
   --input: #29272d;
   --ring: #ff5a3d;

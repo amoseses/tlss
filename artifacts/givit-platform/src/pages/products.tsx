@@ -142,7 +142,7 @@ function MarketplaceFilters({ q, categorySlug, sortVal, occasion, ageGroup, minS
         <select
           name="occasion"
           defaultValue={occasion ?? ""}
-          className="h-9 w-full rounded-lg border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+          className="h-9 w-full rounded-xl border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
         >
           <option value="">Any occasion</option>
           {OCCASIONS.map((o) => (
@@ -156,7 +156,7 @@ function MarketplaceFilters({ q, categorySlug, sortVal, occasion, ageGroup, minS
         <select
           name="age"
           defaultValue={ageGroup ?? ""}
-          className="h-9 w-full rounded-lg border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+          className="h-9 w-full rounded-xl border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
         >
           <option value="">Any age</option>
           {AGE_GROUPS.map((a) => (
@@ -168,9 +168,9 @@ function MarketplaceFilters({ q, categorySlug, sortVal, occasion, ageGroup, minS
       <div>
         <label className="mb-1.5 block text-xs font-semibold text-foreground">Price range</label>
         <div className="flex items-center gap-2">
-          <input type="number" name="min" min={0} step={1} defaultValue={minStr} placeholder="Min" className="h-9 w-full rounded-lg border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20" />
+          <input type="number" name="min" min={0} step={1} defaultValue={minStr} placeholder="Min" className="h-9 w-full rounded-xl border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20" />
           <span className="text-muted-foreground">–</span>
-          <input type="number" name="max" min={0} step={1} defaultValue={maxStr} placeholder="Max" className="h-9 w-full rounded-lg border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20" />
+          <input type="number" name="max" min={0} step={1} defaultValue={maxStr} placeholder="Max" className="h-9 w-full rounded-xl border border-border/50 bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20" />
         </div>
       </div>
 
@@ -500,7 +500,7 @@ export default function ProductsPage() {
         <aside className="hidden lg:block">
           <div className="sticky top-40 space-y-6">
             <div className="space-y-1">
-              <h2 className="mb-2 flex items-center gap-2 px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <h2 className="mb-2 flex items-center gap-2 px-3 font-mono text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 <Compass className="h-3.5 w-3.5" /> Departments
               </h2>
               <Link
@@ -524,7 +524,7 @@ export default function ProductsPage() {
             </div>
 
             <div className="border-t border-border/40 pt-6">
-              <h2 className="mb-3 flex items-center gap-2 px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <h2 className="mb-3 flex items-center gap-2 px-3 font-mono text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 <SlidersHorizontal className="h-3.5 w-3.5" /> Filters
               </h2>
               <div className="px-3">
