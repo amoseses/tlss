@@ -429,7 +429,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                   </div>
                 </div>
               ) : null}
-              <div className="flex gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
+              <div className="flex gap-2 rounded-lg bg-success/10 p-3 text-xs text-success">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
                 <span>Powered by Stripe. GIVIT only ever stores your card type and last 4 digits, never the full card number. You'll approve every charge before it happens.</span>
               </div>
@@ -487,8 +487,8 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 
                     {step === "done" && (
             <div className="flex flex-col items-center justify-center py-6 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
-                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+                <CheckCircle2 className="h-6 w-6 text-success" />
               </div>
               <p className="mt-3 font-semibold text-givit-ink">AutoGift is ready</p>
               <p className="text-sm text-muted-foreground">You can add more recipients, edit addresses, and update payment details anytime in AutoGift.</p>

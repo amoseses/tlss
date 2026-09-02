@@ -231,7 +231,7 @@ export function WishlistSharePanel() {
           >
             {sending ? "Sending…" : "Send"}
           </button>
-          {emailStatus === "sent" && <p className="w-full text-xs font-medium text-emerald-600">Sent.</p>}
+          {emailStatus === "sent" && <p className="w-full text-xs font-medium text-success">Sent.</p>}
           {emailStatus === "error" && <p className="w-full text-xs font-medium text-destructive">Couldn't send that. Try again.</p>}
         </form>
       )}

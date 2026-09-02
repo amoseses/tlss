@@ -425,7 +425,7 @@ export function GiftSurveyModal({
                         {item.productUrl && <a href={item.productUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-givit-ember underline">View exact product</a>}
                         <textarea value={itemNotes[item.id] || ""} onChange={(e) => setItemNotes((prev) => ({ ...prev, [item.id]: e.target.value }))} rows={2} placeholder="Notes for this item: color, size, allergies, delivery timing..." className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
                         <div className="mt-2 grid gap-2 sm:grid-cols-2"><input value={item.name} onChange={(e) => updateBundleItem(selectedBundle.id, item.id, { name: e.target.value })} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /><input type="number" value={(item.price / 100).toFixed(2)} onChange={(e) => updateBundleItem(selectedBundle.id, item.id, { price: Math.round(Number(e.target.value || 0) * 100) })} className="h-9 rounded-md border border-border bg-background px-3 text-sm" /></div>
-                        <div className="mt-2 flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" className="rounded-lg text-emerald-700" onClick={() => rateBundleItem(item, true)}><ThumbsUp className="h-3.5 w-3.5" /> Like this</Button><Button type="button" variant="outline" size="sm" className="rounded-lg text-rose-700" onClick={() => rateBundleItem(item, false)}><ThumbsDown className="h-3.5 w-3.5" /> Not this</Button><Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => replaceBundleItem(selectedBundle.id, item)}>Regenerate item</Button><Button type="button" variant="outline" size="sm" className="rounded-lg text-destructive" onClick={() => removeBundleItem(selectedBundle.id, item.id)}>Remove</Button></div>
+                        <div className="mt-2 flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" className="rounded-lg text-success" onClick={() => rateBundleItem(item, true)}><ThumbsUp className="h-3.5 w-3.5" /> Like this</Button><Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => rateBundleItem(item, false)}><ThumbsDown className="h-3.5 w-3.5" /> Not this</Button><Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => replaceBundleItem(selectedBundle.id, item)}>Regenerate item</Button><Button type="button" variant="outline" size="sm" className="rounded-lg text-destructive" onClick={() => removeBundleItem(selectedBundle.id, item.id)}>Remove</Button></div>
                       </div>
                     ))}
                   </div>
@@ -532,8 +532,8 @@ export function GiftSurveyModal({
           {/* DONE STEP */}
           {step === "done" && (
             <div className="py-8 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                <CheckCircle className="h-8 w-8 text-emerald-600" />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+                <CheckCircle className="h-8 w-8 text-success" />
               </div>
               <h3 className="mt-4 font-serif text-xl font-bold text-givit-ink">Gift order placed!</h3>
               <p className="mt-2 max-w-md mx-auto text-sm text-muted-foreground">

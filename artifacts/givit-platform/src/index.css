@@ -51,6 +51,7 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
+  --color-givit-teal: var(--givit-teal);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -110,6 +111,13 @@
   --givit-sand: #fdf3e4;
   --givit-mist: #ffffff;
   --givit-page: #faf9f7;
+  /* The AutoGift calendar's holiday view needed a third color distinct
+     from personal-occasion ember/coral -- it was reaching for raw
+     Tailwind cyan-500/600/700/900 across a dozen call sites with no
+     shared definition and manually paired dark: variants everywhere.
+     One token, tuned per-theme like the other givit-* colors, replaces
+     all of that. */
+  --givit-teal: #0e7490;
 
   --chart-1: #ff5a3d;
   --chart-2: #ff2f87;
@@ -155,6 +163,7 @@
   --givit-sand: #241a12;
   --givit-mist: #18171d;
   --givit-page: #121116;
+  --givit-teal: #22d3ee;
   --sidebar: #18171d;
   --sidebar-foreground: #f3f0f5;
   --sidebar-primary: #ff5a3d;
