@@ -263,7 +263,11 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
       });
       if (profileError) throw new Error(profileError.message || "Couldn't save your profile.");
 
-      const validAddresses = addresses.filter((address) => address.line1.trim() && address.city.trim() && address.state.trim() && address.zip.trim());
+      // Non-empty isn't the same as valid -- "Skip for now" on the address
+      // step bypasses the next()-step gate entirely, so a garbage address
+      // typed in before clicking Skip would otherwise still get saved here
+      // unvalidated.
+      const validAddresses = addresses.filter((address) => !addressValidationError(address));
       for (const [index, address] of validAddresses.entries()) {
         const { error: addressError } = await saveUserAddress({
           user_id: user.id,

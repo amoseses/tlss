@@ -8,6 +8,10 @@ const US_STATE_CODES = new Set([
   "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
   "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT",
   "VA", "WA", "WV", "WI", "WY", "DC",
+  // Not states, but real USPS-served addresses -- without these, anyone
+  // shipping to Puerto Rico, Guam, etc. would be wrongly told they entered
+  // an invalid state.
+  "PR", "GU", "VI", "AS", "MP",
 ]);
 
 const US_STATE_NAMES: Record<string, string> = {
@@ -21,6 +25,8 @@ const US_STATE_NAMES: Record<string, string> = {
   pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC", "south dakota": "SD",
   tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT", virginia: "VA", washington: "WA",
   "west virginia": "WV", wisconsin: "WI", wyoming: "WY", "district of columbia": "DC",
+  "puerto rico": "PR", guam: "GU", "virgin islands": "VI", "u.s. virgin islands": "VI",
+  "american samoa": "AS", "northern mariana islands": "MP",
 };
 
 export function normalizeUsState(state: string): string | null {
