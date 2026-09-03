@@ -164,7 +164,7 @@ export default function ConciergePage() {
               <Button
                 onClick={() => setShowNotifications(!showNotifications)}
                 variant="outline"
-                className="rounded-md relative"
+                className="rounded-full relative"
               >
                 <Bell className="h-4 w-4" />
                 <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-givit-ember text-[9px] font-bold text-white">
@@ -234,8 +234,8 @@ export default function ConciergePage() {
               <div className="givit-section">
                 <div className="mb-3 flex items-center gap-2">
                   <Zap className="h-4 w-4 text-givit-ember" />
-                  <h2 className="font-semibold text-givit-ink">People on AutoGift</h2>
-                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">{onAutoGift.length} active</span>
+                  <h2 className="font-serif text-lg font-bold text-givit-ink">People on AutoGift</h2>
+                  <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">{onAutoGift.length} active</span>
                 </div>
                 {onAutoGift.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
@@ -296,7 +296,7 @@ export default function ConciergePage() {
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-givit-ember" />
-                      <h2 className="font-semibold text-givit-ink">Upcoming</h2>
+                      <h2 className="font-serif text-lg font-bold text-givit-ink">Upcoming</h2>
                     </div>
                     <button
                       type="button"
@@ -309,7 +309,7 @@ export default function ConciergePage() {
                   <div className="space-y-2">
                     {upcomingAll.map((o, i) => {
                       const daysUntil = Math.ceil((o.parsed.getTime() - Date.now()) / 86400000);
-                      const urgency = daysUntil <= 14 ? "bg-rose-50 text-rose-700" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700";
+                      const urgency = daysUntil <= 14 ? "bg-destructive/10 text-destructive" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-success/10 text-success";
                       const scheduled = scheduledKeys.has(`${o.recipient}-${o.label}-${o.date}`);
                       return (
                         <div key={i} className="flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3">
@@ -349,7 +349,7 @@ export default function ConciergePage() {
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="font-semibold text-givit-ink">How the agent works</h2>
+                <h2 className="font-serif text-base font-bold text-givit-ink">How the agent works</h2>
                 <ol className="mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
                   <li>1. Add people and their key dates in People</li>
                   <li>2. 35 days before, the agent emails the survey at 10:00 AM EST</li>
@@ -357,16 +357,16 @@ export default function ConciergePage() {
                   <li>4. You approve, it charges the saved card, then admin fulfills and ships (fully autonomous purchasing is next)</li>
                 </ol>
                 <div className="mt-3 rounded-lg bg-black/20 p-2.5 text-xs">
-                  <p className="font-semibold text-givit-ink">Pricing</p>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-givit-ink/80">Pricing</p>
                   <p className="mt-1 text-muted-foreground">Calculated only after AI builds a tailored bundle. You approve before any charge.</p>
                 </div>
               </div>
             </div>
             <div className="mt-4 grid gap-2">
-              <Button asChild variant="outline" className="rounded-md text-xs h-9 w-full">
+              <Button asChild variant="outline" className="rounded-full text-xs h-9 w-full">
                 <Link href="/people"><UserRound className="h-3.5 w-3.5" /> Manage people</Link>
               </Button>
-              <Button asChild className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover text-xs h-9 w-full">
+              <Button asChild className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover text-xs h-9 w-full">
                 <Link href="/gift"><Gift className="h-3.5 w-3.5" /> Find a gift now!</Link>
               </Button>
             </div>

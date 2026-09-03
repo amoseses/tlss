@@ -8,10 +8,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
+import { createClient } from "@/lib/supabase/client";
 import { extractProductWithAI } from "@/lib/admin/imported-products";
 import { getAnalytics, getProductSubmissions, updateProductSubmission, getProducts, upsertProduct, deleteProduct, getAllProfiles, getOrders, trackEvent, getAllAutoGiftOrdersFromDb, updateAutoGiftOrderStatusInDb } from "@/lib/supabase/db";
 import { getAutoGiftOrders } from "@/lib/autogift/survey";
 import { getLocalErrors, getLocalEvents } from "@/lib/monitoring";
+
+async function authedFetch(path: string, init?: RequestInit) {
+  const { data } = await createClient().auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not signed in.");
+  return fetch(path, {
+    ...init,
+    headers: { ...(init?.headers ?? {}), Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  });
+}
 
 type ParsedRow = { url: string; name: string; brand: string; price: string; category: string; status: "pending" | "processing" | "done" | "error" };
 
@@ -54,6 +65,8 @@ export default function AdminPage() {
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [allOrders, setAllOrders] = useState<any[]>([]);
   const [autoGiftOrders, setAutoGiftOrders] = useState<any[]>([]);
+  const [chargingOrderId, setChargingOrderId] = useState<string | null>(null);
+  const [chargeErrors, setChargeErrors] = useState<Record<string, string>>({});
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [monitoringErrors, setMonitoringErrors] = useState<any[]>([]);
   const [localEvents, setLocalEvents] = useState<any[]>([]);
@@ -103,6 +116,7 @@ export default function AdminPage() {
         // dedupe by id, preferring the DB version when both exist.
         const dbOrders = (await getAllAutoGiftOrdersFromDb()).map((o: any) => ({
           id: o.id,
+          userId: o.user_id,
           recipientName: o.recipient_name,
           occasion: o.occasion,
           items: o.items ?? [],
@@ -724,9 +738,36 @@ export default function AdminPage() {
                       ))}
                     </ul>
                     {order.customerNotes && <p className="mt-2 rounded bg-muted/50 p-2 text-xs text-muted-foreground"><span className="font-semibold text-givit-ink">Customer note: </span>{order.customerNotes}</p>}
+                    {chargeErrors[order.id] && <p className="mt-2 rounded bg-destructive/10 p-2 text-xs text-destructive">{chargeErrors[order.id]}</p>}
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-semibold">Charge saved card: ${(order.total / 100).toFixed(2)}</p>
-                      {order.status !== "admin_fulfillment" && order.status !== "shipped" && order.status !== "delivered" && (
+                      <p className="font-semibold">Total: ${(order.total / 100).toFixed(2)}</p>
+                      {(order.status === "pending_approval" || order.status === "approved") && (
+                        <Button
+                          size="sm"
+                          disabled={chargingOrderId === order.id}
+                          className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"
+                          onClick={async () => {
+                            setChargingOrderId(order.id);
+                            setChargeErrors((prev) => { const next = { ...prev }; delete next[order.id]; return next; });
+                            try {
+                              const res = await authedFetch(`/api/stripe/setup-intent?action=charge_order&orderId=${encodeURIComponent(order.id)}`, { method: "POST" });
+                              const data = await res.json().catch(() => ({}));
+                              if (!res.ok) {
+                                setChargeErrors((prev) => ({ ...prev, [order.id]: data.error || "Charge failed." }));
+                                return;
+                              }
+                              setAutoGiftOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: "charged" } : o));
+                            } catch (err: any) {
+                              setChargeErrors((prev) => ({ ...prev, [order.id]: err?.message || "Charge failed." }));
+                            } finally {
+                              setChargingOrderId(null);
+                            }
+                          }}
+                        >
+                          {chargingOrderId === order.id ? "Charging…" : "Charge saved card"}
+                        </Button>
+                      )}
+                      {order.status === "charged" && (
                         <Button
                           size="sm"
                           className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"

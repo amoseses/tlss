@@ -179,11 +179,11 @@ export default function HomePage() {
                 )}
             </p>
             {user ? (
-              <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
+              <Button asChild className="rounded-full bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
                 <Link href="/concierge"><Zap className="h-4 w-4" /> Go to AutoGift</Link>
               </Button>
             ) : (
-              <Button asChild className="rounded-lg bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
+              <Button asChild className="rounded-full bg-givit-ember px-5 text-white transition-transform hover:-translate-y-0.5 hover:bg-givit-ember-hover">
                 <Link href="/people"><Bell className="h-4 w-4" /> Add your first person</Link>
               </Button>
             )}

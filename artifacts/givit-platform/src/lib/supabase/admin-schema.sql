@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   phone TEXT,
   avatar_url TEXT,
   gifting_cohort TEXT,
+  default_reminder_lead_days INTEGER DEFAULT 35,
   role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'seller')),
   is_banned BOOLEAN DEFAULT false,
   stripe_connect_account_id TEXT,
@@ -185,6 +186,7 @@ CREATE TABLE IF NOT EXISTS gift_occasions (
   approval_lead_days INTEGER DEFAULT 10,
   shipping_buffer_days INTEGER DEFAULT 5,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed')),
+  metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -325,7 +327,8 @@ CREATE TABLE IF NOT EXISTS user_payment_methods (
   card_last4 TEXT,
   card_brand TEXT,
   is_default BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (user_id, stripe_payment_method_id)
 );
 
 -- 23. WISHLIST
@@ -710,8 +713,10 @@ CREATE TABLE IF NOT EXISTS autogift_orders (
   customer_notes TEXT,
   admin_notes TEXT,
   approved_at TIMESTAMPTZ,
+  stripe_payment_intent_id TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE autogift_orders ADD COLUMN IF NOT EXISTS stripe_payment_intent_id TEXT;
 
 ALTER TABLE autogift_orders ENABLE ROW LEVEL SECURITY;
 
@@ -782,6 +787,45 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 -- filter -- see that file's cohortBoost for how it's weighted.
 -- ============================================================
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gifting_cohort TEXT;
+
+-- ============================================================
+-- MISSING COLUMNS THE APP CODE ALREADY DEPENDED ON
+-- Both were being read/written by the app with no matching column ever
+-- added to the schema. Neither failure was loud: use-auth.tsx's profile
+-- fetch does an EXPLICIT column list (not select *), so a nonexistent
+-- column there doesn't just come back null -- PostgREST rejects the
+-- whole query, and the app silently falls back to a bare-bones profile
+-- (full_name/email/role only) for EVERY signed-in user, every session.
+-- That in turn means profile?.role is never really "admin" even for a
+-- real admin, since the fallback hardcodes role: "customer" -- so this
+-- single missing column was also the reason /admin (and the AutoGift
+-- fulfillment queue that lives there) silently redirected every admin
+-- back to the homepage. gift_occasions.metadata's failure is quieter
+-- still: the onboarding wizard's occasion save just silently fails
+-- (error never checked), so a brand-new recipient added during
+-- onboarding gets zero rows in gift_occasions -- no date, no reminder,
+-- no error shown to the user who just "finished" onboarding.
+-- ============================================================
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS default_reminder_lead_days INTEGER DEFAULT 35;
+ALTER TABLE gift_occasions ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+
+-- ============================================================
+-- USER_PAYMENT_METHODS: DEDUPE + UNIQUE CONSTRAINT
+-- Without a unique constraint, saveUserPaymentMethod() upserted with no
+-- onConflict target, so retrying a save (e.g. after a failed onboarding
+-- step) inserted a duplicate row rather than updating in place -- and
+-- multiple rows could end up with is_default = true, leaving "the" card
+-- to charge ambiguous. Deletes older duplicate rows first (keeping the
+-- most recent per user_id + stripe_payment_method_id) since a table
+-- that already has duplicates will reject a UNIQUE constraint outright.
+-- ============================================================
+DELETE FROM user_payment_methods a USING user_payment_methods b
+  WHERE a.user_id = b.user_id
+    AND a.stripe_payment_method_id = b.stripe_payment_method_id
+    AND a.stripe_payment_method_id IS NOT NULL
+    AND a.created_at < b.created_at;
+ALTER TABLE user_payment_methods DROP CONSTRAINT IF EXISTS user_payment_methods_user_id_stripe_payment_method_id_key;
+ALTER TABLE user_payment_methods ADD CONSTRAINT user_payment_methods_user_id_stripe_payment_method_id_key UNIQUE (user_id, stripe_payment_method_id);
 
 -- ============================================================
 -- SECRET SANTA: SHUFFLE + PRIVATE ASSIGNMENT LOOKUP

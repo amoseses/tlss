@@ -262,7 +262,11 @@ export function generateGiftSuggestions(response: SurveyResponse, context: Sugge
     suggestions.push({
       id: `general-${crypto.randomUUID()}`,
       name: "GIVIT Marketplace Gift Card",
-      price: Math.max(2500, response.budget * 50),
+      // response.budget is dollars (the survey's own slider), so this needs
+      // the same x100 dollars->cents conversion every other price in this
+      // file uses -- was x50, silently making this fallback gift card half
+      // of whatever budget the customer actually asked for.
+      price: Math.max(2500, response.budget * 100),
       reason: "Let them choose exactly what they want from our curated marketplace.",
       category: "gift",
       rating: 80,
@@ -413,9 +417,15 @@ export function createAutoGiftOrder(params: {
     subtotal,
     serviceFee,
     total,
-    status: "pending_approval",
+    // createAutoGiftOrder is only ever called from handlePlaceOrder, after
+    // the customer has already picked a bundle and clicked to place the
+    // order -- so by the time a row exists at all, approval has already
+    // happened. "pending_approval" doesn't correspond to any real state in
+    // this flow; starting at "approved" lets the admin "Charge saved card"
+    // action pick it up immediately.
+    status: "approved",
     chargeMode: "saved_card_after_approval",
-    chargeNote: "Customer must approve; then charge the saved card from AutoGift onboarding / first AutoGift checkout before admin fulfillment.",
+    chargeNote: "Customer approved this bundle. Charge the saved default card, then fulfill and ship to the saved address.",
     shippingAddress: params.shippingAddress,
     cardMessage: params.cardMessage,
     createdAt: new Date().toISOString(),
@@ -436,18 +446,6 @@ export function getAutoGiftOrders(): AutoGiftOrder[] {
 
 function saveAutoGiftOrders(orders: AutoGiftOrder[]) {
   window.localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
-}
-
-export function approveAutoGiftOrder(orderId: string) {
-  const orders = getAutoGiftOrders().map(o =>
-    o.id === orderId ? {
-      ...o,
-      status: "admin_fulfillment" as const,
-      approvedAt: new Date().toISOString(),
-      adminNotes: "Approved by customer. Charge saved card for the calculated total, then source/package items and ship to the saved recipient address.",
-    } : o
-  );
-  saveAutoGiftOrders(orders);
 }
 
 export function cancelAutoGiftOrder(orderId: string) {

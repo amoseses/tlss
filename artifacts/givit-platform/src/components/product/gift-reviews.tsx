@@ -191,7 +191,7 @@ export function GiftReviews({ productId }: { productId: string }) {
           <div className="grid gap-1.5">
             <Label>Did it arrive on time?</Label>
             <div className="flex gap-2">
-              <button type="button" onClick={() => setOnTime(true)} className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${onTime === true ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-border text-muted-foreground hover:bg-muted"}`}>Yes</button>
+              <button type="button" onClick={() => setOnTime(true)} className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${onTime === true ? "border-success bg-success/10 text-success" : "border-border text-muted-foreground hover:bg-muted"}`}>Yes</button>
               <button type="button" onClick={() => setOnTime(false)} className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${onTime === false ? "border-destructive bg-destructive/10 text-destructive" : "border-border text-muted-foreground hover:bg-muted"}`}>No</button>
             </div>
           </div>
@@ -214,7 +214,7 @@ export function GiftReviews({ productId }: { productId: string }) {
               <Stars value={review.rating} />
               <span className="font-semibold text-givit-ink">{review.title}</span>
               {review.isUser ? <span className="rounded-full bg-givit-ember/10 px-2 py-0.5 text-xs font-medium text-givit-ember">Your review</span> : null}
-              {review.onTime === true && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Arrived on time</span>}
+              {review.onTime === true && <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">Arrived on time</span>}
               {review.onTime === false && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">Arrived late</span>}
             </div>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{review.body}</p>

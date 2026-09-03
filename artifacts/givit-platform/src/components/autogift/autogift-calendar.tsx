@@ -223,9 +223,9 @@ export function AutoGiftCalendar({
           <button
             type="button"
             onClick={() => setFilter("holidays")}
-            className={`flex items-center gap-1 rounded-md px-2.5 py-1 transition ${filter === "holidays" ? "bg-background text-cyan-600 dark:text-cyan-400 shadow-xs font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+            className={`flex items-center gap-1 rounded-md px-2.5 py-1 transition ${filter === "holidays" ? "bg-background text-givit-teal shadow-xs font-semibold" : "text-muted-foreground hover:text-foreground"}`}
           >
-            <Sparkles className="h-3 w-3 text-cyan-500" /> Holidays
+            <Sparkles className="h-3 w-3 text-givit-teal" /> Holidays
           </button>
         </div>
 
@@ -241,7 +241,7 @@ export function AutoGiftCalendar({
 
       {filter === "holidays" && !hasHolidayThisMonth && (
         <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Sparkles className="h-3 w-3 text-cyan-500" /> No holidays for this region in {monthLabel.split(" ")[0]} — try another month.
+          <Sparkles className="h-3 w-3 text-givit-teal" /> No holidays for this region in {monthLabel.split(" ")[0]} — try another month.
         </p>
       )}
 
@@ -280,7 +280,7 @@ export function AutoGiftCalendar({
                   !day
                     ? ""
                     : isHovered
-                      ? "scale-110 -translate-y-0.5 z-20 shadow-md ring-2 ring-cyan-500/50"
+                      ? "scale-110 -translate-y-0.5 z-20 shadow-md ring-2 ring-givit-teal/50"
                       : selectedDay === day
                         ? "ring-2 ring-givit-ember"
                         : ""
@@ -292,7 +292,7 @@ export function AutoGiftCalendar({
                       : hasPersonal
                         ? "bg-givit-ember/10 font-semibold text-givit-ember hover:bg-givit-ember/20"
                         : hasHoliday
-                          ? "bg-cyan-500/10 font-semibold text-cyan-600 hover:bg-cyan-500/20 dark:text-cyan-300"
+                          ? "bg-givit-teal/10 font-semibold text-givit-teal hover:bg-givit-teal/20"
                           : "text-foreground hover:bg-muted"
                 }`}
               >
@@ -304,7 +304,7 @@ export function AutoGiftCalendar({
                     ) : hasPersonal ? (
                       <span className="h-1 w-1 rounded-full bg-givit-coral" />
                     ) : null}
-                    {hasHoliday && <span className="h-1 w-1 rounded-full bg-cyan-500" />}
+                    {hasHoliday && <span className="h-1 w-1 rounded-full bg-givit-teal" />}
                   </div>
                 )}
               </button>
@@ -312,7 +312,7 @@ export function AutoGiftCalendar({
               {/* Hover Popover Window */}
               {day && isHovered && (dayOccasions?.length || recipients.length > 0) && (
                 <div
-                  className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-2xl border border-cyan-500/30 bg-card/95 p-3.5 shadow-2xl backdrop-blur-md z-50 text-left pointer-events-auto transition-all animate-in fade-in zoom-in-95 duration-150 ${
+                  className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-2xl border border-givit-teal/30 bg-card/95 p-3.5 shadow-2xl backdrop-blur-md z-50 text-left pointer-events-auto transition-all animate-in fade-in zoom-in-95 duration-150 ${
                     i % 7 === 0 ? "left-0 translate-x-0" : i % 7 === 6 ? "left-auto right-0 translate-x-0" : ""
                   }`}
                 >
@@ -323,13 +323,13 @@ export function AutoGiftCalendar({
                         {new Date(cursor.year, cursor.month, day).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                       {hasHoliday && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/20 px-2 py-0.5 text-[10px] font-bold text-cyan-700 dark:text-cyan-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-givit-teal/20 px-2 py-0.5 text-[10px] font-bold text-givit-teal">
                           <Sparkles className="h-2.5 w-2.5" /> Holiday
                         </span>
                       )}
                     </div>
                     {holidayItem && (
-                      <p className="mt-1 font-serif text-sm font-bold text-cyan-700 dark:text-cyan-300">
+                      <p className="mt-1 font-serif text-sm font-bold text-givit-teal">
                         {holidayItem.recipient}
                       </p>
                     )}
@@ -377,12 +377,12 @@ export function AutoGiftCalendar({
             const daysUntil = daysUntilNextOccurrence(parsed.getMonth(), parsed.getDate(), today);
             const scheduled = !o.isHoliday && scheduledKeys?.has(`${o.recipient}-${o.label}-${o.date}`);
             return (
-              <div key={i} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs ${o.isHoliday ? "bg-cyan-500/10 text-cyan-900 dark:text-cyan-200" : "bg-muted/40"}`}>
+              <div key={i} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs ${o.isHoliday ? "bg-givit-teal/10 text-givit-teal" : "bg-muted/40"}`}>
                 <div>
                   <p className="font-semibold text-foreground flex items-center gap-1.5">
                     {o.isHoliday ? (
                       <>
-                        <Globe className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                        <Globe className="h-3.5 w-3.5 text-givit-teal" />
                         <span>{o.recipient}</span>
                       </>
                     ) : (
@@ -399,7 +399,7 @@ export function AutoGiftCalendar({
                   )}
                   <p className="mt-0.5 flex items-center gap-1 text-muted-foreground">
                     {o.isHoliday ? (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Public Holiday</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-givit-teal">Public Holiday</span>
                     ) : scheduled ? (
                       <><Bell className="h-3 w-3 text-givit-ember" /> Reminder scheduled</>
                     ) : (
@@ -414,7 +414,7 @@ export function AutoGiftCalendar({
                   >
                     Gift me! <Gift className="h-3 w-3" />
                   </Link>
-                  <span className={`shrink-0 rounded-full px-2 py-1 font-semibold ${o.isHoliday ? "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300" : "bg-givit-ember/10 text-givit-ember"}`}>
+                  <span className={`shrink-0 rounded-full px-2 py-1 font-semibold ${o.isHoliday ? "bg-givit-teal/20 text-givit-teal" : "bg-givit-ember/10 text-givit-ember"}`}>
                     {relativeLabel(daysUntil)}
                   </span>
                 </div>

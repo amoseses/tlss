@@ -124,7 +124,7 @@ export function ProductCard({
         <div className="flex flex-1 flex-col gap-1 sm:gap-1.5 sm:p-3">
           {(marketplaceProduct.brand || withinTop10) && (
             <p className="flex items-center gap-1.5 text-[10px]">
-              {marketplaceProduct.brand && <span className="font-bold uppercase tracking-widest text-givit-ember/80">{marketplaceProduct.brand}</span>}
+              {marketplaceProduct.brand && <span className="font-mono font-bold uppercase tracking-widest text-givit-ember/80">{marketplaceProduct.brand}</span>}
               {withinTop10 && (
                 <span className="font-mono uppercase tracking-widest text-muted-foreground">
                   {marketplaceProduct.brand ? "· " : ""}{rankingLabel}

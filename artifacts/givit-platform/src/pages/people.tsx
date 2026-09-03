@@ -108,7 +108,7 @@ function OccasionDateInput({ label, value, onChange }: { label: string; value: s
         value={value}
         readOnly
         title={`${label} falls on a fixed date and is set automatically`}
-        className="h-9 w-full rounded-md border border-border bg-muted px-2 text-sm text-muted-foreground outline-none"
+        className="h-9 w-full rounded-lg border border-border bg-muted px-2 text-sm text-muted-foreground outline-none"
       />
     );
   }
@@ -118,14 +118,14 @@ function OccasionDateInput({ label, value, onChange }: { label: string; value: s
         <select
           value={dateMonth(value)}
           onChange={(e) => onChange(nextMonthDayDateString(Number(e.target.value), dateDay(value)))}
-          className="h-9 w-full rounded-md border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+          className="h-9 w-full rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
         >
           {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
         </select>
         <select
           value={dateDay(value)}
           onChange={(e) => onChange(nextMonthDayDateString(dateMonth(value), Number(e.target.value)))}
-          className="h-9 w-full rounded-md border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+          className="h-9 w-full rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
         >
           {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
@@ -138,7 +138,7 @@ function OccasionDateInput({ label, value, onChange }: { label: string; value: s
       value={value}
       onChange={(e) => onChange(e.target.value)}
       max={label === "Birthday" ? todayISO() : undefined}
-      className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+      className="h-9 w-full rounded-lg border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
     />
   );
 }
@@ -156,7 +156,7 @@ function LeadTimeSelect({ value, onChange }: { value: number; onChange: (days: n
       <select
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-7 rounded-md border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+        className="h-7 rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
       >
         {LEAD_TIME_OPTIONS.map((days) => (
           <option key={days} value={days}>{days % 7 === 0 ? `${days / 7} week${days === 7 ? "" : "s"}` : `${days} days`} before</option>
@@ -261,10 +261,10 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-border p-5">
           <h2 className="font-serif text-xl font-bold text-givit-ink">Add people</h2>
-          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -281,11 +281,11 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
               </div>
               <div className="grid gap-1.5">
                 <label className="text-sm font-semibold">Full name *</label>
-                <input value={person.name} onChange={(e) => updatePerson(personIndex, "name", e.target.value)} required placeholder="e.g. Mom, Sarah, John" className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+                <input value={person.name} onChange={(e) => updatePerson(personIndex, "name", e.target.value)} required placeholder="e.g. Mom, Sarah, John" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
               </div>
               <div className="grid gap-1.5">
                 <label className="text-sm font-semibold">Relationship</label>
-                <select value={person.relationship} onChange={(e) => updatePerson(personIndex, "relationship", e.target.value)} className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+                <select value={person.relationship} onChange={(e) => updatePerson(personIndex, "relationship", e.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
                   <option value="">Select...</option>
                   {RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
                 </select>
@@ -301,12 +301,12 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
                   return (
                   <div key={i} className="space-y-1.5">
                     <div className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
-                      <select value={occ.label} onChange={(e) => updateOccasion(personIndex, i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
+                      <select value={occ.label} onChange={(e) => updateOccasion(personIndex, i, "label", e.target.value)} className="h-9 rounded-lg border border-border bg-background px-2 text-sm outline-none">
                         {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
                       </select>
                       <OccasionDateInput label={occ.label} value={occ.date} onChange={(iso) => updateOccasion(personIndex, i, "date", iso)} />
                       {person.occasions.length > 1 && (
-                        <button type="button" onClick={() => removeOccasion(personIndex, i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+                        <button type="button" onClick={() => removeOccasion(personIndex, i)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -325,7 +325,7 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
                   onChange={(e) => { updatePerson(personIndex, "aboutText", e.target.value); if (interestsError === personIndex) setInterestsError(null); }}
                   rows={2}
                   placeholder="e.g. Loves gardening, homemade food, and traveling. Already has lots of kitchen gadgets."
-                  className={`w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20 ${interestsError === personIndex ? "border-destructive" : "border-border"}`}
+                  className={`w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20 ${interestsError === personIndex ? "border-destructive" : "border-border"}`}
                 />
                 {interestsError === personIndex ? (
                   <p className="text-xs font-medium text-destructive">Add at least a couple interests — this is what Your Gift AI matches gifts against.</p>
@@ -336,13 +336,13 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
             </div>
           ))}
 
-          <button type="button" onClick={addPerson} className="flex w-full items-center justify-center gap-2 rounded-md border-2 border-dashed border-border/40 py-3 text-sm font-semibold text-givit-ember transition hover:border-givit-ember/40">
+          <button type="button" onClick={addPerson} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/40 py-3 text-sm font-semibold text-givit-ember transition hover:border-givit-ember/40">
             <Plus className="h-4 w-4" /> Add another person
           </button>
 
           <div className="flex gap-2 pt-2">
-            <Button type="button" variant="outline" className="flex-1 rounded-md" onClick={onClose} disabled={saving}>Cancel</Button>
-            <Button type="submit" disabled={saving} className="flex-1 rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover disabled:opacity-60">
+            <Button type="button" variant="outline" className="flex-1 rounded-full" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button type="submit" disabled={saving} className="flex-1 rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover disabled:opacity-60">
               {saving ? "Saving…" : `Save ${people.filter((p) => p.name.trim()).length || ""} recipient${people.filter((p) => p.name.trim()).length !== 1 ? "s" : ""}`}
             </Button>
           </div>
@@ -471,21 +471,21 @@ function EditRecipientModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-border p-5">
           <h2 className="font-serif text-xl font-bold text-givit-ink">Edit {recipient.name}</h2>
-          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
         <form onSubmit={submit} className="space-y-4 p-5">
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Full name *</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} required className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+            <input value={name} onChange={(e) => setName(e.target.value)} required className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Relationship</label>
-            <select value={relationship} onChange={(e) => setRelationship(e.target.value)} className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+            <select value={relationship} onChange={(e) => setRelationship(e.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
               <option value="">Select...</option>
               {RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
             </select>
@@ -501,12 +501,12 @@ function EditRecipientModal({
               return (
               <div key={occ.id ?? `new-${i}`} className="space-y-1.5">
                 <div className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 1fr auto" }}>
-                  <select value={occ.label} onChange={(e) => updateOccasion(i, "label", e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none">
+                  <select value={occ.label} onChange={(e) => updateOccasion(i, "label", e.target.value)} className="h-9 rounded-lg border border-border bg-background px-2 text-sm outline-none">
                     {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
                   </select>
                   <OccasionDateInput label={occ.label} value={occ.date} onChange={(iso) => updateOccasion(i, "date", iso)} />
                   {occasions.length > 1 && (
-                    <button type="button" onClick={() => requestRemoveOccasion(i)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
+                    <button type="button" onClick={() => requestRemoveOccasion(i)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive">
                       <X className="h-3.5 w-3.5" />
                     </button>
                   )}
@@ -530,20 +530,20 @@ function EditRecipientModal({
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Interests</label>
-            <input value={interestsText} onChange={(e) => setInterestsText(e.target.value)} placeholder="gardening, coffee, true crime podcasts" className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+            <input value={interestsText} onChange={(e) => setInterestsText(e.target.value)} placeholder="gardening, coffee, true crime podcasts" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
             <p className="text-xs text-muted-foreground">Comma-separated. This is what Your Gift AI matches gifts against.</p>
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Avoid</label>
-            <input value={avoidText} onChange={(e) => setAvoidText(e.target.value)} placeholder="already has a kettle, allergic to nuts" className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+            <input value={avoidText} onChange={(e) => setAvoidText(e.target.value)} placeholder="already has a kettle, allergic to nuts" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Usual budget</label>
-            <input type="number" min="0" step="1" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="75" className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+            <input type="number" min="0" step="1" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="75" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
           </div>
           <div className="grid gap-1.5">
             <label className="text-sm font-semibold">Notes / gift history</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
           </div>
           <div className="grid gap-1.5">
             <label className="flex items-center gap-1.5 text-sm font-semibold">
@@ -554,7 +554,7 @@ function EditRecipientModal({
               onChange={(e) => setAboutText(e.target.value)}
               rows={2}
               placeholder="e.g. Also really into hiking lately, and just got a French press."
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
             />
             <p className="text-xs text-muted-foreground">Your Gift AI adds whatever it finds here on top of the fields above.</p>
           </div>
@@ -562,8 +562,8 @@ function EditRecipientModal({
           {error && <p className="text-xs font-medium text-destructive">{error}</p>}
 
           <div className="flex gap-2 pt-2">
-            <Button type="button" variant="outline" className="flex-1 rounded-md" onClick={onClose} disabled={saving}>Cancel</Button>
-            <Button type="submit" disabled={saving || !name.trim()} className="flex-1 rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover disabled:opacity-60">
+            <Button type="button" variant="outline" className="flex-1 rounded-full" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button type="submit" disabled={saving || !name.trim()} className="flex-1 rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover disabled:opacity-60">
               {saving ? "Saving…" : "Save changes"}
             </Button>
           </div>
@@ -613,7 +613,7 @@ function PersonProfileRow({ recipient, onDelete, onEdit, onToggleAutomation }: {
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 pl-[52px] sm:pl-0">
         {daysUntil !== null && (
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${daysUntil <= 14 ? "bg-rose-50 text-rose-700" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${daysUntil <= 14 ? "bg-destructive/10 text-destructive" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-success/10 text-success"}`}>
             <Bell className="h-3 w-3" /> {upcoming?.label} · {daysUntil}d
           </span>
         )}
@@ -628,11 +628,11 @@ function PersonProfileRow({ recipient, onDelete, onEdit, onToggleAutomation }: {
           title={`AutoGift is ${recipient.automationEnabled !== false ? "on" : "off"} for ${recipient.name}`}
           className="flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-1"
         >
-          <span className={`text-[9px] font-bold uppercase tracking-widest ${recipient.automationEnabled !== false ? "text-emerald-600" : "text-muted-foreground/60"}`}>Auto</span>
+          <span className={`text-[9px] font-bold uppercase tracking-widest ${recipient.automationEnabled !== false ? "text-success" : "text-muted-foreground/60"}`}>Auto</span>
           <Switch
             checked={recipient.automationEnabled !== false}
             onCheckedChange={() => onToggleAutomation()}
-            className="data-[state=unchecked]:bg-muted-foreground/40 data-[state=checked]:bg-emerald-500"
+            className="data-[state=unchecked]:bg-muted-foreground/40 data-[state=checked]:bg-success"
           />
         </label>
         <button type="button" onClick={onEdit} aria-label={`Edit ${recipient.name}`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
@@ -661,14 +661,14 @@ function CancelRecipientModal({ name, onConfirm, onClose }: { name: string; onCo
       <div className="w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-lg font-bold text-givit-ink">Remove {name}?</h2>
-          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">Mind sharing why? It helps us get AutoGift right.</p>
         <div className="mt-3 space-y-1.5">
           {CANCEL_REASONS.map((r) => (
-            <label key={r} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm has-[:checked]:border-givit-ember has-[:checked]:bg-givit-ember/5">
+            <label key={r} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm has-[:checked]:border-givit-ember has-[:checked]:bg-givit-ember/5">
               <input type="radio" name="cancel-reason" value={r} checked={reason === r} onChange={() => setReason(r)} className="accent-givit-ember" />
               {r}
             </label>
@@ -676,7 +676,7 @@ function CancelRecipientModal({ name, onConfirm, onClose }: { name: string; onCo
         </div>
 
         {reason === "Passed away" && (
-          <div className="mt-3 rounded-md border border-border bg-muted/40 p-3">
+          <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
             <p className="text-xs leading-5 text-muted-foreground">We're sorry for your loss. If it helps, we can point you to a sympathy gift instead.</p>
             <button
               type="button"
@@ -689,8 +689,8 @@ function CancelRecipientModal({ name, onConfirm, onClose }: { name: string; onCo
         )}
 
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
-          <button type="button" onClick={() => onConfirm(reason)} className="rounded-md bg-destructive px-3 py-1.5 text-sm font-semibold text-white hover:bg-destructive/90">Remove</button>
+          <button type="button" onClick={onClose} className="rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
+          <button type="button" onClick={() => onConfirm(reason)} className="rounded-full bg-destructive px-3 py-1.5 text-sm font-semibold text-white hover:bg-destructive/90">Remove</button>
         </div>
       </div>
     </div>
@@ -760,10 +760,10 @@ function CalendarImportModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
-      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card shadow-2xl">
+      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-border p-5">
           <h2 className="font-serif text-xl font-bold text-givit-ink">Import from calendar</h2>
-          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -794,10 +794,10 @@ function CalendarImportModal({
             <p className="text-sm text-muted-foreground">Found {rows.length} event{rows.length !== 1 ? "s" : ""}. Uncheck anything you don't want, and fix any names GIVIT guessed wrong.</p>
             <div className="max-h-[45vh] space-y-2 overflow-y-auto">
               {rows.map((row, i) => (
-                <div key={i} className={`flex items-center gap-2 rounded-md border p-2 ${row.selected ? "border-border" : "border-border/40 opacity-60"}`}>
+                <div key={i} className={`flex items-center gap-2 rounded-lg border p-2 ${row.selected ? "border-border" : "border-border/40 opacity-60"}`}>
                   <input type="checkbox" checked={row.selected} onChange={(e) => updateRow(i, { selected: e.target.checked })} className="accent-givit-ember" />
-                  <input value={row.name} onChange={(e) => updateRow(i, { name: e.target.value })} className="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-sm outline-none" />
-                  <select value={row.occasion} onChange={(e) => updateRow(i, { occasion: e.target.value })} className="h-8 rounded-md border border-border bg-background px-1.5 text-xs outline-none">
+                  <input value={row.name} onChange={(e) => updateRow(i, { name: e.target.value })} className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-background px-2 text-sm outline-none" />
+                  <select value={row.occasion} onChange={(e) => updateRow(i, { occasion: e.target.value })} className="h-8 rounded-lg border border-border bg-background px-1.5 text-xs outline-none">
                     {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
                   </select>
                   <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">{new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
@@ -805,8 +805,8 @@ function CalendarImportModal({
               ))}
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={onClose} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
-              <Button onClick={handleImport} disabled={importing} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+              <button type="button" onClick={onClose} className="rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
+              <Button onClick={handleImport} disabled={importing} className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
                 {importing ? "Importing…" : `Import ${rows.filter((r) => r.selected).length}`}
               </Button>
             </div>
