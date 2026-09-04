@@ -59,7 +59,7 @@ export function SiteFooter() {
                 </>
               )}
               <li><Link href="/feedback" className="transition-colors hover:text-foreground">Feedback</Link></li>
-              <li><a href="https://calendly.com/atticusmoes/new-meeting?month=2026-07" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground">Contact Us</a></li>
+              <li><a href="https://calendly.com/atticusmoes/new-meeting" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground">Contact Us</a></li>
             </ul>
           </div>
         </div>

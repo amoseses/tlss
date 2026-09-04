@@ -41,6 +41,7 @@ export default function SecretSantaGroupPage() {
   const [notes, setNotes] = useState("");
   const [interestsText, setInterestsText] = useState("");
   const [savingWishlist, setSavingWishlist] = useState(false);
+  const [wishlistError, setWishlistError] = useState("");
 
   useEffect(() => {
     if (!loading && !user) navigate(`/login?next=/secret-santa/${id}`);
@@ -106,6 +107,7 @@ export default function SecretSantaGroupPage() {
 
   async function handleRemove(participantId: string) {
     if (!id) return;
+    if (!confirm("Remove this person from the group?")) return;
     await removeSecretSantaParticipant(participantId);
     setParticipants(await getGroupParticipants(id));
   }
@@ -124,12 +126,14 @@ export default function SecretSantaGroupPage() {
     if (!myRow || savingWishlist) return;
     setSavingWishlist(true);
     const interests = interestsText.split(",").map((s) => s.trim()).filter(Boolean);
-    await updateMySecretSantaWishlist(myRow.id, { wishlist_notes: notes, interests });
+    const { error } = await updateMySecretSantaWishlist(myRow.id, { wishlist_notes: notes, interests });
     setSavingWishlist(false);
+    setWishlistError(error ? "Couldn't save -- try again." : "");
   }
 
   async function handleDeleteGroup() {
     if (!id || !group) return;
+    if (!confirm("Delete this group? This can't be undone.")) return;
     await deleteSecretSantaGroup(id);
     navigate("/secret-santa");
   }
@@ -198,6 +202,7 @@ export default function SecretSantaGroupPage() {
           <Button type="submit" size="sm" disabled={savingWishlist} className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
             {savingWishlist ? "Saving..." : "Save"}
           </Button>
+          {wishlistError && <p className="text-xs font-medium text-destructive">{wishlistError}</p>}
         </form>
         {!myRow && isOrganizer && <p className="mt-2 text-xs text-muted-foreground">Add your own email below to join the exchange yourself.</p>}
       </div>

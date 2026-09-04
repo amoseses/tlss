@@ -844,7 +844,7 @@ export default function AdminPage() {
                 <input
                   type="number"
                   value={editingProduct.price_cents || 0}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, price_cents: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, price_cents: parseInt(e.target.value, 10) || 0 })}
                   className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
                 />
               </div>
