@@ -120,6 +120,7 @@ export function WishlistButton({ item, compact = false }: { item: WishlistItem; 
 export function WishlistSharePanel() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailTo, setEmailTo] = useState("");
   const [sending, setSending] = useState(false);
@@ -149,9 +150,12 @@ export function WishlistSharePanel() {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+      setCopyError(false);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy wishlist:", err);
+      setCopyError(true);
+      setTimeout(() => setCopyError(false), 4000);
     }
   }
 
@@ -202,7 +206,7 @@ export function WishlistSharePanel() {
           disabled={items.length === 0}
           className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-givit-ember px-4 text-xs font-bold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <Share2 className="h-3.5 w-3.5" /> {copied ? "Copied!" : "Send wishlist"}
+          <Share2 className="h-3.5 w-3.5" /> {copied ? "Copied!" : copyError ? "Couldn't copy" : "Send wishlist"}
         </button>
         <button
           type="button"
