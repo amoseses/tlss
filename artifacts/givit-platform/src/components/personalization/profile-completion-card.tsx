@@ -74,7 +74,7 @@ export function ProfileCompletionCard() {
           {items.map((item) => {
             const content = (
               <span className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition hover:bg-muted/60">
-                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${item.done ? "bg-emerald-500 text-white" : "border border-border"}`}>
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${item.done ? "bg-success text-white" : "border border-border"}`}>
                   {item.done && <Check className="h-2.5 w-2.5" />}
                 </span>
                 <span className={item.done ? "text-muted-foreground line-through" : ""}>{item.label}</span>

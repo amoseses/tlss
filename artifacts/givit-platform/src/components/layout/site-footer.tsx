@@ -92,7 +92,7 @@ export function SiteFooter() {
             <p>© {new Date().getFullYear()} GIVIT. All rights reserved.</p>
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-1.5 text-muted-foreground/80">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                <ShieldCheck className="h-3.5 w-3.5 text-success" />
                 No brand deals in rankings
               </div>
               <Link href="/privacy" className="transition-colors hover:text-foreground">Privacy Policy</Link>

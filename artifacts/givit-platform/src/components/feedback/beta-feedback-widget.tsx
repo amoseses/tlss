@@ -116,7 +116,7 @@ export function BetaFeedbackWidget({ betaMode = false }: { betaMode?: boolean })
           </div>
           {sent ? (
             <div className="flex flex-col items-center gap-2 px-5 py-8 text-center">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+              <CheckCircle2 className="h-8 w-8 text-success" />
               <p className="text-sm font-medium text-givit-ink">Got it, thank you!</p>
               <button
                 type="button"

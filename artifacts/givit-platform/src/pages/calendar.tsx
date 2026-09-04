@@ -123,12 +123,12 @@ export default function CalendarPage() {
             <button
               type="button"
               onClick={() => setShowRegionPicker(!showRegionPicker)}
-              className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs hover:border-cyan-500/40 hover:bg-muted/60 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs hover:border-givit-teal/40 hover:bg-muted/60 transition-all cursor-pointer"
             >
-              <Globe className="h-3.5 w-3.5 text-cyan-500" />
+              <Globe className="h-3.5 w-3.5 text-givit-teal" />
               <span className="text-muted-foreground font-medium">Region:</span>
               <span>{selectedRegion.flag} {selectedRegion.name} ({selectedRegion.gmt})</span>
-              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${showRegionPicker ? "rotate-180 text-cyan-500" : ""}`} />
+              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${showRegionPicker ? "rotate-180 text-givit-teal" : ""}`} />
             </button>
 
             {showRegionPicker && (
@@ -146,7 +146,7 @@ export default function CalendarPage() {
                         }}
                         className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
                           isSelected
-                            ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 font-bold"
+                            ? "bg-givit-teal/15 text-givit-teal font-bold"
                             : "text-foreground hover:bg-muted"
                         }`}
                       >
@@ -156,7 +156,7 @@ export default function CalendarPage() {
                         </span>
                         <span className="flex items-center gap-1.5">
                           <span className="font-mono text-[10px] font-normal opacity-70">{r.gmt}</span>
-                          {isSelected && <Check className="h-3.5 w-3.5 text-cyan-500" />}
+                          {isSelected && <Check className="h-3.5 w-3.5 text-givit-teal" />}
                         </span>
                       </button>
                     );
@@ -166,7 +166,7 @@ export default function CalendarPage() {
             )}
           </div>
 
-          <Button asChild variant="outline" className="rounded-md">
+          <Button asChild variant="outline" className="rounded-full">
             <Link href="/people"><UserRound className="h-4 w-4" /> Manage people</Link>
           </Button>
         </div>
@@ -180,7 +180,7 @@ export default function CalendarPage() {
         <aside className="space-y-4">
           <div className="givit-section">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-semibold text-givit-ink">Upcoming Dates</h2>
+              <h2 className="font-serif text-lg font-bold text-givit-ink">Upcoming Dates</h2>
               <span className="text-xs font-semibold text-muted-foreground">{selectedRegion.flag} {selectedRegion.name}</span>
             </div>
 
@@ -191,18 +191,18 @@ export default function CalendarPage() {
                 {upcomingAll.map((o, i) => {
                   const daysUntil = Math.ceil((o.parsed.getTime() - Date.now()) / 86400000);
                   const urgency = o.isHoliday
-                    ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300"
+                    ? "bg-givit-teal/10 text-givit-teal"
                     : daysUntil <= 14
-                    ? "bg-rose-50 text-rose-700"
+                    ? "bg-destructive/10 text-destructive"
                     : daysUntil <= 42
                     ? "bg-amber-50 text-amber-700"
-                    : "bg-emerald-50 text-emerald-700";
+                    : "bg-success/10 text-success";
 
                   const scheduled = !o.isHoliday && scheduledKeys.has(`${o.recipient}-${o.label}-${o.date}`);
 
                   return (
                     <div key={i} className="flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3">
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${o.isHoliday ? "bg-cyan-500" : "givit-gradient"}`}>
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${o.isHoliday ? "bg-givit-teal" : "givit-gradient"}`}>
                         {o.isHoliday ? <Sparkles className="h-4 w-4 text-white" /> : o.recipient[0]?.toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -214,7 +214,7 @@ export default function CalendarPage() {
                         </p>
                         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                           {o.isHoliday ? (
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Public Holiday</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-givit-teal">Public Holiday</span>
                           ) : scheduled ? (
                             <><Bell className="h-3 w-3 text-givit-ember" /> Reminder scheduled</>
                           ) : (

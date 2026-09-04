@@ -38,7 +38,7 @@ function PersonCard({ person }: { person: Person }) {
   const [, navigate] = useLocation();
   const upcoming = nextOccasion(person.occasions);
   const daysUntil = upcoming ? Math.ceil((upcoming.parsed.getTime() - Date.now()) / 86400000) : null;
-  const urgency = daysUntil == null ? "" : daysUntil <= 14 ? "bg-rose-50 text-rose-700" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700";
+  const urgency = daysUntil == null ? "" : daysUntil <= 14 ? "bg-destructive/10 text-destructive" : daysUntil <= 42 ? "bg-amber-50 text-amber-700" : "bg-success/10 text-success";
 
   return (
     <button

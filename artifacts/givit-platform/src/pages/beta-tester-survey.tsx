@@ -47,7 +47,7 @@ export default function BetaTesterSurveyPage() {
     return (
       <PageShell narrow>
         <div className="py-16 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-success/10 text-success">
             <CheckCircle2 className="h-8 w-8" />
           </div>
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-givit-ember">Beta survey received</p>

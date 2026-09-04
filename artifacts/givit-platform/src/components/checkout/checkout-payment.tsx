@@ -196,7 +196,7 @@ function CheckoutPaymentForm({ quote, onSuccess, onBack }: CheckoutPaymentProps)
           />
         </div>
         <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+          <ShieldCheck className="h-3.5 w-3.5 text-success" />
           Your card information is secure. Payments are processed by Stripe.
         </div>
       </div>

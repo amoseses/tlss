@@ -355,7 +355,7 @@ export default function AdminPage() {
                     <td className="px-4 py-3 text-muted-foreground">${(product.price_cents / 100).toFixed(2)}</td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        product.is_published ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                        product.is_published ? "bg-success/10 text-success" : "bg-amber-100 text-amber-700"
                       }`}>
                         {product.is_published ? "Published" : "Draft"}
                       </span>
@@ -490,9 +490,9 @@ export default function AdminPage() {
                   {rows.map((row, i) => (
                     <div key={i} className="flex items-center gap-3 py-2.5">
                       <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                        row.status === "done" ? "bg-emerald-100 text-emerald-700" :
+                        row.status === "done" ? "bg-success/10 text-success" :
                         row.status === "processing" ? "bg-amber-100 text-amber-700" :
-                        row.status === "error" ? "bg-rose-100 text-rose-700" :
+                        row.status === "error" ? "bg-destructive/10 text-destructive" :
                         "bg-muted text-muted-foreground"
                       }`}>
                         {row.status === "done" ? <CheckCircle className="h-4 w-4" /> :
@@ -507,7 +507,7 @@ export default function AdminPage() {
                             {row.brand && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{row.brand}</span>}
                             {row.price && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">${row.price}</span>}
                             {row.category && <span className="rounded bg-givit-ember/10 px-1.5 py-0.5 text-[10px] text-givit-ember">{row.category}</span>}
-                            <span className="inline-flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700 font-semibold"><CheckCircle className="h-2.5 w-2.5" /> AI processed</span>
+                            <span className="inline-flex items-center gap-0.5 rounded bg-success/10 px-1.5 py-0.5 text-[10px] text-success font-semibold"><CheckCircle className="h-2.5 w-2.5" /> AI processed</span>
                           </div>
                         )}
                       </div>
@@ -599,7 +599,7 @@ export default function AdminPage() {
                   <h2 className="font-semibold text-givit-ink">Error logging & monitoring</h2>
                   <p className="mt-1 text-3xl font-bold text-givit-ink">{monitoringErrors.length}</p>
                   <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs text-muted-foreground">
-                    {monitoringErrors.slice(0, 8).map((error: any) => <div key={error.id} className="rounded bg-rose-50 p-2 text-rose-800"><b>{error.source || "client"}</b>: {error.message}</div>)}
+                    {monitoringErrors.slice(0, 8).map((error: any) => <div key={error.id} className="rounded bg-destructive/10 p-2 text-destructive"><b>{error.source || "client"}</b>: {error.message}</div>)}
                   </div>
                 </div>
               </div>
@@ -687,13 +687,13 @@ export default function AdminPage() {
                     </div>
                     <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
                       sub.status === "pending" ? "bg-amber-100 text-amber-700" :
-                      sub.status === "approved" ? "bg-emerald-100 text-emerald-700" :
-                      "bg-rose-100 text-rose-700"
+                      sub.status === "approved" ? "bg-success/10 text-success" :
+                      "bg-destructive/10 text-destructive"
                     }`}>{sub.status}</span>
                   </div>
                   {sub.status === "pending" && (
                     <div className="flex shrink-0 gap-2">
-                      <Button onClick={() => handleApproveSubmission(sub.id)} size="sm" className="rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
+                      <Button onClick={() => handleApproveSubmission(sub.id)} size="sm" className="rounded-lg bg-success text-white hover:bg-success/90">
                         <CheckCircle className="h-3.5 w-3.5" /> Approve
                       </Button>
                       <Button onClick={() => handleRejectSubmission(sub.id)} size="sm" variant="outline" className="rounded-lg text-destructive border-destructive/30 hover:bg-destructive/10">
@@ -803,9 +803,9 @@ export default function AdminPage() {
                   <td className="px-4 py-3 font-medium text-foreground">${(order.total_cents / 100).toFixed(2)}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      order.status === "delivered" ? "bg-emerald-100 text-emerald-700" :
+                      order.status === "delivered" ? "bg-success/10 text-success" :
                       order.status === "shipped" ? "bg-blue-100 text-blue-700" :
-                      order.status === "cancelled" ? "bg-rose-100 text-rose-700" :
+                      order.status === "cancelled" ? "bg-destructive/10 text-destructive" :
                       "bg-amber-100 text-amber-700"
                     }`}>{order.status}</span>
                   </td>

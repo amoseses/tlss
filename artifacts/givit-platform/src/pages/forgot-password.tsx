@@ -40,8 +40,8 @@ export default function ForgotPasswordPage() {
         <CardContent>
           {sent ? (
             <div className="flex flex-col items-center gap-3 py-4 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
-                <CheckCircle className="h-6 w-6 text-emerald-600" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+                <CheckCircle className="h-6 w-6 text-success" />
               </div>
               <p className="text-sm text-muted-foreground">
                 If an account exists for <strong className="text-foreground">{email}</strong>, a reset link is on its way. Check your inbox (and spam folder).

@@ -228,7 +228,7 @@ function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index
           <div className="absolute inset-0 flex items-center justify-center"><Gift className="h-8 w-8 text-muted-foreground/40" /></div>
         )}
         {result.sale_price_cents ? (
-          <div className="absolute right-2 top-2 rounded-full bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white shadow-sm">Sale</div>
+          <div className="absolute right-2 top-2 rounded-full bg-black/85 px-2 py-1 font-mono text-[10px] font-bold text-givit-coral shadow-sm">Sale</div>
         ) : null}
         <div className="absolute bottom-2 left-2 right-2">
           <p className="flex items-center gap-1 line-clamp-1 rounded-lg bg-black/60 px-2 py-1 text-[10px] text-white/90 backdrop-blur-sm"><Sparkles className="h-2.5 w-2.5 shrink-0" /> {result.match_reason}</p>
@@ -265,7 +265,7 @@ function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index
           </Link>
           <WishlistButton compact item={{ slug: result.slug, name: result.name, href: `/products/${result.slug}`, image: imageSrc, price: formatMoneyLocal(displayPrice) }} />
           {feedback ? (
-            <div className={`flex h-8 items-center justify-center gap-1.5 rounded-full text-xs font-semibold ${feedback === "liked" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+            <div className={`flex h-8 items-center justify-center gap-1.5 rounded-full text-xs font-semibold ${feedback === "liked" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
               {feedback === "liked" ? <ThumbsUp className="h-3.5 w-3.5 fill-current" /> : <ThumbsDown className="h-3.5 w-3.5 fill-current" />}
               {feedback === "liked" ? "Noted — more like this" : "Noted — less like this"}
             </div>
@@ -274,14 +274,14 @@ function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index
               <button
                 type="button"
                 onClick={() => { setFeedback("liked"); onItemFeedback(result, true); }}
-                className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-emerald-200 px-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-success/30 px-2 text-xs font-semibold text-success transition hover:bg-success/10"
               >
                 <ThumbsUp className="h-3.5 w-3.5" /> Like item
               </button>
               <button
                 type="button"
                 onClick={() => { setFeedback("disliked"); onItemFeedback(result, false); }}
-                className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-rose-200 px-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+                className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-border px-2 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
               >
                 <ThumbsDown className="h-3.5 w-3.5" /> Not this
               </button>
@@ -785,8 +785,8 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                       {msg.results.map((result, idx) => <GiftCard key={result.id} result={result} index={idx} onItemFeedback={handleItemFeedback} />)}
                       <div className="flex flex-wrap items-center gap-3 border-t border-border/30 pt-3 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">
                         <span className="font-semibold text-givit-ink">Did these feel right?</span>
-                        <button type="button" onClick={() => handleFeedback(msg.results ?? [], true)} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700 transition hover:bg-emerald-100"><ThumbsUp className="h-3.5 w-3.5" /> Satisfied</button>
-                        <button type="button" onClick={() => handleFeedback(msg.results ?? [], false)} className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-700 transition hover:bg-rose-100"><ThumbsDown className="h-3.5 w-3.5" /> Not yet</button>
+                        <button type="button" onClick={() => handleFeedback(msg.results ?? [], true)} className="inline-flex items-center gap-1 rounded-full bg-success/10 px-3 py-1 font-semibold text-success transition hover:bg-success/20"><ThumbsUp className="h-3.5 w-3.5" /> Satisfied</button>
+                        <button type="button" onClick={() => handleFeedback(msg.results ?? [], false)} className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 font-semibold text-muted-foreground transition hover:bg-muted/70"><ThumbsDown className="h-3.5 w-3.5" /> Not yet</button>
                       </div>
                     </div>
                   )}

@@ -116,7 +116,7 @@ export function RelationshipInsights() {
                 className="flex items-center justify-between gap-2 rounded-lg px-1 py-2.5 text-base transition hover:bg-muted/50"
               >
                 <span className="text-foreground"><span className="font-semibold">{occ.name}</span>'s {occ.label.toLowerCase()}</span>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-semibold ${occ.daysUntil <= 14 ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"}`}>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-semibold ${occ.daysUntil <= 14 ? "bg-destructive/10 text-destructive" : "bg-amber-50 text-amber-700"}`}>
                   {occ.daysUntil === 0 ? "today" : `${occ.daysUntil}d`}
                 </span>
               </Link>

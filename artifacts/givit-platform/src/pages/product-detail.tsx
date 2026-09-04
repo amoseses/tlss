@@ -209,7 +209,7 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <ShieldCheck className="h-4 w-4 text-emerald-600" />
+            <ShieldCheck className="h-4 w-4 text-success" />
             No brand deals. Rankings are editorially curated.
           </div>
         </div>

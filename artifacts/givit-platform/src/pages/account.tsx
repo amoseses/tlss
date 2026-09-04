@@ -417,7 +417,7 @@ export default function AccountPage() {
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-foreground">${(order.total_cents / 100).toFixed(2)}</span>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                      order.status === "delivered" ? "bg-emerald-100 text-emerald-700" :
+                      order.status === "delivered" ? "bg-success/10 text-success" :
                       order.status === "shipped" ? "bg-blue-100 text-blue-700" :
                       "bg-amber-100 text-amber-700"
                     }`}>{order.status}</span>

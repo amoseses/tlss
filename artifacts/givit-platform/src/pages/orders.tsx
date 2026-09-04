@@ -18,7 +18,7 @@ type UnifiedOrder = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  delivered: "bg-emerald-100 text-emerald-700",
+  delivered: "bg-success/10 text-success",
   shipped: "bg-blue-100 text-blue-700",
   ordered: "bg-blue-100 text-blue-700",
   paid_pending_fulfillment: "bg-amber-100 text-amber-700",
@@ -26,8 +26,8 @@ const STATUS_STYLES: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
   pending_approval: "bg-amber-100 text-amber-700",
   submitted: "bg-amber-100 text-amber-700",
-  cancelled: "bg-rose-100 text-rose-700",
-  refunded: "bg-rose-100 text-rose-700",
+  cancelled: "bg-destructive/10 text-destructive",
+  refunded: "bg-destructive/10 text-destructive",
 };
 
 // AutoGift orders are created the moment the customer clicks "Approve &

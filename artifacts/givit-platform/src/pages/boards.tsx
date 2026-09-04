@@ -586,7 +586,7 @@ export default function BoardsPage() {
             </div>
             {user ? (
               <button type="button" onClick={toggleOpenBoardLike}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${openBoardLikes.liked ? "border-rose-400/40 bg-rose-500/10 text-rose-400" : "border-border text-muted-foreground hover:bg-muted"}`}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${openBoardLikes.liked ? "border-givit-coral/40 bg-givit-coral/10 text-givit-coral" : "border-border text-muted-foreground hover:bg-muted"}`}
               >
                 <Heart className={`h-4 w-4 ${openBoardLikes.liked ? "fill-current" : ""}`} /> {openBoardLikes.count > 0 ? openBoardLikes.count : "Like"}
               </button>
@@ -643,7 +643,7 @@ export default function BoardsPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <div className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground">
-                    <Heart className={openBoardLikes.count > 0 ? "h-4 w-4 fill-rose-400 text-rose-400" : "h-4 w-4"} /> {openBoardLikes.count}
+                    <Heart className={openBoardLikes.count > 0 ? "h-4 w-4 fill-givit-coral text-givit-coral" : "h-4 w-4"} /> {openBoardLikes.count}
                   </div>
                   <Button onClick={() => setShowAddProduct(true)} size="sm" className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover gap-1.5">
                     <Sparkles className="h-3.5 w-3.5" /> Add products

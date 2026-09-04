@@ -116,7 +116,7 @@ export function NotificationSettingsCard({
               type="button"
               onClick={toggle}
               disabled={busy}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 ${subscribed ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600" : "border-border text-muted-foreground hover:bg-muted"}`}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 ${subscribed ? "border-success/30 bg-success/10 text-success" : "border-border text-muted-foreground hover:bg-muted"}`}
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : subscribed ? <BellRing className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
               {subscribed ? "Notifications on" : "Turn on notifications"}

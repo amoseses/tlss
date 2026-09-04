@@ -127,8 +127,8 @@ export default function SubmitProductPage() {
     return (
       <PageShell narrow>
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-            <CheckCircle className="h-8 w-8 text-emerald-600" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle className="h-8 w-8 text-success" />
           </div>
           <h2 className="mt-4 font-serif text-2xl font-bold text-givit-ink">Product added for review!</h2>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
