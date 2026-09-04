@@ -5,7 +5,7 @@ import { respondToSurvey, generateGiftBundles, regenerateBundleItem, createAutoG
 import { personalizeBundlesWithAI } from "@/lib/autogift/ai-personalize";
 import { trackUserEvent } from "@/lib/monitoring";
 import { useAuth } from "@/lib/auth/use-auth";
-import { saveAutoGiftOrderToDb } from "@/lib/supabase/db";
+import { getUserPaymentMethods, saveAutoGiftOrderToDb } from "@/lib/supabase/db";
 import { addressValidationError } from "@/lib/validation/autogift";
 import { getCohort } from "@/lib/data/gifting-cohorts";
 
@@ -95,6 +95,16 @@ export function GiftSurveyModal({
   const [cardMessageTouched, setCardMessageTouched] = useState(false);
   const aiRequestToken = useRef(0);
   const shownProductIds = useRef<Set<string>>(new Set());
+  // Approving with no saved card silently stalls in the admin queue --
+  // "This customer has no saved default card on file" only ever surfaces
+  // server-side when an admin later clicks "Charge saved card," with no
+  // path back to the customer. Checked once on open so the review step
+  // can block approval and point them at fixing it up front instead.
+  const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    getUserPaymentMethods(user.id).then((methods) => setHasPaymentMethod(methods.length > 0));
+  }, [user]);
 
   const currentResponse: SurveyResponse = {
     interests,
@@ -514,13 +524,18 @@ export function GiftSurveyModal({
                 </div>
               </div>
 
+              {hasPaymentMethod === false && (
+                <p className="rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
+                  No saved card on file, so this order can't be charged once approved. <a href="/account" target="_blank" rel="noreferrer" className="font-semibold underline">Add a card in Account</a>, then come back and approve.
+                </p>
+              )}
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1 rounded-lg" onClick={() => setStep("suggestions")}>
                   Back
                 </Button>
                 <Button
                   onClick={handlePlaceOrder}
-                  disabled={!address.line1 || !address.city || !address.state || !address.zip || placingOrder}
+                  disabled={!address.line1 || !address.city || !address.state || !address.zip || placingOrder || hasPaymentMethod === false}
                   className="flex-1 rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"
                 >
                   <Sparkles className="h-4 w-4" /> {placingOrder ? "Sending to admin…" : `Approve & send to admin: $${(grandTotal / 100).toFixed(2)}`}

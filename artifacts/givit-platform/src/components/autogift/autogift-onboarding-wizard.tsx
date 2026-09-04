@@ -314,7 +314,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
         });
         if (occasionError) throw new Error(occasionError.message || `Couldn't save ${draft.name.trim()}'s ${draft.occasionLabel}.`);
 
-        await createNotification({
+        const { error: notificationError } = await createNotification({
           user_id: user.id,
           recipient_id: recipient.id,
           occasion_id: occasion?.id ?? null,
@@ -325,6 +325,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
           status: "scheduled",
           metadata: { automation: "autogift", source: "onboarding", yearsContext: draft.yearsContext },
         });
+        if (notificationError) throw new Error(notificationError.message || `Couldn't schedule a reminder for ${draft.name.trim()}'s ${draft.occasionLabel}.`);
       }
       window.localStorage.removeItem(DRAFT_KEY);
       onClose();

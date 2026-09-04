@@ -169,7 +169,7 @@ function LeadTimeSelect({ value, onChange }: { value: number; onChange: (days: n
   );
 }
 
-function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipients: Recipient[]) => void; onClose: () => void; defaultLeadDays: number }) {
+function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipients: Recipient[]) => Promise<{ errors: string[] }>; onClose: () => void; defaultLeadDays: number }) {
   type PersonForm = { name: string; relationship: string; occasions: Occasion[]; aboutText: string };
   const emptyPerson = (): PersonForm => ({ name: "", relationship: "", occasions: [{ label: "Birthday", date: "" }], aboutText: "" });
   const [people, setPeople] = useState<PersonForm[]>([emptyPerson()]);
@@ -251,8 +251,9 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
           budgetCents: extracted.budgetCents,
         } satisfies Recipient;
       }));
-      onAdd(built);
-      toast.success(built.length > 1 ? `${built.length} people saved` : `${built[0].name} saved`);
+      const { errors } = await onAdd(built);
+      if (errors.length > 0) toast.error(errors.join(" "));
+      else toast.success(built.length > 1 ? `${built.length} people saved` : `${built[0].name} saved`);
       onClose();
     } finally {
       setSaving(false);
@@ -706,7 +707,7 @@ function CalendarImportModal({
   onClose,
 }: {
   recipients: Recipient[];
-  onImportNew: (recipients: Recipient[]) => void;
+  onImportNew: (recipients: Recipient[]) => Promise<{ errors: string[] }>;
   onAddOccasionToExisting: (recipientId: string, occasions: Occasion[]) => void;
   onClose: () => void;
 }) {
@@ -750,8 +751,9 @@ function CalendarImportModal({
           else newRecipients.push({ id: crypto.randomUUID(), name: row.name.trim(), relationship: "", occasions: [occasion], interests: [], avoidTerms: [] });
         }
       }
-      if (newRecipients.length > 0) onImportNew(newRecipients);
-      toast.success(`Imported ${selected.length} date${selected.length !== 1 ? "s" : ""}`);
+      const { errors } = newRecipients.length > 0 ? await onImportNew(newRecipients) : { errors: [] };
+      if (errors.length > 0) toast.error(errors.join(" "));
+      else toast.success(`Imported ${selected.length} date${selected.length !== 1 ? "s" : ""}`);
       onClose();
     } finally {
       setImporting(false);
@@ -877,7 +879,7 @@ export default function PeoplePage() {
     <PageShell>
       {showModal && (
         <AddRecipientModal
-          onAdd={(added) => void saveRecipients([...recipients, ...added])}
+          onAdd={(added) => saveRecipients([...recipients, ...added])}
           onClose={() => setShowModal(false)}
           defaultLeadDays={defaultLeadDays}
         />
@@ -909,7 +911,7 @@ export default function PeoplePage() {
       {showImport && (
         <CalendarImportModal
           recipients={recipients}
-          onImportNew={(added) => void saveRecipients([...recipients, ...added])}
+          onImportNew={(added) => saveRecipients([...recipients, ...added])}
           onAddOccasionToExisting={(id, occasions) => void updateOccasions(id, occasions)}
           onClose={() => setShowImport(false)}
         />

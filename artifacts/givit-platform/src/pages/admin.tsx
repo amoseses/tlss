@@ -741,7 +741,7 @@ export default function AdminPage() {
                     {chargeErrors[order.id] && <p className="mt-2 rounded bg-destructive/10 p-2 text-xs text-destructive">{chargeErrors[order.id]}</p>}
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                       <p className="font-semibold">Total: ${(order.total / 100).toFixed(2)}</p>
-                      {(order.status === "pending_approval" || order.status === "approved") && (
+                      {order.status === "approved" && (
                         <Button
                           size="sm"
                           disabled={chargingOrderId === order.id}
@@ -756,6 +756,7 @@ export default function AdminPage() {
                                 setChargeErrors((prev) => ({ ...prev, [order.id]: data.error || "Charge failed." }));
                                 return;
                               }
+                              if (data.warning) setChargeErrors((prev) => ({ ...prev, [order.id]: data.warning }));
                               setAutoGiftOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: "charged" } : o));
                             } catch (err: any) {
                               setChargeErrors((prev) => ({ ...prev, [order.id]: err?.message || "Charge failed." }));
@@ -772,7 +773,11 @@ export default function AdminPage() {
                           size="sm"
                           className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"
                           onClick={async () => {
-                            await updateAutoGiftOrderStatusInDb(order.id, "admin_fulfillment");
+                            const { error } = await updateAutoGiftOrderStatusInDb(order.id, "admin_fulfillment");
+                            if (error) {
+                              setChargeErrors((prev) => ({ ...prev, [order.id]: error.message || "Couldn't update the order status." }));
+                              return;
+                            }
                             setAutoGiftOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: "admin_fulfillment" } : o));
                           }}
                         >

@@ -146,13 +146,33 @@ async function chargeAutoGiftOrder(req: any, res: any) {
       return;
     }
 
-    await restFetch(`autogift_orders?id=eq.${order.id}`, {
-      method: "PATCH",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ status: "charged", stripe_payment_intent_id: intent.id }),
-    });
+    // The card has genuinely been charged at this point -- a failure past
+    // this line must never surface as "the charge failed" (it didn't), or
+    // an admin could tell a customer nothing happened and double-charge
+    // them via a retry. One retry covers a transient blip; if it still
+    // fails, still report success (with a warning) since the idempotency
+    // key above makes a manual retry of this whole action safe either way.
+    let persistError: string | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await restFetch(`autogift_orders?id=eq.${order.id}`, {
+          method: "PATCH",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({ status: "charged", stripe_payment_intent_id: intent.id }),
+        });
+        persistError = null;
+        break;
+      } catch (err: any) {
+        persistError = err?.message || "Unknown error";
+      }
+    }
+    if (persistError) console.error("Charged order but failed to persist status:", order.id, persistError);
 
-    res.status(200).json({ status: "charged", paymentIntentId: intent.id });
+    res.status(200).json({
+      status: "charged",
+      paymentIntentId: intent.id,
+      warning: persistError ? "Card was charged, but the order status couldn't be updated. Refresh and retry this action to sync it." : undefined,
+    });
   } catch (error: any) {
     res.status(500).json({ error: safeStripeErrorMessage(error, "Couldn't charge the saved card. Please try again shortly.") });
   }

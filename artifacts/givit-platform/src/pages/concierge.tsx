@@ -354,7 +354,7 @@ export default function ConciergePage() {
                   <li>1. Add people and their key dates in People</li>
                   <li>2. 35 days before, the agent emails the survey at 10:00 AM EST</li>
                   <li>3. It reasons through the profile and proposes gifts, cards (+$5), flowers (+$25), and activities, with a reason for each</li>
-                  <li>4. You approve, it charges the saved card, then admin fulfills and ships (fully autonomous purchasing is next)</li>
+                  <li>4. You approve, then your saved card is charged and the order is fulfilled and shipped (fully autonomous purchasing is next)</li>
                 </ol>
                 <div className="mt-3 rounded-lg bg-black/20 p-2.5 text-xs">
                   <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-givit-ink/80">Pricing</p>

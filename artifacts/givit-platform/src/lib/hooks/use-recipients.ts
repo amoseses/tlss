@@ -72,10 +72,10 @@ async function scheduleOccasionNotifications(
   recipientId: string,
   recipientName: string,
   occasion: Occasion,
-) {
+): Promise<string | null> {
   const leadDays = occasion.leadDays ?? NOTIFICATION_LEAD_DAYS;
   const scheduledFor = scheduledSurveySendAt(occasion.date, leadDays).toISOString();
-  await createNotification({
+  const { error: emailError } = await createNotification({
     user_id: userId,
     recipient_id: recipientId,
     occasion_id: occasion.id ?? null,
@@ -86,7 +86,7 @@ async function scheduleOccasionNotifications(
     status: "scheduled",
     metadata: { automation: "autogift", recipientName, occasion: occasion.label, occasionDate: occasion.date },
   });
-  await createNotification({
+  const { error: inAppError } = await createNotification({
     user_id: userId,
     recipient_id: recipientId,
     occasion_id: occasion.id ?? null,
@@ -97,6 +97,15 @@ async function scheduleOccasionNotifications(
     status: "scheduled",
     metadata: { automation: "autogift", recipientName, occasion: occasion.label, occasionDate: occasion.date },
   });
+  // Both writes are best-effort past this point -- the recipient/occasion
+  // itself already saved successfully, so a reminder-scheduling failure
+  // shouldn't be reported as "couldn't save this person," just surfaced
+  // separately so it isn't silently lost.
+  if (emailError || inAppError) {
+    console.error("Failed to schedule AutoGift reminder:", emailError || inAppError);
+    return `Couldn't schedule a reminder for ${recipientName}'s ${occasion.label}.`;
+  }
+  return null;
 }
 
 function generateNotifications(recipients: Recipient[], defaultLeadDays = NOTIFICATION_LEAD_DAYS, userId?: string | null): ConciergeNotification[] {
@@ -204,15 +213,16 @@ export function useRecipients(user: { id: string; email?: string } | User | null
     return () => { cancelled = true; };
   }, [user, defaultLeadDays]);
 
-  async function saveRecipients(list: Recipient[]) {
+  async function saveRecipients(list: Recipient[]): Promise<{ errors: string[] }> {
     setRecipients(list);
     window.localStorage.setItem(recipientsKey(user?.id), JSON.stringify(list));
     setNotifications(generateNotifications(list, defaultLeadDays, user?.id));
 
-    if (!user) return;
+    if (!user) return { errors: [] };
+    const errors: string[] = [];
     const added = list.filter((recipient) => !recipients.some((existing) => existing.id === recipient.id));
     for (const recipient of added) {
-      const { data } = await saveGiftRecipient({
+      const { data, error: recipientError } = await saveGiftRecipient({
         id: recipient.id,
         user_id: user.id,
         name: recipient.name,
@@ -222,10 +232,22 @@ export function useRecipients(user: { id: string; email?: string } | User | null
         avoid_terms: recipient.avoidTerms?.length ? recipient.avoidTerms : undefined,
         default_budget_cents: recipient.budgetCents ?? undefined,
       });
-      const recipientId = data?.id ?? recipient.id;
+      if (recipientError || !data?.id) {
+        // Falling back to the client-generated id here would let every
+        // write below silently target a row that was never actually
+        // created -- gift_occasions.recipient_id and gift_notifications
+        // both have a real FK into gift_recipients, so those inserts
+        // would fail too (or, worse, succeed against a ghost id if the FK
+        // is ever relaxed). Skip this recipient's occasions entirely and
+        // surface the failure instead.
+        console.error("Failed to save recipient:", recipientError);
+        errors.push(`Couldn't save ${recipient.name}.`);
+        continue;
+      }
+      const recipientId = data.id;
       for (const occasion of recipient.occasions.filter((item) => item.date)) {
         const leadDays = occasion.leadDays ?? defaultLeadDays;
-        const { data: savedOccasion } = await saveGiftOccasion({
+        const { data: savedOccasion, error: occasionError } = await saveGiftOccasion({
           user_id: user.id,
           recipient_id: recipientId,
           occasion: occasion.label,
@@ -233,9 +255,16 @@ export function useRecipients(user: { id: string; email?: string } | User | null
           repeats_yearly: true,
           approval_lead_days: leadDays,
         });
-        await scheduleOccasionNotifications(user.id, recipientId, recipient.name, { id: savedOccasion?.id, label: occasion.label, date: occasion.date, leadDays });
+        if (occasionError) {
+          console.error("Failed to save occasion:", occasionError);
+          errors.push(`Couldn't save ${recipient.name}'s ${occasion.label}.`);
+          continue;
+        }
+        const reminderError = await scheduleOccasionNotifications(user.id, recipientId, recipient.name, { id: savedOccasion?.id, label: occasion.label, date: occasion.date, leadDays });
+        if (reminderError) errors.push(reminderError);
       }
     }
+    return { errors };
   }
 
   async function deleteRecipient(id: string) {
