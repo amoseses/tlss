@@ -24,7 +24,7 @@ export function StarRating({
                 ? "fill-amber-400 text-amber-400"
                 : fill > 0
                   ? "fill-amber-400/50 text-amber-300"
-                  : "fill-transparent text-neutral-300"
+                  : "fill-transparent text-muted-foreground/30"
             }
           />
         );

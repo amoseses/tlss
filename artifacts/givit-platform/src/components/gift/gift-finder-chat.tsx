@@ -32,6 +32,8 @@ type Message = {
 type Questionnaire = {
   recipient: string;
   relationship: string;
+  age: string;
+  gender: string;
   occasion: string;
   budget: string;
   interests: string;
@@ -64,6 +66,7 @@ const QUICK_PROMPTS = [
 
 const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Graduation", "Wedding", "Holiday", "Housewarming", "Thank you", "Father's Day", "Mother's Day", "Valentine's Day", "Easter", "Halloween", "New Baby", "Retirement", "Get Well", "Just Because", "Engagement", "Baby Shower"];
 const STYLES = ["Practical", "Sentimental", "Unique", "Luxury", "Cozy", "Funny", "Minimal", "Experience-like"];
+const GENDERS = ["Prefer not to say", "Male", "Female", "Non-binary", "Other"];
 
 function formatMoneyLocal(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -171,6 +174,8 @@ function buildQuestionnairePrompt(form: Questionnaire) {
   return [
     `Recipient: ${form.recipient || "not specified"}`,
     `Relationship: ${form.relationship || "not specified"}`,
+    `Age: ${form.age || "not specified"}`,
+    `Gender: ${form.gender || "not specified"}`,
     `Occasion: ${form.occasion || "not specified"}`,
     `Budget: ${form.budget || "flexible"}`,
     `Interests: ${form.interests || "not specified"}`,
@@ -297,7 +302,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
-  const [form, setForm] = useState<Questionnaire>({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
+  const [form, setForm] = useState<Questionnaire>({ recipient: "", relationship: "", age: "", gender: "Prefer not to say", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
   // The brief sidebar is always visible on desktop (see the lg:grid override
   // below); this only controls whether it's expanded on narrow screens,
   // where a permanent 300px column isn't viable next to the chat.
@@ -363,7 +368,7 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     setMessages([GREETING]);
     setInput("");
     setLastQuery("");
-    setForm({ recipient: "", relationship: "", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
+    setForm({ recipient: "", relationship: "", age: "", gender: "Prefer not to say", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
     contextRef.current = EMPTY_CONTEXT;
     shownIdsRef.current = new Set();
     focusInput();
@@ -708,6 +713,13 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
           <div className={`grid gap-3 border-t border-border/30 px-4 py-4 ${showQuestionnaire ? "grid" : "hidden"} lg:grid`}>
             <Field label="Who is it for?" value={form.recipient} placeholder="Mom, partner, boss..." onChange={(recipient) => setForm((prev) => ({ ...prev, recipient }))} />
             <Field label="Relationship" value={form.relationship} placeholder="Close, formal..." onChange={(relationship) => setForm((prev) => ({ ...prev, relationship }))} />
+            <Field label="Age" value={form.age} placeholder="25, 30-40, teenager..." onChange={(age) => setForm((prev) => ({ ...prev, age }))} />
+            <div className="grid gap-1.5">
+              <label className="text-xs font-bold text-givit-ink">Gender</label>
+              <select value={form.gender} onChange={(e) => setForm((prev) => ({ ...prev, gender: e.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">
+                {GENDERS.map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </div>
             <div className="grid gap-1.5">
               <label className="text-xs font-bold text-givit-ink">Occasion</label>
               <select value={form.occasion} onChange={(e) => setForm((prev) => ({ ...prev, occasion: e.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20">

@@ -303,7 +303,26 @@ export async function getUserPaymentMethods(userId: string) {
 
 export async function saveUserPaymentMethod(paymentMethod: Record<string, unknown>) {
   const supabase = getDb();
-  const { data, error } = await supabase.from("user_payment_methods").upsert(paymentMethod).select().single();
+  // onConflict matches the (user_id, stripe_payment_method_id) UNIQUE
+  // constraint in admin-schema.sql: without it, re-saving the same card
+  // (e.g. retrying after a failed onboarding step) inserts a duplicate row
+  // instead of updating the existing one.
+  if (paymentMethod.is_default && paymentMethod.user_id) {
+    // Only one card can be "the" default -- the charge flow needs an
+    // unambiguous card to bill, so clear any other default before setting
+    // this one.
+    const { error: clearError } = await supabase
+      .from("user_payment_methods")
+      .update({ is_default: false })
+      .eq("user_id", paymentMethod.user_id as string)
+      .eq("is_default", true);
+    if (clearError) return { data: null, error: clearError };
+  }
+  const { data, error } = await supabase
+    .from("user_payment_methods")
+    .upsert(paymentMethod, { onConflict: "user_id,stripe_payment_method_id" })
+    .select()
+    .single();
   return { data, error };
 }
 

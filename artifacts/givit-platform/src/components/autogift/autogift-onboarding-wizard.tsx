@@ -249,17 +249,27 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
     setSaving(true);
     setError("");
     try {
-      await updateProfile(user.id, {
+      // Every write below used to be awaited without checking `.error` --
+      // Supabase client calls return { data, error } rather than throwing
+      // for most failures (an RLS denial, a schema mismatch, a bad
+      // constraint), so none of those ever reached the catch block below.
+      // The wizard would show "you're all set" and route to /concierge
+      // even when, say, the recipient never actually got saved -- explicit
+      // checks here mean a real failure now actually surfaces to the user
+      // instead of silently pretending onboarding succeeded.
+      const { error: profileError } = await updateProfile(user.id, {
         concierge_onboarding_completed: true,
         gift_automation_enabled: true,
       });
+      if (profileError) throw new Error(profileError.message || "Couldn't save your profile.");
+
       // Non-empty isn't the same as valid -- "Skip for now" on the address
       // step bypasses the next()-step gate entirely, so a garbage address
       // typed in before clicking Skip would otherwise still get saved here
       // unvalidated.
       const validAddresses = addresses.filter((address) => !addressValidationError(address));
       for (const [index, address] of validAddresses.entries()) {
-        await saveUserAddress({
+        const { error: addressError } = await saveUserAddress({
           user_id: user.id,
           label: address.label.trim() || (index === 0 ? "AutoGift shipping" : `AutoGift shipping ${index + 1}`),
           line1: address.line1.trim(),
@@ -269,48 +279,52 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
           country: address.country || "US",
           is_default: index === 0,
         });
+        if (addressError) throw new Error(addressError.message || "Couldn't save your shipping address.");
       }
       window.localStorage.setItem("givit-autogift-addresses", JSON.stringify(validAddresses));
       if (confirmedMethod) {
-        await saveUserPaymentMethod({
+        const { error: paymentError } = await saveUserPaymentMethod({
           user_id: user.id,
           stripe_payment_method_id: confirmedMethod.id,
           card_brand: confirmedMethod.brand,
           card_last4: confirmedMethod.last4,
           is_default: true,
         });
+        if (paymentError) throw new Error(paymentError.message || "Card was saved with Stripe, but we couldn't record it. Please try again.");
       }
       window.localStorage.setItem("givit-autogift-onboarded", "1");
       for (const draft of recipients.filter((r) => r.name.trim() && r.occasionDate)) {
-        const { data: recipient } = await saveGiftRecipient({
+        const { data: recipient, error: recipientError } = await saveGiftRecipient({
           user_id: user.id,
           name: draft.name.trim(),
           relationship: draft.relationship || null,
           automation_enabled: true,
           notes: draft.yearsContext ? `${draft.occasionLabel} context: ${draft.yearsContext}` : null,
         });
-        if (recipient?.id) {
-          const { data: occasion } = await saveGiftOccasion({
-            user_id: user.id,
-            recipient_id: recipient.id,
-            occasion: draft.occasionLabel,
-            occasion_date: draft.occasionDate,
-            repeats_yearly: true,
-            approval_lead_days: 35,
-            metadata: { yearsContext: draft.yearsContext, dateWording: occasionDateHelp(draft.occasionLabel) },
-          });
-          await createNotification({
-            user_id: user.id,
-            recipient_id: recipient.id,
-            occasion_id: occasion?.id ?? null,
-            title: `${draft.name.trim()}'s ${draft.occasionLabel} is coming up`,
-            body: "AutoGift emails the tailored survey at 10:00 AM EST, 35 days before the date, then asks you to approve the AI-built bundle before charging your saved card.",
-            channel: "email",
-            scheduled_for: scheduledAt10Est(draft.occasionDate),
-            status: "scheduled",
-            metadata: { automation: "autogift", source: "onboarding", yearsContext: draft.yearsContext },
-          });
-        }
+        if (recipientError || !recipient?.id) throw new Error(recipientError?.message || `Couldn't save ${draft.name.trim() || "that recipient"}.`);
+
+        const { data: occasion, error: occasionError } = await saveGiftOccasion({
+          user_id: user.id,
+          recipient_id: recipient.id,
+          occasion: draft.occasionLabel,
+          occasion_date: draft.occasionDate,
+          repeats_yearly: true,
+          approval_lead_days: 35,
+          metadata: { yearsContext: draft.yearsContext, dateWording: occasionDateHelp(draft.occasionLabel) },
+        });
+        if (occasionError) throw new Error(occasionError.message || `Couldn't save ${draft.name.trim()}'s ${draft.occasionLabel}.`);
+
+        await createNotification({
+          user_id: user.id,
+          recipient_id: recipient.id,
+          occasion_id: occasion?.id ?? null,
+          title: `${draft.name.trim()}'s ${draft.occasionLabel} is coming up`,
+          body: "AutoGift emails the tailored survey at 10:00 AM EST, 35 days before the date, then asks you to approve the AI-built bundle before charging your saved card.",
+          channel: "email",
+          scheduled_for: scheduledAt10Est(draft.occasionDate),
+          status: "scheduled",
+          metadata: { automation: "autogift", source: "onboarding", yearsContext: draft.yearsContext },
+        });
       }
       window.localStorage.removeItem(DRAFT_KEY);
       onClose();
@@ -419,7 +433,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                   </div>
                 </div>
               ) : null}
-              <div className="flex gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
+              <div className="flex gap-2 rounded-lg bg-success/10 p-3 text-xs text-success">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
                 <span>Powered by Stripe. GIVIT only ever stores your card type and last 4 digits, never the full card number. You'll approve every charge before it happens.</span>
               </div>
@@ -477,8 +491,8 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 
                     {step === "done" && (
             <div className="flex flex-col items-center justify-center py-6 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
-                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+                <CheckCircle2 className="h-6 w-6 text-success" />
               </div>
               <p className="mt-3 font-semibold text-givit-ink">AutoGift is ready</p>
               <p className="text-sm text-muted-foreground">You can add more recipients, edit addresses, and update payment details anytime in AutoGift.</p>
