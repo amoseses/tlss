@@ -72,7 +72,8 @@ export async function listMySecretSantaGroups() {
 
 export async function getSecretSantaGroup(groupId: string) {
   const supabase = getDb();
-  const { data } = await supabase.from("secret_santa_groups").select("*").eq("id", groupId).maybeSingle();
+  const { data, error } = await supabase.from("secret_santa_groups").select("*").eq("id", groupId).maybeSingle();
+  if (error) console.error("getSecretSantaGroup failed:", error.message);
   return data as SecretSantaGroup | null;
 }
 
@@ -104,11 +105,12 @@ export async function getGroupParticipants(groupId: string) {
 // signed-in caller, not just admins.
 export async function findProfileByEmail(email: string) {
   const supabase = getDb();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("id, email, full_name")
     .ilike("email", email.trim())
     .maybeSingle();
+  if (error) console.error("findProfileByEmail failed:", error.message);
   return data as { id: string; email: string; full_name: string | null } | null;
 }
 

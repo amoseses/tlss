@@ -9,7 +9,6 @@
     "src/pages/FeedbackPage.tsx",
     "src/components/gifting/concierge-dashboard.tsx",
     "src/components/product/product-add-to-cart.tsx",
-    "src/components/product/product-review-form.tsx",
     "src/lib/data/manager.ts"
   ],
   "compilerOptions": {

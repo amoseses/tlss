@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { ArrowRight, Bell, CalendarPlus, Flower2, Pencil, Plus, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { ArrowRight, Bell, CalendarPlus, Flower2, Pencil, Plus, Search, Sparkles, Trash2, UserRound, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -86,6 +86,13 @@ function nextMonthDayDateString(month: number, day: number): string {
   const thisYear = new Date(today.getFullYear(), month - 1, day);
   const next = thisYear >= today ? thisYear : new Date(today.getFullYear() + 1, month - 1, day);
   return next.toISOString().slice(0, 10);
+}
+
+// Recipients with no upcoming occasion sort last, not first, when sorting by date.
+function nextOccasionTimestamp(recipient: Recipient): number {
+  const today = new Date();
+  const dates = recipient.occasions.filter((o) => o.date).map((o) => nextOccurrenceDate(o.date, today).getTime());
+  return dates.length > 0 ? Math.min(...dates) : Infinity;
 }
 
 function dateMonth(iso: string): number {
@@ -265,7 +272,7 @@ function AddRecipientModal({ onAdd, onClose, defaultLeadDays }: { onAdd: (recipi
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-border p-5">
           <h2 className="font-serif text-xl font-bold text-givit-ink">Add people</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -475,7 +482,7 @@ function EditRecipientModal({
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-border p-5">
           <h2 className="font-serif text-xl font-bold text-givit-ink">Edit {recipient.name}</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -662,7 +669,7 @@ function CancelRecipientModal({ name, onConfirm, onClose }: { name: string; onCo
       <div className="w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-lg font-bold text-givit-ink">Remove {name}?</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -765,7 +772,7 @@ function CalendarImportModal({
       <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-border p-5">
           <h2 className="font-serif text-xl font-bold text-givit-ink">Import from calendar</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -827,8 +834,21 @@ export default function PeoplePage() {
   const [showImport, setShowImport] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "next">("next");
   const editingRecipient = editingId ? recipients.find((r) => r.id === editingId) : null;
   const cancelingRecipient = cancelingId ? recipients.find((r) => r.id === cancelingId) : null;
+
+  const visibleRecipients = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? recipients.filter((r) => r.name.toLowerCase().includes(q) || (r.relationship ?? "").toLowerCase().includes(q))
+      : recipients;
+    const sorted = [...filtered];
+    if (sortBy === "name") sorted.sort((a, b) => a.name.localeCompare(b.name));
+    else sorted.sort((a, b) => nextOccasionTimestamp(a) - nextOccasionTimestamp(b));
+    return sorted;
+  }, [recipients, query, sortBy]);
 
   // Landing back here is how the Google OAuth redirect (api/auth/google-
   // calendar/callback) reports success/failure -- there's no other channel
@@ -948,29 +968,59 @@ export default function PeoplePage() {
           </Button>
         </div>
       ) : (
-        // A registry, not a wall of cards -- one bordered box per person
-        // repeated across a grid is the single most recognizable "AI
-        // dashboard" cliche there is. Rows separated by a hairline read as
-        // a live roster GIVIT is actually keeping, closer to the memory-
-        // layer framing above than a Pinterest-style card grid ever did.
-        <div className="divide-y divide-border/40 border-t border-border/40">
-          {recipients.map((r) => (
-            <PersonProfileRow
-              key={r.id}
-              recipient={r}
-              onDelete={() => setCancelingId(r.id)}
-              onEdit={() => setEditingId(r.id)}
-              onToggleAutomation={() => void toggleAutomation(r.id, r.automationEnabled === false)}
-            />
-          ))}
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            className="flex w-full items-center gap-2 py-4 text-sm font-medium text-muted-foreground transition hover:text-givit-ember"
-          >
-            <Plus className="h-4 w-4" /> Add another person
-          </button>
-        </div>
+        <>
+          {(recipients.length > 5 || query.trim() !== "") && (
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search people..."
+                  aria-label="Search people"
+                  className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+                />
+              </div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "name" | "next")}
+                aria-label="Sort people"
+                className="h-9 shrink-0 rounded-lg border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+              >
+                <option value="next">Next occasion</option>
+                <option value="name">Name A-Z</option>
+              </select>
+            </div>
+          )}
+
+          {/* A registry, not a wall of cards -- one bordered box per person
+              repeated across a grid is the single most recognizable "AI
+              dashboard" cliche there is. Rows separated by a hairline read as
+              a live roster GIVIT is actually keeping, closer to the memory-
+              layer framing above than a Pinterest-style card grid ever did. */}
+          <div className="divide-y divide-border/40 border-t border-border/40">
+            {visibleRecipients.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No one matches "{query}".</p>
+            ) : (
+              visibleRecipients.map((r) => (
+                <PersonProfileRow
+                  key={r.id}
+                  recipient={r}
+                  onDelete={() => setCancelingId(r.id)}
+                  onEdit={() => setEditingId(r.id)}
+                  onToggleAutomation={() => void toggleAutomation(r.id, r.automationEnabled === false)}
+                />
+              ))
+            )}
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="flex w-full items-center gap-2 py-4 text-sm font-medium text-muted-foreground transition hover:text-givit-ember"
+            >
+              <Plus className="h-4 w-4" /> Add another person
+            </button>
+          </div>
+        </>
       )}
 
       {recipients.length > 0 && (
