@@ -606,7 +606,23 @@ export default function BoardsPage() {
               <BoardCard key={b.id} board={b} onOpen={() => setSelectedBoardId(b.id)} />
             ))
           ) : (
-            <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No public boards match yet. Try a different search or create one to share with everyone.</div>
+            <div className="col-span-full flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              <p>{boardSearchQuery ? "No public boards match that search. Try a different search, or create one to share with everyone." : "No public boards yet. Create one to share with everyone."}</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {boardSearchQuery && (
+                  <Button variant="outline" onClick={() => setBoardSearchQuery("")} className="rounded-lg">Clear search</Button>
+                )}
+                {user ? (
+                  <Button onClick={() => setShowCreateBoard(true)} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+                    <Plus className="h-4 w-4" /> Create a board
+                  </Button>
+                ) : (
+                  <Button asChild className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
+                    <Link href="/login">Log in to create</Link>
+                  </Button>
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}

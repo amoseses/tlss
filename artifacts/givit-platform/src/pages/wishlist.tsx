@@ -83,7 +83,7 @@ export default function WishlistPage() {
             <div key={item.id} className="givit-panel overflow-hidden">
               <Link href={item.product_slug ? `/products/${item.product_slug}` : "/products"} className="block">
                 <div className="aspect-square bg-givit-sand">
-                  {item.product_image && <img src={item.product_image} alt="" className="h-full w-full object-cover" />}
+                  {item.product_image && <img src={item.product_image} alt={item.product_name} className="h-full w-full object-cover" />}
                 </div>
                 <div className="p-3">
                   <p className="line-clamp-2 text-sm font-semibold text-foreground">{item.product_name}</p>
