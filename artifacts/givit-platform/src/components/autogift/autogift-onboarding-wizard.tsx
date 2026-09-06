@@ -9,6 +9,8 @@ import { SPECIAL_DATES } from "@/lib/data/special-dates";
 import { getStripePromise, hasStripePublishableKey } from "@/lib/stripe/client";
 import { createClient } from "@/lib/supabase/client";
 import { addressValidationError, birthdayValidationError } from "@/lib/validation/autogift";
+import { normalizePhoneE164 } from "@/lib/utils";
+import { SMS_CONSENT_TEXT } from "@/components/personalization/notification-settings";
 
 type Step = "welcome" | "address" | "payment" | "recipient" | "done";
 
@@ -114,6 +116,15 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 
   // Address
   const [addresses, setAddresses] = useState(savedDraft.addresses?.length ? savedDraft.addresses : [INITIAL_ADDRESS]);
+  // Phone -- collected here (not just on the separate Account page) because
+  // this is the one flow that actually needs it: text reminders were only
+  // ever reachable by a user who happened to visit Account first and add a
+  // number with nothing prompting them to. Optional, not persisted to the
+  // draft (same reasoning as payment -- no reason to keep it in
+  // localStorage once entered).
+  const [phone, setPhone] = useState("");
+  const [smsOptIn, setSmsOptIn] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
   // Payment via real Stripe Elements — intentionally not persisted to the
   // draft, see DRAFT_KEY comment above. clientSecret is fetched fresh each
   // time the payment step is reached; confirmedMethod holds the real
@@ -191,6 +202,10 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
         setError(invalid);
         return;
       }
+      if (phone.trim() && !normalizePhoneE164(phone.trim())) {
+        setPhoneError("Enter a valid US phone number, e.g. (555) 123-4567.");
+        return;
+      }
       setStep("payment");
     } else if (step === "payment") {
       if (!paymentFormRef.current) {
@@ -257,9 +272,14 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
       // even when, say, the recipient never actually got saved -- explicit
       // checks here mean a real failure now actually surfaces to the user
       // instead of silently pretending onboarding succeeded.
+      const normalizedPhone = phone.trim() ? normalizePhoneE164(phone.trim()) : null;
       const { error: profileError } = await updateProfile(user.id, {
         concierge_onboarding_completed: true,
         gift_automation_enabled: true,
+        ...(normalizedPhone ? { phone: normalizedPhone } : {}),
+        ...(normalizedPhone && smsOptIn
+          ? { sms_opt_in: true, sms_opt_in_at: new Date().toISOString(), sms_consent_text: SMS_CONSENT_TEXT, sms_opted_out_at: null }
+          : {}),
       });
       if (profileError) throw new Error(profileError.message || "Couldn't save your profile.");
 
@@ -404,6 +424,29 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                 </div>
               ))}
               <button type="button" onClick={() => setAddresses((prev) => [...prev, { label: "", line1: "", city: "", state: "", zip: "", country: "US" }])} className="w-full rounded-md border border-dashed border-givit-ember/50 py-2 text-sm font-semibold text-givit-ember">+ Add another address</button>
+
+              <div className="space-y-2 rounded-lg border border-border/40 p-3">
+                <label className="text-xs font-semibold text-muted-foreground">Phone number (optional)</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => { setPhone(e.target.value); setPhoneError(""); }}
+                  placeholder="(555) 123-4567"
+                  className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+                />
+                {phoneError && <p className="text-xs font-medium text-destructive">{phoneError}</p>}
+                {phone.trim() && (
+                  <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={smsOptIn}
+                      onChange={(e) => setSmsOptIn(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-border accent-givit-ember"
+                    />
+                    <span>{SMS_CONSENT_TEXT}</span>
+                  </label>
+                )}
+              </div>
             </div>
           )}
 

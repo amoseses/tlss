@@ -11,11 +11,27 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
-export async function isSubscribedToPush(): Promise<boolean> {
+// A browser-level subscription existing doesn't mean it's actually usable --
+// if the earlier savePushSubscription() write failed (missing table, RLS,
+// network blip), the browser still holds a live subscription with nothing
+// on the server to send to. Cross-checking against the DB catches that
+// desync instead of showing "on" for a subscription that can never
+// actually deliver anything, and self-heals by dropping the orphaned
+// browser subscription so a future "turn on" tries fresh instead of
+// reusing the same dead one.
+export async function isSubscribedToPush(userId: string): Promise<boolean> {
   if (!isPushSupported()) return false;
   const registration = await navigator.serviceWorker.getRegistration();
   const subscription = await registration?.pushManager.getSubscription();
-  return Boolean(subscription);
+  if (!subscription) return false;
+
+  const saved = await getMyPushSubscriptions(userId);
+  const persisted = saved.some((row) => row.endpoint === subscription.endpoint);
+  if (!persisted) {
+    await subscription.unsubscribe().catch(() => {});
+    return false;
+  }
+  return true;
 }
 
 export async function subscribeToPush(userId: string): Promise<{ error?: string }> {
@@ -37,7 +53,14 @@ export async function subscribeToPush(userId: string): Promise<{ error?: string 
   });
 
   const { error } = await savePushSubscription(userId, subscription.toJSON());
-  if (error) return { error: error.message ?? "Could not save your subscription." };
+  if (error) {
+    // Don't leave a browser-level subscription with nothing on the server
+    // to send to -- that's exactly the desync isSubscribedToPush() guards
+    // against, so avoid creating it in the first place when we already
+    // know this attempt failed.
+    await subscription.unsubscribe().catch(() => {});
+    return { error: error.message ?? "Could not save your subscription." };
+  }
   return {};
 }
 

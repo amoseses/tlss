@@ -43,8 +43,8 @@ export function NotificationSettingsCard({
 
   useEffect(() => {
     setSupported(isPushSupported());
-    isSubscribedToPush().then(setSubscribed);
-  }, []);
+    isSubscribedToPush(userId).then(setSubscribed);
+  }, [userId]);
 
   async function toggle() {
     setBusy(true);
