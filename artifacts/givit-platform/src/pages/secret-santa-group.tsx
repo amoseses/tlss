@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams, Link } from "wouter";
-import { ArrowLeft, Gift, Trash2, UserPlus, Shuffle, Gem, Sparkles, ExternalLink } from "lucide-react";
+import { ArrowLeft, Gift, Trash2, UserPlus, Shuffle, Gem, Sparkles, ExternalLink, ListChecks, Users } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
+import { GiftBox3D } from "@/components/ui/gift-box-3d";
 import { useAuth } from "@/lib/auth/use-auth";
 import {
   getSecretSantaGroup,
@@ -164,40 +165,56 @@ export default function SecretSantaGroupPage() {
         <ArrowLeft className="h-3.5 w-3.5" /> All groups
       </Link>
 
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">{group.status === "shuffled" ? "Shuffled" : "Not shuffled yet"}</p>
-          <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">{group.name}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {group.occasion || "Gift exchange"}
-            {group.budget_cents ? ` · $${(group.budget_cents / 100).toFixed(0)} per person` : ""}
-            {group.event_date ? ` · ${new Date(group.event_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}
-          </p>
+      {/* Same dark instrument-panel hero as the group list page -- a group
+          detail page is where people actually spend time (wishlist, reveal),
+          so it earns the same premium treatment as the entry point. */}
+      <section className="relative mb-6 overflow-hidden rounded-3xl bg-black p-6 text-white shadow-xl md:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-givit-coral/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-12 -bottom-8 h-48 w-48 rounded-full bg-givit-ember/20 blur-3xl" />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className={`flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest ${group.status === "shuffled" ? "text-success" : "text-givit-coral"}`}>
+              {group.status === "shuffled" ? <Sparkles className="h-3 w-3" /> : <Gem className="h-3 w-3" />}
+              {group.status === "shuffled" ? "Shuffled" : "Not shuffled yet"}
+            </p>
+            <h1 className="mt-2 font-serif text-3xl font-bold leading-tight">{group.name}</h1>
+            <p className="mt-1 text-sm text-white/60">
+              {group.occasion || "Gift exchange"}
+              {group.budget_cents ? ` · $${(group.budget_cents / 100).toFixed(0)} per person` : ""}
+              {group.event_date ? ` · ${new Date(group.event_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}
+            </p>
+            {isOrganizer && (
+              <button type="button" onClick={handleDeleteGroup} className="mt-3 flex items-center gap-1 text-xs font-medium text-white/40 hover:text-destructive">
+                <Trash2 className="h-3.5 w-3.5" /> Delete group
+              </button>
+            )}
+          </div>
+          <div className="hidden shrink-0 sm:block">
+            <GiftBox3D size={72} glow={0.3} />
+          </div>
         </div>
-        {isOrganizer && (
-          <button type="button" onClick={handleDeleteGroup} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-destructive">
-            <Trash2 className="h-3.5 w-3.5" /> Delete group
-          </button>
-        )}
-      </div>
+      </section>
 
       {/* My wishlist -- what I'd like to receive, visible to whoever draws me */}
       <div className="givit-panel mb-6 p-5">
-        <h2 className="font-semibold text-givit-ink">What you'd like</h2>
+        <div className="flex items-center gap-2">
+          <ListChecks className="h-4 w-4 text-givit-ember" />
+          <h2 className="font-serif text-lg font-bold text-givit-ink">What you'd like</h2>
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">Shown to whoever draws your name -- interests + anything specific you're hoping for.</p>
         <form onSubmit={handleSaveWishlist} className="mt-3 space-y-2">
           <input
             value={interestsText}
             onChange={(e) => setInterestsText(e.target.value)}
             placeholder="Interests, comma-separated: coffee, hiking, reading..."
-            className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
           />
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             placeholder="Anything specific -- sizes, colors, things to avoid..."
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
           />
           <Button type="submit" size="sm" disabled={savingWishlist} className="rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
             {savingWishlist ? "Saving..." : "Save"}
@@ -210,11 +227,17 @@ export default function SecretSantaGroupPage() {
       {/* Organizer: manage participants + shuffle */}
       {isOrganizer && (
         <div className="givit-panel mb-6 p-5">
-          <h2 className="font-semibold text-givit-ink">Participants ({participants.length})</h2>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-givit-ember" />
+            <h2 className="font-serif text-lg font-bold text-givit-ink">Participants ({participants.length})</h2>
+          </div>
           <div className="mt-3 space-y-2">
             {participants.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 p-2.5 text-sm">
-                <div className="min-w-0">
+              <div key={p.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-2.5 text-sm">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full givit-gradient text-xs font-bold text-white">
+                  {p.name.trim().slice(0, 1).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-foreground">{p.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                 </div>
@@ -235,9 +258,9 @@ export default function SecretSantaGroupPage() {
                   type="email"
                   required
                   placeholder="their@email.com"
-                  className="h-10 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-sm"
+                  className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
                 />
-                <Button type="submit" size="sm" disabled={adding} variant="outline" className="rounded-md">
+                <Button type="submit" size="sm" disabled={adding} variant="outline" className="rounded-lg">
                   <UserPlus className="h-4 w-4" /> {adding ? "Adding..." : "Add"}
                 </Button>
               </form>
@@ -257,17 +280,22 @@ export default function SecretSantaGroupPage() {
 
       {/* My assignment -- only ever the caller's own, via the RPC */}
       {group.status === "shuffled" && myRow && (
-        <div className="givit-panel p-5">
-          <div className="flex items-center gap-2">
-            <Gift className="h-4 w-4 text-givit-ember" />
-            <h2 className="font-semibold text-givit-ink">You're giving to...</h2>
-          </div>
+        <div className="givit-section relative overflow-hidden">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-givit-coral/10 blur-3xl" />
           {assignment === undefined ? (
             <div className="flex justify-center py-6"><div className="h-5 w-5 animate-spin rounded-full border-4 border-givit-ember border-t-transparent" /></div>
           ) : assignment ? (
-            <>
-              <p className="mt-3 font-serif text-xl font-bold text-givit-ink">{assignment.name}</p>
-              {assignment.wishlist_notes && <p className="mt-1 text-sm italic text-muted-foreground">"{assignment.wishlist_notes}"</p>}
+            <div className="slide-up relative">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl givit-gradient givit-glow text-white">
+                  <Gift className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-givit-ember">You're giving to</p>
+                  <p className="font-serif text-2xl font-bold text-givit-ink">{assignment.name}</p>
+                </div>
+              </div>
+              {assignment.wishlist_notes && <p className="mt-3 text-sm italic leading-6 text-muted-foreground">"{assignment.wishlist_notes}"</p>}
               {assignment.interests.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {assignment.interests.map((i) => <span key={i} className="tag-pill capitalize">{i}</span>)}
@@ -293,7 +321,7 @@ export default function SecretSantaGroupPage() {
                   </div>
                 </div>
               )}
-            </>
+            </div>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">No assignment found for you in this group.</p>
           )}
@@ -301,8 +329,11 @@ export default function SecretSantaGroupPage() {
       )}
 
       {group.status === "open" && !isOrganizer && (
-        <div className="flex items-center gap-2 rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">
-          <Gem className="h-4 w-4 shrink-0 text-givit-ember" /> Waiting on the organizer to shuffle -- you'll see who you're giving to here once they do.
+        <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-givit-sand/40 p-5 text-sm text-muted-foreground">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-givit-ember/10">
+            <Gem className="h-4 w-4 text-givit-ember" />
+          </div>
+          Waiting on the organizer to shuffle -- you'll see who you're giving to here once they do.
         </div>
       )}
     </PageShell>

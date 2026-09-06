@@ -27,18 +27,25 @@ type Props = {
   onComplete: (cohortId: string) => void;
 };
 
-const SORTING_MS = 1800;
+// Three-beat ceremony between the last answer and the reveal, timed like a
+// real "sorting hat" moment instead of an instant lookup: the box spins
+// searching (SPIN_MS), settles and glows brighter like it's warming up to
+// open (GLOW_MS), then a bright flash stands in for it actually popping
+// open right as it scales away, cross-fading into the badge underneath.
+const SPIN_MS = 1100;
+const GLOW_MS = 700;
+const FLASH_MS = 500;
+type SortPhase = "spin" | "glow" | "flash" | null;
 
 export function GiftingQuizModal({ onClose, onComplete }: Props) {
   const [step, setStep] = useState(0); // 0..QUIZ_QUESTIONS.length-1 = questions, length = result
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [shared, setShared] = useState(false);
-  // Brief "sorting" beat between the last answer and the reveal -- the
-  // rotating gift box doubles as the ceremony a sorting-hat moment needs;
-  // without a pause here the result just appears, which reads as an
-  // instant lookup rather than something being figured out.
-  const [sorting, setSorting] = useState(false);
+  // Brief "sorting" beat between the last answer and the reveal -- see the
+  // 3-phase timeline above.
+  const [sortPhase, setSortPhase] = useState<SortPhase>(null);
+  const sorting = sortPhase !== null;
 
   const atResult = step >= QUIZ_QUESTIONS.length && !sorting;
   const resultCohortId = step >= QUIZ_QUESTIONS.length ? scoreQuiz(answers) : null;
@@ -46,9 +53,11 @@ export function GiftingQuizModal({ onClose, onComplete }: Props) {
 
   useEffect(() => {
     if (step < QUIZ_QUESTIONS.length) return;
-    setSorting(true);
-    const timer = window.setTimeout(() => setSorting(false), SORTING_MS);
-    return () => window.clearTimeout(timer);
+    setSortPhase("spin");
+    const toGlow = window.setTimeout(() => setSortPhase("glow"), SPIN_MS);
+    const toFlash = window.setTimeout(() => setSortPhase("flash"), SPIN_MS + GLOW_MS);
+    const toResult = window.setTimeout(() => setSortPhase(null), SPIN_MS + GLOW_MS + FLASH_MS);
+    return () => { window.clearTimeout(toGlow); window.clearTimeout(toFlash); window.clearTimeout(toResult); };
   }, [step]);
 
   function selectAnswer(cohortId: string) {
@@ -104,11 +113,23 @@ export function GiftingQuizModal({ onClose, onComplete }: Props) {
 
         {sorting ? (
           <div className="flex flex-col items-center py-10 text-center">
-            <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-[#232228] via-[#18171c] to-[#0a0a0d] shadow-lg shadow-givit-ember/20 ring-1 ring-white/10">
+            <div
+              className={`relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-[#232228] via-[#18171c] to-[#0a0a0d] shadow-lg ring-1 ring-white/10 transition-all duration-300 ${
+                sortPhase === "flash" ? "scale-125 opacity-0 shadow-givit-ember/50" : "scale-100 opacity-100 shadow-givit-ember/20"
+              }`}
+            >
               <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent" />
-              <GiftBox3D size={56} glow={0.7} rotation={{ x: 8, y: 220 }} />
+              {/* Spinning while it's "searching", settled at a fixed angle
+                  once it's "warming up to open" -- a continuous spin during
+                  the glow/flash beats would fight the box scaling away. */}
+              <GiftBox3D size={56} glow={sortPhase === "spin" ? 0.5 : 1} rotation={sortPhase === "spin" ? undefined : { x: 10, y: 25 }} />
+              {sortPhase === "flash" && (
+                <div className="animate-flash-burst pointer-events-none absolute inset-0 rounded-full bg-white" />
+              )}
             </div>
-            <p className="mt-5 animate-pulse-ring text-sm font-semibold text-givit-ink">Finding your gifting style...</p>
+            <p className="mt-5 text-sm font-semibold text-givit-ink">
+              {sortPhase === "spin" ? "Finding your gifting style..." : sortPhase === "glow" ? "Almost there..." : "Revealing..."}
+            </p>
           </div>
         ) : !atResult ? (
           <div key={step} className="slide-up">
@@ -135,7 +156,16 @@ export function GiftingQuizModal({ onClose, onComplete }: Props) {
             <Sparkles className="animate-particle pointer-events-none absolute left-6 top-2 h-4 w-4 text-givit-coral/40" style={{ animationDelay: "0.1s" }} />
             <Sparkles className="animate-particle pointer-events-none absolute right-8 top-6 h-3 w-3 text-givit-ember/40" style={{ animationDelay: "0.6s" }} />
             <Sparkles className="animate-particle pointer-events-none absolute bottom-2 left-12 h-3 w-3 text-givit-ember/30" style={{ animationDelay: "1.1s" }} />
-            <div className="mx-auto"><CohortMark cohort={resultCohort} glow /></div>
+            <div className="animate-badge-pop relative mx-auto w-fit">
+              <CohortMark cohort={resultCohort} glow />
+              {/* The guild's emoji as an actual sticker-badge overlapping the
+                  mark's corner -- the lucide icon alone reads as clean but a
+                  little clinical; this is the fun, shareable "you got..."
+                  flourish a sorting result deserves. */}
+              <span className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-card text-lg shadow-md ring-2 ring-background">
+                {resultCohort.emoji}
+              </span>
+            </div>
             <p className="mt-3 font-mono text-[10px] font-bold uppercase tracking-widest text-givit-ember">{resultCohort.guildName}</p>
             <h2 className="mt-1 font-serif text-2xl font-bold text-givit-ink">{resultCohort.name}</h2>
             <p className="mt-1 text-sm font-medium italic text-givit-ember">{resultCohort.tagline}</p>
