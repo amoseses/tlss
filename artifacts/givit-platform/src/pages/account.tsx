@@ -111,7 +111,15 @@ export default function AccountPage() {
       if (error) { setAccountNotice(error.message); return; }
       refresh();
     } catch (err: any) {
-      setAccountNotice(err.message || "Couldn't upload that photo. Please try again.");
+      // "Failed to fetch" is the raw browser message for a network-level
+      // failure on the direct-to-S3 PUT (not an HTTP error status, which
+      // uploadFileToS3 already turns into a clearer message) -- almost
+      // always the S3 bucket's CORS policy not allowing this origin,
+      // which reads as meaningless jargon if shown verbatim.
+      const message = /failed to fetch/i.test(err?.message || "")
+        ? "Couldn't reach the upload service. This usually means a server configuration issue (CORS) rather than your connection -- try again shortly, or let support know if it persists."
+        : err.message || "Couldn't upload that photo. Please try again.";
+      setAccountNotice(message);
     } finally {
       setUploadingAvatar(false);
     }

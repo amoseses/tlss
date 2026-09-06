@@ -92,6 +92,17 @@ const RESOLVED_PRODUCT_IMAGES: Record<string, string> = {
   "biolite-campstove-2": "https://www.bioliteenergy.com/cdn/shop/files/campstove-2csc0200-382115.png?v=1711827654&width=1024",
   "eno-doublenest-hammock": "https://eaglesnestoutfittersinc.com/cdn/shop/files/eagles-nest-outfitters-inc-hammock-coastal-cocktail-doublenest-hammock-1229152566.jpg?v=1774456176",
   "garmin-forerunner-165": "https://res.garmin.com/en/products/010-02863-21/v/cf-lg.jpg",
+  // These 6 were still on productPhotoFallback()'s generic per-category
+  // stock photo despite being real, specific products -- retailer/brand
+  // sites were bot-blocked (Patagonia, Dyson, Pilot's own site, JetPens),
+  // so these are verified real listing photos from Amazon/Shopify/imgix
+  // instead.
+  "pilot-custom-823": "https://m.media-amazon.com/images/I/71pz37wG-yL._AC_SL1500_.jpg",
+  "patagonia-black-hole-duffel": "https://m.media-amazon.com/images/I/51ZGPpx3alL._AC_SL1200_.jpg",
+  "backbone-one-controller": "https://m.media-amazon.com/images/I/41SjqssNRtL._AC_SL1000_.jpg",
+  "dyson-airwrap": "https://m.media-amazon.com/images/I/51+fOhuPukL._AC_SL1200_.jpg",
+  "brooklinen-super-plush-robe": "https://cdn.shopify.com/s/files/1/0951/7126/files/BKL_26-02_Bath_SP_Shorty_Robe_White_Flat_1_x_PDP_WOgrey_1200x.jpg?v=1775241253",
+  "goldbelly-pizza-kit": "https://goldbelly.imgix.net/uploads/merchant/food_maker_image/596/Lou-Malnatis-Maker-Image-1.jpg?ixlib=react-9.10.0&ar=1:1&w=1200&auto=format&fit=max",
   "manduka-pro-yoga-mat": "https://www.manduka.com/cdn/shop/products/111011460-Mats-Pro71-Elderberry-01.jpg?v=1768944270",
   "whoop-one-year": "https://images.ctfassets.net/rbzqg6pelgqa/3CCQWI1KRdKsfMkGIgNfls/1db1bc98dbbca4f4c288cca02729e964/Not_a_whoop_member_image__1_.png",
   "hyperice-venom-go": "https://hyperice.com/cdn/shop/files/VenomGo1.png?v=1782333962&width=1200",
