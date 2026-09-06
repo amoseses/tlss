@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "next-themes";
-import { Bell, CalendarDays, LayoutGrid, Sparkles, UserRound } from "lucide-react";
+import { Bell, CalendarDays, Gift, LayoutGrid, Sparkles, UserRound } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -13,6 +13,11 @@ const NAV_ITEMS = [
   { href: "/gift", label: "Your Gift AI", icon: Sparkles },
   { href: "/products", label: "Marketplace", icon: null },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  // Previously only reachable from a panel on /account -- easy to never
+  // notice unless you already knew it existed. It's a standalone group
+  // feature (not tied to any other nav item here), so it earns its own
+  // top-level spot rather than staying buried a click deeper.
+  { href: "/secret-santa", label: "Secret Santa", icon: Gift },
   { href: "/concierge", label: "AutoGift", icon: Bell, accent: true },
 ];
 

@@ -11,6 +11,7 @@
  */
 
 import { callGroqJSON } from "./groq-client";
+import { COHORT_TONE_HOOKS } from "@/lib/data/gifting-cohorts";
 
 export type AutogiftAISuggestion = { id: string; reason?: string; rating?: number };
 export type AutogiftAIResult = {
@@ -19,15 +20,18 @@ export type AutogiftAIResult = {
 };
 
 export async function personalizeAutogiftSuggestions(
-  params: { survey: unknown; recipientName?: string; occasion?: string; candidates: Array<{ id: string; name: string; category?: string; price?: number }> },
+  params: { survey: unknown; recipientName?: string; occasion?: string; candidates: Array<{ id: string; name: string; category?: string; price?: number }>; gifterCohortId?: string | null },
   timeoutMs = 9000,
 ): Promise<AutogiftAIResult | null> {
-  const { survey, recipientName, occasion, candidates } = params;
+  const { survey, recipientName, occasion, candidates, gifterCohortId } = params;
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
+
+  const toneHook = gifterCohortId ? COHORT_TONE_HOOKS[gifterCohortId] : undefined;
 
   const system =
     "You are GIVIT's gifting concierge AI. You NEVER invent products — you only select from the exact candidate list given to you, referencing them by \"id\". Write short, warm, specific copy. No generic filler like \"a thoughtful gift for any occasion\". " +
-    "Treat the recipient as a specific individual, not a category: two people with the same relationship label (e.g. two 'moms') can want completely different things. Weight their stated interests, personality traits, past gift reactions, notes, and gift style more heavily than generic assumptions tied to the relationship or occasion alone — if their notes mention something specific, that should visibly shape your picks and reasons, not just the relationship label. The survey's personality field (their tone/traits) and pastGiftFeedback field (what they've loved or been lukewarm on before) are deliberate, structured signal — always factor them in when present, not just free-text notes: favor picks consistent with their personality traits, lean into whatever pattern pastGiftFeedback.loved suggests, and actively avoid repeating whatever pastGiftFeedback.missed describes. Return strict JSON only, matching the requested shape exactly, with no markdown code fences.";
+    "Treat the recipient as a specific individual, not a category: two people with the same relationship label (e.g. two 'moms') can want completely different things. Weight their stated interests, personality traits, past gift reactions, notes, and gift style more heavily than generic assumptions tied to the relationship or occasion alone — if their notes mention something specific, that should visibly shape your picks and reasons, not just the relationship label. The survey's personality field (their tone/traits) and pastGiftFeedback field (what they've loved or been lukewarm on before) are deliberate, structured signal — always factor them in when present, not just free-text notes: favor picks consistent with their personality traits, lean into whatever pattern pastGiftFeedback.loved suggests, and actively avoid repeating whatever pastGiftFeedback.missed describes. Return strict JSON only, matching the requested shape exactly, with no markdown code fences." +
+    (toneHook ? ` ${toneHook} This tone hook governs the cardMessage's voice specifically — it should not change which candidates you select or their reasons, both of which still follow the recipient-first weighting above.` : "");
 
   const user = JSON.stringify({
     instructions:

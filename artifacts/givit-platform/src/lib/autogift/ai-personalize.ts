@@ -12,6 +12,7 @@ export async function personalizeBundlesWithAI(
   bundles: AutoGiftBundle[],
   recipientName: string,
   occasion: string,
+  gifterCohortId?: string | null,
 ): Promise<{ bundles: AutoGiftBundle[]; cardMessage: string | null }> {
   const candidateMap = new Map<string, GiftSuggestion>();
   for (const bundle of bundles) {
@@ -25,6 +26,7 @@ export async function personalizeBundlesWithAI(
     recipientName,
     occasion,
     candidates: candidates.map((c) => ({ id: c.id, name: c.name, category: c.category, price: c.price })),
+    gifterCohortId,
   });
   if (!ai) return { bundles, cardMessage: null };
 
