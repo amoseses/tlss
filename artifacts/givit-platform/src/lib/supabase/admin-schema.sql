@@ -540,14 +540,45 @@ CREATE POLICY "Users can manage their own board items" ON gift_board_items FOR A
   EXISTS (SELECT 1 FROM gift_boards WHERE id = board_id AND user_id = auth.uid())
 );
 
+-- SECRET SANTA GROUPS / PARTICIPANTS -- these two tables' policies each
+-- need to check the OTHER table (a group is visible to its participants;
+-- a participant row is visible to its group's organizer), and a plain
+-- inline EXISTS subquery on the other table re-triggers ITS row-level
+-- security too. That's a genuine cycle, not just a performance concern --
+-- selecting from secret_santa_groups evaluates its policy, which queries
+-- secret_santa_participants, which evaluates ITS policy, which queries
+-- secret_santa_groups again, forever, until Postgres gives up with
+-- "infinite recursion detected in policy" (42P17) instead of any rows.
+-- SECURITY DEFINER functions break the cycle: the query inside a
+-- SECURITY DEFINER function's body runs as the function owner, bypassing
+-- RLS on the table it touches, so calling one from a policy checks the
+-- other table WITHOUT re-entering that table's own policy.
+CREATE OR REPLACE FUNCTION is_secret_santa_participant(p_group_id UUID, p_user_id UUID)
+RETURNS BOOLEAN
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT EXISTS (SELECT 1 FROM secret_santa_participants sp WHERE sp.group_id = p_group_id AND sp.user_id = p_user_id);
+$$;
+
+CREATE OR REPLACE FUNCTION is_secret_santa_organizer(p_group_id UUID, p_user_id UUID)
+RETURNS BOOLEAN
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT EXISTS (SELECT 1 FROM secret_santa_groups g WHERE g.id = p_group_id AND g.organizer_id = p_user_id);
+$$;
+
 -- SECRET SANTA GROUPS -- visible to the organizer and to anyone who is a
 -- participant (so a giver can see the group's name/occasion/budget/status),
 -- but only the organizer can create/edit/delete it.
 DROP POLICY IF EXISTS "Members can view their group" ON secret_santa_groups;
 CREATE POLICY "Members can view their group" ON secret_santa_groups FOR SELECT USING (
-  organizer_id = auth.uid() OR EXISTS (
-    SELECT 1 FROM secret_santa_participants sp WHERE sp.group_id = secret_santa_groups.id AND sp.user_id = auth.uid()
-  )
+  organizer_id = auth.uid() OR is_secret_santa_participant(id, auth.uid())
 );
 DROP POLICY IF EXISTS "Organizer can create groups" ON secret_santa_groups;
 CREATE POLICY "Organizer can create groups" ON secret_santa_groups FOR INSERT WITH CHECK (organizer_id = auth.uid());
@@ -565,15 +596,15 @@ DROP POLICY IF EXISTS "See your own participant row" ON secret_santa_participant
 CREATE POLICY "See your own participant row" ON secret_santa_participants FOR SELECT USING (user_id = auth.uid());
 DROP POLICY IF EXISTS "Organizer can view participants in their group" ON secret_santa_participants;
 CREATE POLICY "Organizer can view participants in their group" ON secret_santa_participants FOR SELECT USING (
-  EXISTS (SELECT 1 FROM secret_santa_groups g WHERE g.id = group_id AND g.organizer_id = auth.uid())
+  is_secret_santa_organizer(group_id, auth.uid())
 );
 DROP POLICY IF EXISTS "Organizer can add participants" ON secret_santa_participants;
 CREATE POLICY "Organizer can add participants" ON secret_santa_participants FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM secret_santa_groups g WHERE g.id = group_id AND g.organizer_id = auth.uid())
+  is_secret_santa_organizer(group_id, auth.uid())
 );
 DROP POLICY IF EXISTS "Organizer can remove participants" ON secret_santa_participants;
 CREATE POLICY "Organizer can remove participants" ON secret_santa_participants FOR DELETE USING (
-  EXISTS (SELECT 1 FROM secret_santa_groups g WHERE g.id = group_id AND g.organizer_id = auth.uid())
+  is_secret_santa_organizer(group_id, auth.uid())
 );
 DROP POLICY IF EXISTS "Participants can update their own wishlist" ON secret_santa_participants;
 CREATE POLICY "Participants can update their own wishlist" ON secret_santa_participants FOR UPDATE USING (user_id = auth.uid());
