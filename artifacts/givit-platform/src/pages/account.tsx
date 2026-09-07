@@ -542,6 +542,8 @@ export default function AccountPage() {
               phone={profile?.phone}
               smsOptIn={profile?.sms_opt_in}
               onSmsOptInChange={refresh}
+              digestOptIn={profile?.email_digest_opt_in}
+              onDigestOptInChange={refresh}
             />
           </div>
         )}

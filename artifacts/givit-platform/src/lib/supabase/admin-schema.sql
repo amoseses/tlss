@@ -812,6 +812,17 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_consent_text TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sms_opted_out_at TIMESTAMPTZ;
 
 -- ============================================================
+-- WEEKLY DIGEST EMAIL
+-- Opt-out (default true), not opt-in -- this is a low-frequency,
+-- low-risk summary email (upcoming occasions, AutoGift status), not a
+-- marketing blast, and defaulting it off would mean nobody ever sees it.
+-- Every digest email includes a one-click unsubscribe link that flips
+-- this without requiring login (see dispatch-notifications.ts's
+-- unsubscribe-digest webhook branch).
+-- ============================================================
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email_digest_opt_in BOOLEAN NOT NULL DEFAULT true;
+
+-- ============================================================
 -- PROFILE PHOTO
 -- Uploaded via the existing S3 presigned-upload flow (api/upload/url.ts,
 -- lib/upload.ts) -- same one gift boards already use -- so no new

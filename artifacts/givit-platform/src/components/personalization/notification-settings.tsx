@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, BellRing, Loader2, MessageSquare } from "lucide-react";
+import { Bell, BellOff, BellRing, CalendarClock, Loader2, MessageSquare } from "lucide-react";
 import { isPushSupported, isSubscribedToPush, subscribeToPush, unsubscribeFromPush, sendTestPush } from "@/lib/push/subscribe";
 import { updateProfile } from "@/lib/supabase/db";
 
@@ -17,12 +17,16 @@ export function NotificationSettingsCard({
   phone,
   smsOptIn,
   onSmsOptInChange,
+  digestOptIn,
+  onDigestOptInChange,
 }: {
   userId: string;
   defaultLeadDays: number;
   phone?: string | null;
   smsOptIn?: boolean | null;
   onSmsOptInChange?: (optedIn: boolean) => void;
+  digestOptIn?: boolean | null;
+  onDigestOptInChange?: (optedIn: boolean) => void;
 }) {
   const [supported, setSupported] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
@@ -32,6 +36,8 @@ export function NotificationSettingsCard({
   const [savingLeadDays, setSavingLeadDays] = useState(false);
   const [smsBusy, setSmsBusy] = useState(false);
   const [smsMessage, setSmsMessage] = useState("");
+  const [digestBusy, setDigestBusy] = useState(false);
+  const [digestMessage, setDigestMessage] = useState("");
 
   async function saveLeadDays(days: number) {
     setLeadDays(days);
@@ -79,6 +85,16 @@ export function NotificationSettingsCard({
     if (error) { setSmsMessage("Couldn't save that. Try again."); return; }
     onSmsOptInChange?.(nextOptedIn);
     setSmsMessage(nextOptedIn ? "Text reminders are on." : "Text reminders turned off.");
+  }
+
+  async function toggleDigestOptIn(nextOptedIn: boolean) {
+    setDigestBusy(true);
+    setDigestMessage("");
+    const { error } = await updateProfile(userId, { email_digest_opt_in: nextOptedIn });
+    setDigestBusy(false);
+    if (error) { setDigestMessage("Couldn't save that. Try again."); return; }
+    onDigestOptInChange?.(nextOptedIn);
+    setDigestMessage(nextOptedIn ? "Weekly digest is on." : "Weekly digest turned off.");
   }
 
   return (
@@ -153,6 +169,24 @@ export function NotificationSettingsCard({
             {smsMessage && <p className="text-xs text-muted-foreground">{smsMessage}</p>}
           </>
         )}
+      </div>
+
+      <div className="mt-4 space-y-2 border-t border-border pt-4">
+        <div className="flex items-center gap-2">
+          <CalendarClock className="h-3.5 w-3.5 text-givit-ember" />
+          <label className="text-sm text-muted-foreground">Weekly digest</label>
+        </div>
+        <label className="flex items-start gap-2 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={digestOptIn !== false}
+            disabled={digestBusy}
+            onChange={(e) => void toggleDigestOptIn(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-border accent-givit-ember"
+          />
+          <span>A once-a-week email with what's coming up across everyone you've saved — on by default, separate from the per-occasion AutoGift reminders above.</span>
+        </label>
+        {digestMessage && <p className="text-xs text-muted-foreground">{digestMessage}</p>}
       </div>
     </div>
   );

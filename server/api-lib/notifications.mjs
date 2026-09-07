@@ -110,6 +110,35 @@ export async function markFollowupSent(id) {
   await mergeNotificationMetadata(id, { followup_sent_at: new Date().toISOString() });
 }
 
+// Weekly digest recipients -- opted-in users with an email on file.
+// Deliberately not filtered to "has at least one recipient saved" here;
+// the caller decides what to show someone with an empty People list
+// (a nudge to add their first person) versus someone with upcoming dates.
+export async function fetchDigestEligibleProfiles(limit = 2000) {
+  const params = new URLSearchParams({
+    select: "id,email,full_name",
+    email_digest_opt_in: "eq.true",
+    email: "not.is.null",
+    limit: String(limit),
+  });
+  return restFetch(`profiles?${params.toString()}`);
+}
+
+// One row per (recipient, occasion) pair across all digest-eligible users,
+// with the recipient's name embedded via PostgREST's foreign-table select
+// syntax -- avoids an N+1 fetch per user for something this cron already
+// has to do in bulk. Only 'active' occasions, matching what the app itself
+// treats as live (see gift_occasions.status).
+export async function fetchOccasionsForUsers(userIds) {
+  if (userIds.length === 0) return [];
+  const params = new URLSearchParams({
+    select: "user_id,occasion,occasion_date,recipient_id,gift_recipients(name)",
+    user_id: `in.(${userIds.join(",")})`,
+    status: "eq.active",
+  });
+  return restFetch(`gift_occasions?${params.toString()}`);
+}
+
 // Reminder emails that were sent but never opened, and haven't already
 // gotten a follow-up nudge — the actual "send it again if they ignored it"
 // signal the dispatch-followups cron acts on.
