@@ -193,6 +193,21 @@ const IMAGE_OVERRIDES: Record<string, string> = {
   "private-pottery-class": img("photo-1595351298020-038700609878"),
   "admin-sourced-pottery-wheel-session": img("photo-1595351298020-038700609878"),
   "cozymeal-cooking-class-credit": img("photo-1507048331197-7d4ac70811cf"),
+  // Sourced 2026-09-07 from a background catalog scan flagging these as
+  // named brand products still cycling a generic category stock photo.
+  // Brand-site scrapes were blocked or thin for most of these; Amazon
+  // product photos and (for digital subscriptions with no physical unit)
+  // official Wikimedia-hosted logos/screenshots filled the gap instead.
+  "smeg-milk-frother": "https://m.media-amazon.com/images/I/41uYWP7KrqL._AC_SL1000_.jpg",
+  "parachute-cloud-cotton-throw": "https://parachutehome.com/cdn/shop/files/cloud-linen-gauze-throw-bone_01_aa1d7894-0a89-49f0-9b63-4cf0b4aeee5f.jpg?v=1762839028",
+  "field-notes-subscription": "https://m.media-amazon.com/images/I/71yvSjoF6xL._AC_SL1200_.jpg",
+  "uni-ball-jetstream-4-and-1": "https://m.media-amazon.com/images/I/61aGbqccGoL._AC_SL1200_.jpg",
+  "dossier-discovery-set": "https://m.media-amazon.com/images/I/61x92rwUk6L._AC_SL1200_.jpg",
+  "lululemon-everywhere-belt-bag": "https://m.media-amazon.com/images/I/51XA9OhHWdL._AC_SL1200_.jpg",
+  "wacom-one": "https://m.media-amazon.com/images/I/51fjaPrJyAL._AC_SL1200_.jpg",
+  "xbox-game-pass-ultimate": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Xbox_Game_Pass_2020_logo_-_alternative_version_%28colored%29.svg/500px-Xbox_Game_Pass_2020_logo_-_alternative_version_%28colored%29.svg.png",
+  "nyt-games-subscription": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/The_New_York_Times_Games.svg/500px-The_New_York_Times_Games.svg.png",
+  "alltrails-plus": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/AllTrails_User_Interface.png/500px-AllTrails_User_Interface.png",
   "local-vineyard-wine-tasting-pass": img("photo-1510812431401-41d2bd2722f3"),
 };
 
