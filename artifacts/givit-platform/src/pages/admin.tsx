@@ -73,6 +73,8 @@ export default function AdminPage() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [etsySyncing, setEtsySyncing] = useState(false);
+  const [etsySyncMessage, setEtsySyncMessage] = useState("");
 
   useEffect(() => {
     // The auth profile is cached from login; re-fetch on mount so a role
@@ -140,6 +142,26 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error("Failed to load admin data:", err);
+    }
+  }
+
+  async function syncFromEtsy() {
+    setEtsySyncing(true);
+    setEtsySyncMessage("");
+    try {
+      const res = await authedFetch("/api/metadata?action=etsy_sync", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setEtsySyncMessage(data.error || "Etsy sync failed.");
+        return;
+      }
+      const errorNote = data.errors?.length ? ` (${data.errors.length} categor${data.errors.length === 1 ? "y" : "ies"} failed)` : "";
+      setEtsySyncMessage(`Synced ${data.synced} listing${data.synced === 1 ? "" : "s"} from Etsy.${errorNote}`);
+      loadData();
+    } catch (err: any) {
+      setEtsySyncMessage(err?.message || "Etsy sync failed.");
+    } finally {
+      setEtsySyncing(false);
     }
   }
 
@@ -328,10 +350,15 @@ export default function AdminPage() {
                 className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
               />
             </div>
+            <Button onClick={syncFromEtsy} disabled={etsySyncing} variant="outline" className="rounded-lg">
+              {etsySyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Sync from Etsy
+            </Button>
             <Button onClick={() => { setEditingProduct({ name: "", slug: "", price_cents: 0, description: "", is_published: false }); setShowEditModal(true); }} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover">
               <Plus className="h-4 w-4" /> Add Product
             </Button>
           </div>
+          {etsySyncMessage && <p className="text-xs text-muted-foreground">{etsySyncMessage}</p>}
 
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-sm">
