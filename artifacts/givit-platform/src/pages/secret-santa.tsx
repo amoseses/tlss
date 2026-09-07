@@ -60,7 +60,11 @@ export default function SecretSantaPage() {
       eventDate: eventDate || undefined,
     });
     setCreating(false);
-    if (err || !data) { setError("Couldn't create the group. Please try again."); return; }
+    if (err || !data) {
+      console.error("Failed to create Secret Santa group:", err);
+      setError("Couldn't create the group. Please try again.");
+      return;
+    }
     navigate(`/secret-santa/${data.id}`);
   }
 

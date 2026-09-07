@@ -543,13 +543,17 @@ CREATE POLICY "Users can manage their own board items" ON gift_board_items FOR A
 -- SECRET SANTA GROUPS -- visible to the organizer and to anyone who is a
 -- participant (so a giver can see the group's name/occasion/budget/status),
 -- but only the organizer can create/edit/delete it.
+DROP POLICY IF EXISTS "Members can view their group" ON secret_santa_groups;
 CREATE POLICY "Members can view their group" ON secret_santa_groups FOR SELECT USING (
   organizer_id = auth.uid() OR EXISTS (
     SELECT 1 FROM secret_santa_participants sp WHERE sp.group_id = secret_santa_groups.id AND sp.user_id = auth.uid()
   )
 );
+DROP POLICY IF EXISTS "Organizer can create groups" ON secret_santa_groups;
 CREATE POLICY "Organizer can create groups" ON secret_santa_groups FOR INSERT WITH CHECK (organizer_id = auth.uid());
+DROP POLICY IF EXISTS "Organizer can update their group" ON secret_santa_groups;
 CREATE POLICY "Organizer can update their group" ON secret_santa_groups FOR UPDATE USING (organizer_id = auth.uid());
+DROP POLICY IF EXISTS "Organizer can delete their group" ON secret_santa_groups;
 CREATE POLICY "Organizer can delete their group" ON secret_santa_groups FOR DELETE USING (organizer_id = auth.uid());
 
 -- SECRET SANTA PARTICIPANTS -- a participant sees their own row (so they
@@ -557,16 +561,21 @@ CREATE POLICY "Organizer can delete their group" ON secret_santa_groups FOR DELE
 -- in groups they organize (name/email/wishlist/interests -- they invited
 -- these people). Neither of those grants access to who's assigned to
 -- whom, because that isn't stored on this table at all.
+DROP POLICY IF EXISTS "See your own participant row" ON secret_santa_participants;
 CREATE POLICY "See your own participant row" ON secret_santa_participants FOR SELECT USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "Organizer can view participants in their group" ON secret_santa_participants;
 CREATE POLICY "Organizer can view participants in their group" ON secret_santa_participants FOR SELECT USING (
   EXISTS (SELECT 1 FROM secret_santa_groups g WHERE g.id = group_id AND g.organizer_id = auth.uid())
 );
+DROP POLICY IF EXISTS "Organizer can add participants" ON secret_santa_participants;
 CREATE POLICY "Organizer can add participants" ON secret_santa_participants FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM secret_santa_groups g WHERE g.id = group_id AND g.organizer_id = auth.uid())
 );
+DROP POLICY IF EXISTS "Organizer can remove participants" ON secret_santa_participants;
 CREATE POLICY "Organizer can remove participants" ON secret_santa_participants FOR DELETE USING (
   EXISTS (SELECT 1 FROM secret_santa_groups g WHERE g.id = group_id AND g.organizer_id = auth.uid())
 );
+DROP POLICY IF EXISTS "Participants can update their own wishlist" ON secret_santa_participants;
 CREATE POLICY "Participants can update their own wishlist" ON secret_santa_participants FOR UPDATE USING (user_id = auth.uid());
 
 -- SECRET SANTA ASSIGNMENTS -- deliberately zero policies below. RLS is
