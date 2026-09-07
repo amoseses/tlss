@@ -250,7 +250,9 @@ function extractBudget(query: string) {
   const patterns = [
     /\$(\d+)/g,
     /(\d+)\s*(?:dollars?|bucks?)/gi,
-    /(?:under|below|max|maximum|up to|budget(?:\s+of)?)\s*\$?(\d+)/gi,
+    // Allows a colon between the keyword and the number (e.g. the
+    // structured form composes this as "Budget: 50", not "Budget 50").
+    /(?:under|below|max|maximum|up to|budget(?:\s+of)?)[:\s]*\$?(\d+)/gi,
     /(\d+)\s*-\s*\$?(\d+)/g,
   ];
   const found: number[] = [];
@@ -260,7 +262,15 @@ function extractBudget(query: string) {
       if (!Number.isNaN(amount) && amount > 0 && amount < 10000) found.push(amount);
     }
   }
-  return found.length > 0 ? Math.max(...found) : null;
+  if (found.length > 0) return Math.max(...found);
+  // A message that's just a bare number ("50") is unambiguous as a budget
+  // reply -- e.g. answering "what's your budget?" with just the figure.
+  const trimmed = query.trim();
+  if (/^\d+$/.test(trimmed)) {
+    const amount = Number.parseInt(trimmed, 10);
+    if (amount > 0 && amount < 10000) return amount;
+  }
+  return null;
 }
 
 function extractAvoidTerms(query: string) {
