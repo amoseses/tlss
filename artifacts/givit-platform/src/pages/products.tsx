@@ -498,7 +498,13 @@ export default function ProductsPage() {
 
       <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
-          <div className="sticky top-40 space-y-6">
+          {/* A sticky element doesn't scroll internally -- once Departments
+              (13 categories) plus the full Filters form got taller than the
+              viewport minus the sticky offset, the bottom of it (Filters)
+              became genuinely unreachable, not just visually cramped, since
+              there was nothing to scroll to reveal it. max-h + overflow-y-auto
+              makes this box scroll on its own once it doesn't fit. */}
+          <div className="sticky top-40 max-h-[calc(100vh-11rem)] space-y-6 overflow-y-auto pb-4">
             <div className="space-y-1">
               <h2 className="mb-2 flex items-center gap-2 px-3 font-mono text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 <Compass className="h-3.5 w-3.5" /> Departments
