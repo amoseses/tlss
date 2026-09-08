@@ -116,6 +116,56 @@ type ShoppingForPerson = {
   budgetCents: number | null;
 };
 
+const SHUFFLE_ORDER_KEY = "givit-marketplace-shuffle-order";
+const SHUFFLE_PAGE_LOAD_KEY = "givit-marketplace-shuffle-page-load";
+
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// Marketplace's default (unfiltered) view shuffles so it doesn't read as
+// the exact same static list every visit -- but a shuffle that changes on
+// every re-render would also reorder the grid out from under a user who
+// just clicked a product and hit Back. `performance.timeOrigin` is stable
+// for the life of this page load and only changes on an actual reload/new
+// visit, so stamping it in sessionStorage lets us tell "still the same
+// page load" (reuse the saved order) apart from "fresh load" (reshuffle)
+// without a context provider or extra state.
+function getShuffledOrder(products: MarketplaceProduct[]): MarketplaceProduct[] {
+  if (typeof window === "undefined") return products;
+
+  const pageLoadId = String(performance.timeOrigin);
+  if (sessionStorage.getItem(SHUFFLE_PAGE_LOAD_KEY) !== pageLoadId) {
+    sessionStorage.setItem(SHUFFLE_PAGE_LOAD_KEY, pageLoadId);
+    sessionStorage.removeItem(SHUFFLE_ORDER_KEY);
+  }
+
+  const bySlug = new Map(products.map((p) => [p.slug, p]));
+  try {
+    const savedSlugs: string[] = JSON.parse(sessionStorage.getItem(SHUFFLE_ORDER_KEY) || "null") ?? [];
+    if (savedSlugs.length > 0) {
+      const restored = savedSlugs.map((slug) => bySlug.get(slug)).filter((p): p is MarketplaceProduct => Boolean(p));
+      const restoredSlugs = new Set(restored.map((p) => p.slug));
+      // Newly-added products (e.g. an admin import since this order was
+      // saved) wouldn't be in the saved order at all -- tack them on the
+      // end rather than dropping them from the grid.
+      const newlyAdded = products.filter((p) => !restoredSlugs.has(p.slug));
+      return [...restored, ...newlyAdded];
+    }
+  } catch {
+    sessionStorage.removeItem(SHUFFLE_ORDER_KEY);
+  }
+
+  const shuffled = shuffle(products);
+  sessionStorage.setItem(SHUFFLE_ORDER_KEY, JSON.stringify(shuffled.map((p) => p.slug)));
+  return shuffled;
+}
+
 // The occasion/price-range filters have always existed in the underlying
 // query logic (?occasion=, ?min=, ?max=) but had no actual control anywhere
 // on the page -- reachable only by hand-editing the URL. This is that
@@ -195,7 +245,7 @@ export default function ProductsPage() {
   const q = get("q") || undefined;
   const occasion = get("occasion") || undefined;
   const ageGroup = get("age") || undefined;
-  const sortVal = get("sort") || "ranked";
+  const sortVal = get("sort") || "shuffled";
   const minStr = get("min") || "";
   const maxStr = get("max") || "";
   const forId = get("for") || undefined;
@@ -278,11 +328,19 @@ export default function ProductsPage() {
     return true;
   });
 
-  const sorted = [...list];
-  if (sortVal === "price_asc") sorted.sort((a, b) => a.price_cents - b.price_cents);
-  else if (sortVal === "price_desc") sorted.sort((a, b) => b.price_cents - a.price_cents);
-  else if (sortVal === "popular") sorted.sort((a, b) => b.gift_match_score - a.gift_match_score);
-  else sorted.sort((a, b) => a.rank - b.rank);
+  // Shuffle only applies to the fully unfiltered browse view -- once a
+  // search, category, occasion, price range, or "for" context narrows the
+  // list, a random order stops being an exploration nicety and just makes
+  // results harder to compare, so it quietly falls back to ranked order.
+  const isMarketplaceShuffle = sortVal === "shuffled" && !q && !categorySlug && !occasion && !minCents && !maxCents && !forId;
+
+  const sorted = isMarketplaceShuffle ? getShuffledOrder(list) : [...list];
+  if (!isMarketplaceShuffle) {
+    if (sortVal === "price_asc") sorted.sort((a, b) => a.price_cents - b.price_cents);
+    else if (sortVal === "price_desc") sorted.sort((a, b) => b.price_cents - a.price_cents);
+    else if (sortVal === "popular") sorted.sort((a, b) => b.gift_match_score - a.gift_match_score);
+    else sorted.sort((a, b) => a.rank - b.rank);
+  }
 
   // "Shopping for" reorders toward what's actually known about that person
   // instead of just re-showing the same default rank list. Two people with
@@ -340,7 +398,11 @@ export default function ProductsPage() {
   // A spotlight of a handful of genuinely top-ranked picks up top, distinct
   // in size from the regular grid, so the page reads as curated rather than
   // an undifferentiated e-commerce feed. Only on the unfiltered default view.
-  const featuredPicks = !q && !categorySlug ? sorted.slice(0, 3) : [];
+  // Always drawn from actual rank order (not `sorted`) so a shuffled main
+  // grid doesn't turn this into 3 random items instead of the real picks.
+  const featuredPicks = !q && !categorySlug ? [...list].sort((a, b) => a.rank - b.rank).slice(0, 3) : [];
+  const featuredIds = new Set(featuredPicks.map((p) => p.id));
+  const gridProducts = featuredPicks.length > 0 ? sorted.filter((p) => !featuredIds.has(p.id)) : sorted;
 
   function cnPill(active: boolean) {
     return active
@@ -571,7 +633,7 @@ export default function ProductsPage() {
           <div ref={resultsRef} className="scroll-mt-32">
           <div className="mb-3 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-background/85 px-1 py-2 text-sm">
             <p>
-              <span className="font-semibold text-givit-ink">{sorted.length} ranked gift ideas</span>
+              <span className="font-semibold text-givit-ink">{sorted.length} {isMarketplaceShuffle ? "gift ideas" : "ranked gift ideas"}</span>
               {q ? <span className="text-muted-foreground"> for "{q}"</span> : null}
               {activeCategory ? <span className="text-muted-foreground"> in {activeCategory.name}</span> : null}
               {occasion ? <span className="text-muted-foreground"> · {occasion}</span> : null}
@@ -592,6 +654,7 @@ export default function ProductsPage() {
                   onChange={(e) => e.currentTarget.form?.requestSubmit()}
                   className="h-8 rounded-full border border-border/40 bg-card px-3 text-xs font-medium text-foreground outline-none"
                 >
+                  <option value="shuffled">Explore Marketplace</option>
                   <option value="ranked">GIVIT ranked</option>
                   <option value="popular">Gift match score</option>
                   <option value="price_asc">Price: Low to High</option>
@@ -631,10 +694,10 @@ export default function ProductsPage() {
               </div>
             ) : sorted.length > 0 ? (
               <ProductGrid
-                products={featuredPicks.length > 0 ? sorted.slice(featuredPicks.length) : sorted}
+                products={gridProducts}
                 ratings={ratings}
                 compact
-                rankContext={q ? { query: q } : activeCategory ? { categoryName: activeCategory.name } : undefined}
+                rankContext={!isMarketplaceShuffle ? (q ? { query: q } : activeCategory ? { categoryName: activeCategory.name } : undefined) : undefined}
                 shoppingFor={shoppingFor ? { name: shoppingFor.name, interests: shoppingFor.interests } : undefined}
               />
             ) : (
