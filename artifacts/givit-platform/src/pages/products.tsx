@@ -93,7 +93,7 @@ export default function ProductsPage() {
   const categorySlug = get("category") || undefined;
   const q = get("q") || undefined;
   const occasion = get("occasion") || undefined;
-  const sortVal = get("sort") || "ranked";
+  const sortVal = get("sort") || "shuffled";
   const minStr = get("min") || "";
   const maxStr = get("max") || "";
   const forId = get("for") || undefined;
@@ -172,11 +172,185 @@ export default function ProductsPage() {
     return true;
   });
 
-  const sorted = [...list];
-  if (sortVal === "price_asc") sorted.sort((a, b) => a.price_cents - b.price_cents);
-  else if (sortVal === "price_desc") sorted.sort((a, b) => b.price_cents - a.price_cents);
-  else if (sortVal === "popular") sorted.sort((a, b) => b.gift_match_score - a.gift_match_score);
-  else sorted.sort((a, b) => a.rank - b.rank);
+// ------------------------------------------------------------
+// ------------------------------------------------------------
+// Marketplace product ordering
+//
+// First Marketplace visit -> shuffle
+// Product -> Back -> same order
+// Browser Refresh -> new shuffle
+// ------------------------------------------------------------
+
+const shuffleStorageKey =
+  "givit-marketplace-shuffled-order";
+
+const shuffleDocumentKey =
+  "givit-marketplace-shuffle-document";
+
+function shuffleProducts(
+  products: MarketplaceProduct[]
+) {
+  const result = [...products];
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(
+      Math.random() * (i + 1)
+    );
+
+    [result[i], result[j]] =
+      [result[j], result[i]];
+  }
+
+  return result;
+}
+
+function getShuffledProducts(
+  products: MarketplaceProduct[]
+) {
+  if (typeof window === "undefined") {
+    return products;
+  }
+
+  const navigationEntry =
+    performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+
+  const isBrowserRefresh =
+    navigationEntry?.type === "reload";
+
+  const documentId =
+    String(performance.timeOrigin);
+
+  const handledDocumentId =
+    sessionStorage.getItem(
+      shuffleDocumentKey
+    );
+
+  // Clear the old shuffle only once after
+  // an actual browser refresh.
+  if (
+    isBrowserRefresh &&
+    handledDocumentId !== documentId
+  ) {
+    sessionStorage.removeItem(
+      shuffleStorageKey
+    );
+
+    sessionStorage.setItem(
+      shuffleDocumentKey,
+      documentId
+    );
+  }
+
+  const savedOrder =
+    sessionStorage.getItem(
+      shuffleStorageKey
+    );
+
+  // Restore previous order
+  if (savedOrder) {
+    try {
+      const savedSlugs: string[] =
+        JSON.parse(savedOrder);
+
+      const productMap = new Map(
+        products.map((product) => [
+          product.slug,
+          product,
+        ])
+      );
+
+      const restored =
+        savedSlugs
+          .map((slug) =>
+            productMap.get(slug)
+          )
+          .filter(Boolean) as MarketplaceProduct[];
+
+      const existingSlugs = new Set(
+        restored.map(
+          (product) => product.slug
+        )
+      );
+
+      // Add newly loaded products at the end.
+      const newProducts =
+        products.filter(
+          (product) =>
+            !existingSlugs.has(
+              product.slug
+            )
+        );
+
+      return [
+        ...restored,
+        ...newProducts,
+      ];
+    } catch {
+      sessionStorage.removeItem(
+        shuffleStorageKey
+      );
+    }
+  }
+
+  // No saved order -> create new shuffle.
+  const shuffled =
+    shuffleProducts(products);
+
+  sessionStorage.setItem(
+    shuffleStorageKey,
+    JSON.stringify(
+      shuffled.map(
+        (product) => product.slug
+      )
+    )
+  );
+
+  return shuffled;
+}
+
+const isMarketplaceShuffle =
+  sortVal === "shuffled" &&
+  !q &&
+  !categorySlug &&
+  !occasion &&
+  !minCents &&
+  !maxCents &&
+  !forId;
+
+const sorted =
+  isMarketplaceShuffle
+    ? getShuffledProducts(list)
+    : [...list];
+
+if (!isMarketplaceShuffle) {
+  if (sortVal === "price_asc") {
+    sorted.sort(
+      (a, b) =>
+        a.price_cents -
+        b.price_cents
+    );
+  } else if (sortVal === "price_desc") {
+    sorted.sort(
+      (a, b) =>
+        b.price_cents -
+        a.price_cents
+    );
+  } else if (sortVal === "popular") {
+    sorted.sort(
+      (a, b) =>
+        b.gift_match_score -
+        a.gift_match_score
+    );
+  } else {
+    sorted.sort(
+      (a, b) =>
+        a.rank -
+        b.rank
+    );
+  }
+}
 
   // "Shopping for" reorders toward what's actually known about that person
   // instead of just re-showing the same default rank list. Two people with
@@ -234,7 +408,21 @@ export default function ProductsPage() {
   // A spotlight of a handful of genuinely top-ranked picks up top, distinct
   // in size from the regular grid, so the page reads as curated rather than
   // an undifferentiated e-commerce feed. Only on the unfiltered default view.
-  const featuredPicks = !q && !categorySlug ? sorted.slice(0, 3) : [];
+  // Featured picks always come from the original GIVIT ranking.
+// The regular Marketplace feed can be shuffled independently.
+  const rankedForFeatured = [...list].sort((a, b) => a.rank - b.rank);
+
+  const featuredPicks =
+    !q && !categorySlug
+      ? rankedForFeatured.slice(0, 3)
+      : [];
+
+  const featuredIds = new Set(featuredPicks.map((product) => product.id));
+
+const gridProducts =
+  featuredPicks.length > 0
+    ? sorted.filter((product) => !featuredIds.has(product.id))
+    : sorted;
 
   function cnPill(active: boolean) {
     return active
@@ -433,7 +621,9 @@ export default function ProductsPage() {
           <div ref={resultsRef} className="scroll-mt-32">
           <div className="mb-3 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-background/85 px-1 py-2 text-sm">
             <p>
-              <span className="font-semibold text-givit-ink">{sorted.length} ranked gift ideas</span>
+                <span className="font-semibold text-givit-ink">
+                   {sorted.length} {isMarketplaceShuffle ? "gift ideas" : "ranked gift ideas"}
+                 </span>
               {q ? <span className="text-muted-foreground"> for "{q}"</span> : null}
               {activeCategory ? <span className="text-muted-foreground"> in {activeCategory.name}</span> : null}
               {shoppingFor ? <span className="text-muted-foreground"> · sorted for {shoppingFor.name}'s interests</span> : null}
@@ -449,6 +639,7 @@ export default function ProductsPage() {
                   onChange={(e) => e.currentTarget.form?.requestSubmit()}
                   className="h-8 rounded-full border border-border/40 bg-card px-3 text-xs font-medium text-foreground outline-none"
                 >
+                  <option value="shuffled">Explore Marketplace</option>
                   <option value="ranked">GIVIT ranked</option>
                   <option value="popular">Gift match score</option>
                   <option value="price_asc">Price: Low to High</option>
@@ -488,13 +679,25 @@ export default function ProductsPage() {
               </div>
             ) : sorted.length > 0 ? (
               <ProductGrid
-                products={featuredPicks.length > 0 ? sorted.slice(featuredPicks.length) : sorted}
-                ratings={ratings}
-                compact
-                rankContext={q ? { query: q } : activeCategory ? { categoryName: activeCategory.name } : undefined}
-                shoppingFor={shoppingFor ? { name: shoppingFor.name, interests: shoppingFor.interests } : undefined}
-              />
-            ) : (
+                  products={gridProducts}
+                  ratings={ratings}
+                  compact
+                  rankContext={
+                    !isMarketplaceShuffle
+                      ? q
+                        ? { query: q }
+                        : activeCategory
+                          ? { categoryName: activeCategory.name }
+                          : undefined
+                      : undefined
+                  }
+                  shoppingFor={
+                    shoppingFor
+                      ? { name: shoppingFor.name, interests: shoppingFor.interests }
+                      : undefined
+                  }
+                />
+             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No products match your filters. <Link href="/products" className="givit-link">Clear filters</Link>
               </p>
