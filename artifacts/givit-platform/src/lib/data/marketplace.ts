@@ -531,12 +531,7 @@ export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = ALL_SEED_PRODUCTS.map(
     id,
     slug: seed.slug,
     name: seed.name,
-    // Plain description only -- ai_summary / why_we_picked_it / interests /
-    // occasions / recipients are already rendered as their own structured
-    // sections on the product page (Editorial pick box + tag pills), so
-    // baking the same labeled text into description duplicated it verbatim
-    // in the Details tab.
-    description: seed.summary,
+    description: `${seed.summary}\n\nWhy GIVIT picked it: ${seed.why}\n\nBest for: ${(seed.recipients ?? []).join(", ")}. Interests: ${seed.interests.join(", ")}. Occasions: ${(seed.occasions ?? []).join(", ")}.`,
     sku: `GIVIT-${String(seed.rank).padStart(4, "0")}`,
     price_cents: seed.price,
     weight_oz: category?.slug === "experiences" || seed.affiliateUrl.includes("subscription") ? 0 : Math.max(4, Math.round(seed.price / 650)),
