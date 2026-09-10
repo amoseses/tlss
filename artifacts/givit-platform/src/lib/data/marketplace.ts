@@ -545,7 +545,9 @@ export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = ALL_SEED_PRODUCTS.map(
     affiliate_url: seed.affiliateUrl,
     retailer: seed.retailer,
     brand: seed.brand,
-    price_range: seed.priceRange,
+    // Real exact price everywhere, not a bucketed range label -- matches
+    // the same change made for admin-imported products in data-layer.ts.
+    price_range: null,
     rank: seed.rank!,
     category_rank: ALL_SEED_PRODUCTS.filter((candidate) => candidate.category === seed.category && (candidate.rank ?? 0) <= seed.rank!).length,
     gift_match_score: seed.score!,
