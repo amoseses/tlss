@@ -8,7 +8,7 @@
  * that mismatch entirely.
  */
 import { createClient } from "@/lib/supabase/client";
-import { getAllMarketplaceProducts, getMarketplaceProductBySlug, MARKETPLACE_CATEGORIES, type MarketplaceProduct } from "@/lib/data/marketplace";
+import { getAllMarketplaceProducts, getMarketplaceProductBySlug, MARKETPLACE_CATEGORIES, priceRange, type MarketplaceProduct } from "@/lib/data/marketplace";
 
 const categoryBySlug = new Map(MARKETPLACE_CATEGORIES.map((c) => [c.slug, c]));
 
@@ -54,7 +54,7 @@ function dbProductToMarketplaceProduct(p: any, fallbackRank: number): Marketplac
     video_url: p.video_url ?? null,
     retailer: p.retailer ?? p.brand ?? "",
     brand: p.brand ?? "",
-    price_range: p.price_cents < 3000 ? "Under $30" : p.price_cents < 10000 ? "$30-$100" : "$100+",
+    price_range: priceRange(p.price_cents),
     rank,
     category_rank: categoryRank,
     gift_match_score: p.gift_match_score ?? 82,
