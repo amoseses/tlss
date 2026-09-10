@@ -54,7 +54,10 @@ function dbProductToMarketplaceProduct(p: any, fallbackRank: number): Marketplac
     video_url: p.video_url ?? null,
     retailer: p.retailer ?? p.brand ?? "",
     brand: p.brand ?? "",
-    price_range: priceRange(p.price_cents),
+    // Real exact price, not a bucketed range: leaving price_range unset makes
+    // the card/detail pages fall back to formatMoney(price_cents) (e.g.
+    // "$155.00") instead of a vague "$100-$175" style label.
+    price_range: null,
     rank,
     category_rank: categoryRank,
     gift_match_score: p.gift_match_score ?? 82,
