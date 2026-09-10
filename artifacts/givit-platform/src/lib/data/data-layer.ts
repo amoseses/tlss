@@ -8,7 +8,7 @@
  * that mismatch entirely.
  */
 import { createClient } from "@/lib/supabase/client";
-import { getAllMarketplaceProducts, getMarketplaceProductBySlug, MARKETPLACE_CATEGORIES, priceRange, type MarketplaceProduct } from "@/lib/data/marketplace";
+import { getAllMarketplaceProducts, getMarketplaceProductBySlug, MARKETPLACE_CATEGORIES, type MarketplaceProduct } from "@/lib/data/marketplace";
 
 const categoryBySlug = new Map(MARKETPLACE_CATEGORIES.map((c) => [c.slug, c]));
 
