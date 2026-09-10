@@ -7,7 +7,7 @@ export type MarketplaceProduct = Product & {
   affiliate_url: string;
   retailer: string;
   brand: string;
-  price_range: string;
+  price_range: string | null;
   // Only ever set from a real source (retailer page text via the admin
   // import AI extraction) -- never a guess, so this is undefined for the
   // seed catalog until each product's real page has actually been checked.
