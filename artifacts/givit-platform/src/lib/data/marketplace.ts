@@ -349,7 +349,7 @@ const GENERATED_IDEAS = Object.entries({
 const OCCASION_ROTATION = ["birthday", "holiday", "anniversary", "graduation", "thank you", "housewarming", "mother's day", "father's day", "retirement", "new job"];
 const RECIPIENT_ROTATION = ["partner", "parent", "friend", "sibling", "coworker", "student", "host", "traveler", "creative", "hard-to-shop-for person"];
 
-function priceRange(price: number) {
+export function priceRange(price: number) {
   if (price < 3000) return "Under $30";
   if (price < 6000) return "$30-$60";
   if (price < 10000) return "$60-$100";
