@@ -156,7 +156,7 @@ export function GiftSurveyModal({
 
     const requestToken = ++aiRequestToken.current;
     setAiPersonalizing(true);
-    personalizeBundlesWithAI(response, normalizedBundles, recipientName, occasion)
+    personalizeBundlesWithAI(response, normalizedBundles, recipientName, occasion, profile?.gifting_cohort)
       .then(({ bundles: enhanced, cardMessage }) => {
         if (aiRequestToken.current !== requestToken) return; // a newer generation superseded this one
         setBundles(enhanced);

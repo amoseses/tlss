@@ -10,6 +10,7 @@ type Profile = {
   default_reminder_lead_days?: number | null;
   sms_opt_in?: boolean | null;
   sms_opted_out_at?: string | null;
+  email_digest_opt_in?: boolean | null;
   avatar_url?: string | null;
   gifting_cohort?: string | null;
   concierge_onboarding_completed?: boolean | null;
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser({ id: authUser.id, email: authUser.email });
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, email, role, phone, default_reminder_lead_days, sms_opt_in, sms_opted_out_at, avatar_url, gifting_cohort, concierge_onboarding_completed")
+        .select("full_name, email, role, phone, default_reminder_lead_days, sms_opt_in, sms_opted_out_at, email_digest_opt_in, avatar_url, gifting_cohort, concierge_onboarding_completed")
         .eq("id", authUser.id)
         .maybeSingle();
 

@@ -7,7 +7,7 @@ export type MarketplaceProduct = Product & {
   affiliate_url: string;
   retailer: string;
   brand: string;
-  price_range: string;
+  price_range: string | null;
   // Only ever set from a real source (retailer page text via the admin
   // import AI extraction) -- never a guess, so this is undefined for the
   // seed catalog until each product's real page has actually been checked.
@@ -92,6 +92,17 @@ const RESOLVED_PRODUCT_IMAGES: Record<string, string> = {
   "biolite-campstove-2": "https://www.bioliteenergy.com/cdn/shop/files/campstove-2csc0200-382115.png?v=1711827654&width=1024",
   "eno-doublenest-hammock": "https://eaglesnestoutfittersinc.com/cdn/shop/files/eagles-nest-outfitters-inc-hammock-coastal-cocktail-doublenest-hammock-1229152566.jpg?v=1774456176",
   "garmin-forerunner-165": "https://res.garmin.com/en/products/010-02863-21/v/cf-lg.jpg",
+  // These 6 were still on productPhotoFallback()'s generic per-category
+  // stock photo despite being real, specific products -- retailer/brand
+  // sites were bot-blocked (Patagonia, Dyson, Pilot's own site, JetPens),
+  // so these are verified real listing photos from Amazon/Shopify/imgix
+  // instead.
+  "pilot-custom-823": "https://m.media-amazon.com/images/I/71pz37wG-yL._AC_SL1500_.jpg",
+  "patagonia-black-hole-duffel": "https://m.media-amazon.com/images/I/51ZGPpx3alL._AC_SL1200_.jpg",
+  "backbone-one-controller": "https://m.media-amazon.com/images/I/41SjqssNRtL._AC_SL1000_.jpg",
+  "dyson-airwrap": "https://m.media-amazon.com/images/I/51+fOhuPukL._AC_SL1200_.jpg",
+  "brooklinen-super-plush-robe": "https://cdn.shopify.com/s/files/1/0951/7126/files/BKL_26-02_Bath_SP_Shorty_Robe_White_Flat_1_x_PDP_WOgrey_1200x.jpg?v=1775241253",
+  "goldbelly-pizza-kit": "https://goldbelly.imgix.net/uploads/merchant/food_maker_image/596/Lou-Malnatis-Maker-Image-1.jpg?ixlib=react-9.10.0&ar=1:1&w=1200&auto=format&fit=max",
   "manduka-pro-yoga-mat": "https://www.manduka.com/cdn/shop/products/111011460-Mats-Pro71-Elderberry-01.jpg?v=1768944270",
   "whoop-one-year": "https://images.ctfassets.net/rbzqg6pelgqa/3CCQWI1KRdKsfMkGIgNfls/1db1bc98dbbca4f4c288cca02729e964/Not_a_whoop_member_image__1_.png",
   "hyperice-venom-go": "https://hyperice.com/cdn/shop/files/VenomGo1.png?v=1782333962&width=1200",
@@ -158,7 +169,46 @@ const IMAGE_POOLS: Record<string, string[]> = {
   pets: ["photo-1583337130417-3346a1be7dee", "photo-1514888286974-6c03e2ca1dba", "photo-1548199973-03cce0bbc87b", "photo-1543852786-1cf6624b9987", "photo-1558944351-c02fe5cd1e93"],
   art: ["photo-1513364776144-60967b0f800f", "photo-1460661419201-fd4cecdf8a8b", "photo-1452860606245-08befc0ff44b", "photo-1516321497487-e288fb19713f", "photo-1586717791821-3f44a563fa4c"],
   food: ["photo-1549007994-cb92caebd54b", "photo-1565299624946-b28f40a0ae38", "photo-1481391319762-47dff72954d9", "photo-1493770348161-369560ae357d", "photo-1504674900247-0877df9cc836"],
-  experiences: ["photo-1501281668745-f7f57925c3b4", "photo-1492684223066-81342ee5ff30", "photo-1527529482837-4698179dc6ce", "photo-1500530855697-b586d89ba3ee", "photo-1511795409834-ef04bbd61622"],
+  // Was 5 generic photos shared (via index modulo) across ~37 named
+  // experience products -- e.g. "Cooking Class Credit" and "Escape Room
+  // Night" could land on the same frame, or one with nothing recognizable
+  // in it. Expanded to a wider, thematically distinct set (craft/workshop,
+  // cooking, wine, spa, live music, outdoor, museum/culture, game night,
+  // dance, cinema) so the same modulo cycling spreads across genuinely
+  // different-looking experience types instead of repeating a handful.
+  experiences: [
+    "photo-1501281668745-f7f57925c3b4", "photo-1595351298020-038700609878", "photo-1507048331197-7d4ac70811cf",
+    "photo-1510812431401-41d2bd2722f3", "photo-1544161515-4ab6ce6db874", "photo-1459749411175-04bf5292ceea",
+    "photo-1551632811-561732d1e306", "photo-1492684223066-81342ee5ff30", "photo-1527529482837-4698179dc6ce",
+    "photo-1500530855697-b586d89ba3ee", "photo-1511795409834-ef04bbd61622",
+  ],
+};
+
+// Specific real/well-matched photos for named experience or brand-name
+// products where the index-cycled category pool above would otherwise
+// land on something generic or unrelated -- keyed by the product's slug
+// (or, for expandExtraGiftIdeas's brand-prefixed products, its generated
+// `${brand}-${productName}` slug). Checked before falling back to the pool.
+const IMAGE_OVERRIDES: Record<string, string> = {
+  "private-pottery-class": img("photo-1595351298020-038700609878"),
+  "admin-sourced-pottery-wheel-session": img("photo-1595351298020-038700609878"),
+  "cozymeal-cooking-class-credit": img("photo-1507048331197-7d4ac70811cf"),
+  // Sourced 2026-09-07 from a background catalog scan flagging these as
+  // named brand products still cycling a generic category stock photo.
+  // Brand-site scrapes were blocked or thin for most of these; Amazon
+  // product photos and (for digital subscriptions with no physical unit)
+  // official Wikimedia-hosted logos/screenshots filled the gap instead.
+  "smeg-milk-frother": "https://m.media-amazon.com/images/I/41uYWP7KrqL._AC_SL1000_.jpg",
+  "parachute-cloud-cotton-throw": "https://parachutehome.com/cdn/shop/files/cloud-linen-gauze-throw-bone_01_aa1d7894-0a89-49f0-9b63-4cf0b4aeee5f.jpg?v=1762839028",
+  "field-notes-subscription": "https://m.media-amazon.com/images/I/71yvSjoF6xL._AC_SL1200_.jpg",
+  "uni-ball-jetstream-4-and-1": "https://m.media-amazon.com/images/I/61aGbqccGoL._AC_SL1200_.jpg",
+  "dossier-discovery-set": "https://m.media-amazon.com/images/I/61x92rwUk6L._AC_SL1200_.jpg",
+  "lululemon-everywhere-belt-bag": "https://m.media-amazon.com/images/I/51XA9OhHWdL._AC_SL1200_.jpg",
+  "wacom-one": "https://m.media-amazon.com/images/I/51fjaPrJyAL._AC_SL1200_.jpg",
+  "xbox-game-pass-ultimate": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Xbox_Game_Pass_2020_logo_-_alternative_version_%28colored%29.svg/500px-Xbox_Game_Pass_2020_logo_-_alternative_version_%28colored%29.svg.png",
+  "nyt-games-subscription": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/The_New_York_Times_Games.svg/500px-The_New_York_Times_Games.svg.png",
+  "alltrails-plus": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/AllTrails_User_Interface.png/500px-AllTrails_User_Interface.png",
+  "local-vineyard-wine-tasting-pass": img("photo-1510812431401-41d2bd2722f3"),
 };
 
 const CORE_PRODUCTS: SeedProduct[] = [
@@ -168,7 +218,7 @@ const CORE_PRODUCTS: SeedProduct[] = [
   { slug: "apple-airtags-4-pack", name: "Apple AirTag 4 Pack", brand: "Apple", category: "tech", price: 9900, priceRange: "$75-$110", retailer: "Apple", affiliateUrl: "https://www.apple.com/airtag/", image: "https://www.apple.com/v/airtag/g/images/meta/og__ck3n0k1jl6j6.png?202603251025", score: 88, interests: ["travel", "organization", "tech"], occasions: ["stocking stuffer", "graduation", "travel"], recipients: ["traveler", "student", "parent"], summary: "Item trackers for keys, bags, wallets, and luggage.", why: "Small, useful immediately, and easy to split across daily carry items.", badge: "Everyday save" },
   { slug: "lego-botanicals-orchid", name: "LEGO Botanicals Orchid", brand: "LEGO", category: "home", price: 4999, priceRange: "$40-$60", retailer: "LEGO", affiliateUrl: "https://www.lego.com/en-us/product/orchid-10311", image: productPhotoFallback("lego-botanicals-orchid", "home"), score: 86, interests: ["plants", "design", "crafts"], occasions: ["housewarming", "mother's day", "birthday"], recipients: ["plant lover", "creative", "coworker"], summary: "A relaxing build that becomes decor and never needs watering.", why: "Activity plus keepsake beats a generic bouquet for many recipients.", badge: "Keepsake pick" },
   { slug: "ember-temperature-control-mug", name: "Ember Temperature Control Smart Mug 2", brand: "Ember", category: "home", price: 12995, priceRange: "$100-$150", retailer: "Ember", affiliateUrl: "https://ember.com/products/ember-mug-2", image: "https://ember.com/cdn/shop/files/ember_CM1910_00-black.jpg?v=1762439501", score: 84, interests: ["coffee", "desk setup", "work"], occasions: ["father's day", "birthday", "christmas"], recipients: ["coffee lover", "remote worker", "teacher"], summary: "A desk mug that keeps coffee or tea warm through long sessions.", why: "Indulgent, but solves a real daily annoyance.", badge: "Daily delight" },
-  { slug: "theragun-mini", name: "Therabody Theragun Mini", brand: "Therabody", category: "fitness", price: 19900, priceRange: "$150-$225", retailer: "Therabody", affiliateUrl: "https://www.therabody.com/us/en-us/theragun-mini.html", image: productPhotoFallback("theragun-mini", "fitness"), score: 82, interests: ["fitness", "wellness", "running"], occasions: ["birthday", "father's day", "holiday"], recipients: ["athlete", "runner", "busy parent"], summary: "Compact massage device for soreness and recovery.", why: "Portable and less intimidating than full-size recovery gear.", badge: "Recovery pick" },
+  { slug: "theragun-mini", name: "Therabody Theragun Mini", brand: "Therabody", category: "fitness", price: 19900, priceRange: "$150-$225", retailer: "Therabody", affiliateUrl: "https://www.therabody.com/products/theragun-mini-gen-3-black", image: "https://www.therabody.com/cdn/shop/files/Theragun-Mini-3-Black-Hero-2.webp?v=1743189989&width=800", score: 82, interests: ["fitness", "wellness", "running"], occasions: ["birthday", "father's day", "holiday"], recipients: ["athlete", "runner", "busy parent"], summary: "Compact massage device for soreness and recovery.", why: "Portable and less intimidating than full-size recovery gear.", badge: "Recovery pick" },
   { slug: "stanley-quencher-h2-0", name: "Stanley Quencher H2.0 FlowState Tumbler", brand: "Stanley", category: "fitness", price: 4500, priceRange: "$35-$55", retailer: "Stanley", affiliateUrl: "https://www.stanley1913.com/products/adventure-quencher-travel-tumbler-40-oz", image: "https://www.stanley1913.com/cdn/shop/files/Web_PNG_Square-The_Quencher_H2.0_FlowState_Tumbler_40OZ_-_Purple_Dust_-_Front.png?v=1770952011", score: 80, interests: ["fitness", "hydration", "commute"], occasions: ["birthday", "holiday", "thank you"], recipients: ["friend", "student", "coworker"], summary: "A durable everyday tumbler for commutes, desks, and workouts.", why: "Simple, popular, and useful without needing a size guess.", badge: "Under $50" },
   { slug: "aeropress-clear", name: "AeroPress Clear Coffee Maker", brand: "AeroPress", category: "kitchen", price: 4995, priceRange: "$40-$60", retailer: "AeroPress", affiliateUrl: "https://aeropress.com/products/aeropress-clear", image: "https://aeropress.com/cdn/shop/files/AP_Clear_PDP_ATF_1_7864c61b-7c05-4faa-bdbe-42c3d49daca5_1200x1200.png?v=1771041275", score: 78, interests: ["coffee", "travel", "kitchen"], occasions: ["birthday", "father's day", "housewarming"], recipients: ["coffee lover", "traveler", "minimalist"], summary: "Portable coffee maker for smooth cups at home or on the road.", why: "A reliable upgrade for coffee people without taking over the counter.", badge: "Coffee favorite" },
   { slug: "patagonia-black-hole-duffel", name: "Patagonia Black Hole Duffel", brand: "Patagonia", category: "outdoor", price: 15900, priceRange: "$140-$180", retailer: "Patagonia", affiliateUrl: "https://www.patagonia.com/product/black-hole-duffel-bag-55-liters/49343.html", image: productPhotoFallback("patagonia-black-hole-duffel", "outdoor"), score: 76, interests: ["travel", "outdoor", "weekends"], occasions: ["graduation", "birthday", "christmas"], recipients: ["traveler", "camper", "student"], summary: "Rugged weekender bag for road trips, camping, and gym overflow.", why: "Versatile enough to become their default carryall.", badge: "Road-trip ready" },
@@ -176,7 +226,7 @@ const CORE_PRODUCTS: SeedProduct[] = [
   { slug: "backbone-one-controller", name: "Backbone One Mobile Controller", brand: "Backbone", category: "gaming", price: 9999, priceRange: "$90-$110", retailer: "Backbone", affiliateUrl: "https://playbackbone.com/products/backbone-one/", image: productPhotoFallback("backbone-one-controller", "gaming"), score: 74, interests: ["gaming", "phone", "travel"], occasions: ["birthday", "holiday", "graduation"], recipients: ["gamer", "student", "commuter"], summary: "Phone controller that makes mobile and cloud gaming feel legit.", why: "A compact upgrade that avoids buying a whole console.", badge: "Gaming add-on" },
   { slug: "dyson-airwrap", name: "Dyson Airwrap Multi-Styler", brand: "Dyson", category: "beauty", price: 59999, priceRange: "$550-$650", retailer: "Dyson", affiliateUrl: "https://www.dyson.com/hair-care/hair-stylers/airwrap", image: productPhotoFallback("dyson-airwrap", "beauty"), score: 79, interests: ["beauty", "hair", "self care"], occasions: ["anniversary", "birthday", "holiday"], recipients: ["partner", "beauty fan", "self-care person"], summary: "Premium styling tool for blowouts, curls, and daily hair routines.", why: "A splurge that feels unmistakably gift-level.", badge: "Splurge" },
   { slug: "brooklinen-super-plush-robe", name: "Brooklinen Super-Plush Robe", brand: "Brooklinen", category: "home", price: 9900, priceRange: "$85-$120", retailer: "Brooklinen", affiliateUrl: "https://www.brooklinen.com/products/super-plush-robes", image: productPhotoFallback("brooklinen-super-plush-robe", "home"), score: 77, interests: ["cozy", "self care", "home"], occasions: ["mother's day", "birthday", "holiday"], recipients: ["parent", "partner", "homebody"], summary: "Hotel-style robe for slower mornings and better evenings.", why: "Feels personal and luxurious while staying practical.", badge: "Cozy pick" },
-  { slug: "masterclass-membership", name: "MasterClass Membership", brand: "MasterClass", category: "experiences", price: 12000, priceRange: "$100-$150", retailer: "MasterClass", affiliateUrl: "https://www.masterclass.com/", image: productPhotoFallback("masterclass-membership", "experiences"), score: 80, interests: ["learning", "cooking", "writing", "music"], occasions: ["birthday", "holiday", "retirement"], recipients: ["curious person", "creative", "lifelong learner"], summary: "A learning membership for cooking, writing, business, arts, and more.", why: "Experience-like without choosing a specific date.", badge: "Experience" },
+  { slug: "masterclass-membership", name: "MasterClass Membership", brand: "MasterClass", category: "experiences", price: 12000, priceRange: "$100-$150", retailer: "MasterClass", affiliateUrl: "https://www.masterclass.com/gift", image: "https://static.masterclass.com/CM_instructors_hero_2x.png", score: 80, interests: ["learning", "cooking", "writing", "music"], occasions: ["birthday", "holiday", "retirement"], recipients: ["curious person", "creative", "lifelong learner"], summary: "A learning membership for cooking, writing, business, arts, and more.", why: "Experience-like without choosing a specific date.", badge: "Experience" },
   { slug: "goldbelly-pizza-kit", name: "Goldbelly Regional Pizza Kit", brand: "Goldbelly", category: "food", price: 8995, priceRange: "$75-$110", retailer: "Goldbelly", affiliateUrl: "https://www.goldbelly.com/foods/pizza", image: productPhotoFallback("goldbelly-pizza-kit", "food"), score: 73, interests: ["food", "experience", "family"], occasions: ["birthday", "thank you", "holiday"], recipients: ["foodie", "family", "host"], summary: "A shipped food experience from regional restaurants.", why: "Great for people who prefer memories and meals over more stuff.", badge: "Food experience" },
   { slug: "aura-frame", name: "Aura Digital Picture Frame", brand: "Aura", category: "home", price: 17900, priceRange: "$150-$200", retailer: "Aura", affiliateUrl: "https://auraframes.com/", image: "https://static.pushd.com/assets/marketing/product/images/CARVER_GRAVEL/schema-bd91b698fc44455d8fc1842f8d90a9714ffca30e23e06148825123986ae9c3ec.jpg", score: 77, interests: ["family", "photos", "home"], occasions: ["mother's day", "father's day", "holiday"], recipients: ["grandparent", "parent", "family"], summary: "Wi-Fi photo frame for easy family photo sharing.", why: "A sentimental gift that keeps getting better after delivery.", badge: "Sentimental tech" },
   { slug: "personalized-cutting-board-family-name", name: "Personalized Cutting Board", brand: "Uncommon Goods", category: "kitchen", price: 17900, priceRange: "$175-$225", retailer: "Uncommon Goods", affiliateUrl: "https://www.uncommongoods.com/product/personalized-cutting-board", image: "https://images.uncommongoods.com/images/items/25200/25202_1_640px.jpg", score: 78, interests: ["engraved", "personalized", "kitchen", "keepsake", "handmade"], occasions: ["wedding", "housewarming", "anniversary"], recipients: ["newlyweds", "host", "parent"], summary: "Handcrafted maple cutting board engraved with a family name.", why: "A hand-cut, individually made keepsake that still earns daily counter use.", badge: "Engraved keepsake" },
@@ -299,7 +349,7 @@ const GENERATED_IDEAS = Object.entries({
 const OCCASION_ROTATION = ["birthday", "holiday", "anniversary", "graduation", "thank you", "housewarming", "mother's day", "father's day", "retirement", "new job"];
 const RECIPIENT_ROTATION = ["partner", "parent", "friend", "sibling", "coworker", "student", "host", "traveler", "creative", "hard-to-shop-for person"];
 
-function priceRange(price: number) {
+export function priceRange(price: number) {
   if (price < 3000) return "Under $30";
   if (price < 6000) return "$30-$60";
   if (price < 10000) return "$60-$100";
@@ -319,7 +369,7 @@ function expandIdeas() {
         slug: idea.slug,
         category,
         priceRange: priceRange(idea.price),
-        image: img(categoryImages[ideaIndex % categoryImages.length]!),
+        image: IMAGE_OVERRIDES[idea.slug] ?? img(categoryImages[ideaIndex % categoryImages.length]!),
         rank: productRank,
         score: Math.max(70, 82 - (ideaIndex % 6) * 3),
         occasions: [OCCASION_ROTATION[(ideaIndex + productRank) % OCCASION_ROTATION.length]!, OCCASION_ROTATION[(ideaIndex + productRank + 3) % OCCASION_ROTATION.length]!],
@@ -378,7 +428,7 @@ function expandExtraGiftIdeas(): SeedProduct[] {
         priceRange: priceRange(Math.max(1800, price)),
         retailer: brand,
         affiliateUrl: `https://www.amazon.com/s?k=${encodeURIComponent(`${brand} ${productName}`)}`,
-        image: img(categoryImages[(productIndex + templateIndex) % categoryImages.length]!),
+        image: IMAGE_OVERRIDES[slug] ?? img(categoryImages[(productIndex + templateIndex) % categoryImages.length]!),
         interests: Array.from(new Set([...template.interests, template.category, ...productName.toLowerCase().split(/\s+/).slice(0, 2)])),
         occasions,
         recipients,
@@ -495,7 +545,9 @@ export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = ALL_SEED_PRODUCTS.map(
     affiliate_url: seed.affiliateUrl,
     retailer: seed.retailer,
     brand: seed.brand,
-    price_range: seed.priceRange,
+    // Real exact price everywhere, not a bucketed range label -- matches
+    // the same change made for admin-imported products in data-layer.ts.
+    price_range: null,
     rank: seed.rank!,
     category_rank: ALL_SEED_PRODUCTS.filter((candidate) => candidate.category === seed.category && (candidate.rank ?? 0) <= seed.rank!).length,
     gift_match_score: seed.score!,

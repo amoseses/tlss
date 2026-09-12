@@ -24,11 +24,22 @@ function dbProductToMarketplaceProduct(p: any, fallbackRank: number): Marketplac
   const rank = typeof p.rank === "number" ? p.rank : fallbackRank;
   const categoryRank = typeof p.category_rank === "number" ? p.category_rank : fallbackRank;
 
+  const interests = p.interests ?? [];
+  const occasions = p.occasions?.length ? p.occasions : ["birthday", "holiday"];
+  const recipients = p.recipients?.length ? p.recipients : ["friend", "family"];
+  const whyWePickedIt = p.why_we_picked_it ?? "";
+
+  // Matches the seed catalog's Details-tab format (marketplace.ts): plain
+  // description first, then the same "Why GIVIT picked it / Best for /
+  // Interests / Occasions" block, so admin-imported products present
+  // identically to seed products instead of looking thinner.
+  const description = `${p.description ?? ""}\n\nWhy GIVIT picked it: ${whyWePickedIt}\n\nBest for: ${recipients.join(", ")}. Interests: ${interests.join(", ")}. Occasions: ${occasions.join(", ")}.`;
+
   return {
     id: p.id,
     slug: p.slug,
     name: p.name,
-    description: p.description ?? "",
+    description,
     sku: `GIVIT-DB-${p.id.slice(0, 8)}`,
     price_cents: p.price_cents,
     weight_oz: p.weight_oz ?? 8,
@@ -43,17 +54,20 @@ function dbProductToMarketplaceProduct(p: any, fallbackRank: number): Marketplac
     video_url: p.video_url ?? null,
     retailer: p.retailer ?? p.brand ?? "",
     brand: p.brand ?? "",
-    price_range: p.price_cents < 3000 ? "Under $30" : p.price_cents < 10000 ? "$30-$100" : "$100+",
+    // Real exact price, not a bucketed range: leaving price_range unset makes
+    // the card/detail pages fall back to formatMoney(price_cents) (e.g.
+    // "$155.00") instead of a vague "$100-$175" style label.
+    price_range: null,
     rank,
     category_rank: categoryRank,
     gift_match_score: p.gift_match_score ?? 82,
     ships_in_days: typeof p.metadata?.ships_in_days === "number" ? p.metadata.ships_in_days : null,
     tested_badge: "Admin added",
-    interests: p.interests ?? [],
-    occasions: p.occasions?.length ? p.occasions : ["birthday", "holiday"],
-    recipients: p.recipients?.length ? p.recipients : ["friend", "family"],
+    interests,
+    occasions,
+    recipients,
     ai_summary: p.ai_summary ?? "",
-    why_we_picked_it: p.why_we_picked_it ?? "",
+    why_we_picked_it: whyWePickedIt,
     category,
     images,
   } satisfies MarketplaceProduct;
