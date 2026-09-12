@@ -4,9 +4,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  * Reveals a section the first time it scrolls into view. "fade" is the
  * original slide-up-and-fade; "triangle" instead wipes the section in via
  * an animated clip-path (a diagonal triangular reveal) for a sleeker,
- * more startup-y entrance on sections that want to stand out more.
- * Lightweight alternative to a full animation library for simple
- * one-shot entrance reveals.
+ * more startup-y entrance on sections that want to stand out more. "blur"
+ * sharpens in from a soft focus rather than sliding, for a headline that
+ * should feel like it's resolving into view instead of arriving from
+ * off-screen. Lightweight alternative to a full animation library for
+ * simple one-shot entrance reveals.
  */
 export function Reveal({
   children,
@@ -17,7 +19,7 @@ export function Reveal({
   children: ReactNode;
   className?: string;
   delayMs?: number;
-  variant?: "fade" | "triangle";
+  variant?: "fade" | "triangle" | "blur";
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -58,6 +60,13 @@ export function Reveal({
           opacity: visible ? 1 : 0,
           clipPath: visible ? "polygon(0 0, 100% 0, 100% 100%, 0 100%)" : "polygon(0 0, 0 0, 0 100%, 0 100%)",
           transition: `clip-path 0.75s cubic-bezier(0.65, 0, 0.35, 1) ${delayMs}ms, opacity 0.4s ease ${delayMs}ms`,
+        }
+      : variant === "blur"
+      ? {
+          opacity: visible ? 1 : 0,
+          filter: visible ? "blur(0px)" : "blur(10px)",
+          transform: visible ? "translateY(0)" : "translateY(10px)",
+          transition: `opacity 0.7s ease ${delayMs}ms, filter 0.7s ease ${delayMs}ms, transform 0.7s ease ${delayMs}ms`,
         }
       : {
           opacity: visible ? 1 : 0,
