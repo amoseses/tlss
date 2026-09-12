@@ -42,11 +42,14 @@ function bestImageUrl(image) {
   return image?.url_570xN || image?.url_fullxfull || image?.url_170x135 || null;
 }
 
+// `findAllListingsActive` (the keyword search below) does NOT support an
+// `includes` param at all -- it returns bare listings with no images and
+// no shop info, full stop. Images/shop only come from the separate batch
+// lookup endpoint below, keyed off the listing_ids the search returns.
 async function fetchListingsForCategory(apiKey, categorySlug, keywords) {
   const params = new URLSearchParams({
     keywords,
     limit: String(LISTINGS_PER_CATEGORY),
-    includes: "Images,Shop",
     sort_on: "score",
   });
   const res = await fetch(`${ETSY_API_BASE}/listings/active?${params.toString()}`, {
@@ -60,14 +63,35 @@ async function fetchListingsForCategory(apiKey, categorySlug, keywords) {
   return Array.isArray(body?.results) ? body.results : [];
 }
 
-function listingToProductRow(listing, categorySlug) {
+// The only endpoint that actually returns image/shop data is this batch
+// lookup, via `includes` -- one call per category for up to
+// LISTINGS_PER_CATEGORY ids, rather than a separate request per listing.
+async function fetchImagesAndShopsByIds(apiKey, listingIds) {
+  if (listingIds.length === 0) return new Map();
+  const params = new URLSearchParams({
+    listing_ids: listingIds.join(","),
+    includes: "Images,Shop",
+  });
+  const res = await fetch(`${ETSY_API_BASE}/listings/batch?${params.toString()}`, {
+    headers: { "x-api-key": apiKey },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Etsy listings/batch failed (${res.status}): ${text.slice(0, 300)}`);
+  }
+  const body = await res.json();
+  const results = Array.isArray(body?.results) ? body.results : [];
+  return new Map(results.map((listing) => [listing.listing_id, listing]));
+}
+
+function listingToProductRow(listing, enrichment, categorySlug) {
   const priceCents = centsFromEtsyPrice(listing.price);
   if (listing.price?.currency_code !== "USD" || !priceCents || priceCents <= 0) return null;
 
-  const images = Array.isArray(listing.images) ? listing.images.map(bestImageUrl).filter(Boolean) : [];
+  const images = Array.isArray(enrichment?.images) ? enrichment.images.map(bestImageUrl).filter(Boolean) : [];
   if (images.length === 0) return null;
 
-  const shopName = listing.shop?.shop_name || "an Etsy shop";
+  const shopName = enrichment?.shop?.shop_name || "an Etsy shop";
   return {
     slug: `etsy-${listing.listing_id}`,
     name: cleanTitle(listing.title),
@@ -88,6 +112,14 @@ function listingToProductRow(listing, categorySlug) {
   };
 }
 
+async function collectRowsForCategory(apiKey, categorySlug, keywords) {
+  const listings = await fetchListingsForCategory(apiKey, categorySlug, keywords);
+  const enrichmentById = await fetchImagesAndShopsByIds(apiKey, listings.map((l) => l.listing_id));
+  return listings
+    .map((listing) => listingToProductRow(listing, enrichmentById.get(listing.listing_id), categorySlug))
+    .filter(Boolean);
+}
+
 /**
  * Fetches and maps listings across every mapped category. Returns
  * { rows, errors } -- errors are per-category and non-fatal, since one
@@ -102,7 +134,7 @@ export async function collectEtsyProductRows() {
   const categoryEntries = Object.entries(CATEGORY_KEYWORDS);
 
   const results = await Promise.allSettled(
-    categoryEntries.map(([categorySlug, keywords]) => fetchListingsForCategory(apiKey, categorySlug, keywords)),
+    categoryEntries.map(([categorySlug, keywords]) => collectRowsForCategory(apiKey, categorySlug, keywords)),
   );
 
   results.forEach((result, i) => {
@@ -111,10 +143,7 @@ export async function collectEtsyProductRows() {
       errors.push(`${categorySlug}: ${result.reason?.message || result.reason}`);
       return;
     }
-    for (const listing of result.value) {
-      const row = listingToProductRow(listing, categorySlug);
-      if (row) rows.push(row);
-    }
+    rows.push(...result.value);
   });
 
   return { rows, errors };
