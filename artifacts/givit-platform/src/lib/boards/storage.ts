@@ -1,5 +1,9 @@
 export type BoardImage = { id: string; src: string; caption: string; description?: string; productUrl?: string; kind?: "product" | "image" };
-export type UserBoard = { id: string; title: string; description: string; images: BoardImage[]; likes: number; liked: boolean; isPublic?: boolean; coverImage?: string };
+// ownerId is the Supabase user_id that owns this board -- required to tell
+// "my boards" apart from other users' public boards once they're merged
+// into one local list (see pages/boards.tsx). undefined only for boards
+// created locally before the owner ever signed in.
+export type UserBoard = { id: string; title: string; description: string; images: BoardImage[]; likes: number; liked: boolean; isPublic?: boolean; coverImage?: string; ownerId?: string };
 
 const BOARDS_KEY = "givit-user-boards";
 const LIKES_KEY = "givit-board-likes";

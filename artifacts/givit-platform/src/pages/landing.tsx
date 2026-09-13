@@ -186,7 +186,7 @@ export default function LandingPage() {
   if (loading) return null;
 
   return (
-    <div className="bg-black">
+    <>
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 py-16 text-center text-white">
       <div className="pointer-events-none absolute -left-24 top-0 h-[420px] w-[420px] animate-drift rounded-full bg-givit-ember/25 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-0 h-[420px] w-[420px] animate-drift-slow rounded-full bg-givit-coral/20 blur-3xl" />
@@ -291,6 +291,6 @@ export default function LandingPage() {
         </Button>
       )}
     </div>
-    </div>
+    </>
   );
 }

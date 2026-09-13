@@ -72,12 +72,12 @@ export function GiftCalendar() {
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-[1fr_160px_160px_1fr_auto]">
-        <input value={draft.name} onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))} className="h-11 rounded-xl border border-border px-3 text-sm" placeholder="Person" />
-        <select value={draft.type} onChange={(e) => setDraft((prev) => ({ ...prev, type: e.target.value }))} className="h-11 rounded-xl border border-border px-3 text-sm">
+        <input aria-label="Person" value={draft.name} onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))} className="h-11 rounded-xl border border-border px-3 text-sm" placeholder="Person" />
+        <select aria-label="Event type" value={draft.type} onChange={(e) => setDraft((prev) => ({ ...prev, type: e.target.value }))} className="h-11 rounded-xl border border-border px-3 text-sm">
           {EVENT_TYPES.map((type) => <option key={type}>{type}</option>)}
         </select>
-        <input type="date" value={draft.date} onChange={(e) => setDraft((prev) => ({ ...prev, date: e.target.value }))} className="h-11 rounded-xl border border-border px-3 text-sm" />
-        <input value={draft.interests} onChange={(e) => setDraft((prev) => ({ ...prev, interests: e.target.value }))} className="h-11 rounded-xl border border-border px-3 text-sm" placeholder="Interests" />
+        <input aria-label="Date" type="date" value={draft.date} onChange={(e) => setDraft((prev) => ({ ...prev, date: e.target.value }))} className="h-11 rounded-xl border border-border px-3 text-sm" />
+        <input aria-label="Interests" value={draft.interests} onChange={(e) => setDraft((prev) => ({ ...prev, interests: e.target.value }))} className="h-11 rounded-xl border border-border px-3 text-sm" placeholder="Interests" />
         <Button
           type="button"
           className="h-11 rounded-xl bg-givit-ember text-white hover:bg-givit-ember-hover"

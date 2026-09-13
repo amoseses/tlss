@@ -69,9 +69,13 @@ async function paymentMethodSummary(req: any, res: any) {
       return;
     }
 
-    const summary = await getPaymentMethodSummary(paymentMethodId);
+    const summary = await getPaymentMethodSummary(paymentMethodId, user.id);
     res.status(200).json(summary);
   } catch (error: any) {
+    if (error?.statusCode === 404) {
+      res.status(404).json({ error: "Not found." });
+      return;
+    }
     res.status(500).json({ error: safeStripeErrorMessage(error, "Card was saved, but details couldn't be confirmed.") });
   }
 }

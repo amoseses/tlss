@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
+import { toast } from "sonner";
 import { ArrowLeft, Heart, Trash2 } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
@@ -31,11 +32,28 @@ export default function WishlistPage() {
   }, [user]);
 
   async function handleRemove(id: string, slug: string | null) {
+    const removedIndex = items?.findIndex((i) => i.id === id) ?? -1;
+    const removed = removedIndex >= 0 ? items?.[removedIndex] : undefined;
     setItems((prev) => prev?.filter((i) => i.id !== id) ?? prev);
     try {
-      await removeFromWishlist(id);
+      const { error } = await removeFromWishlist(id);
+      if (error) throw error;
     } catch (err) {
       console.error("Failed to remove from wishlist:", err);
+      toast.error("Couldn't remove that item. Please try again.");
+      // Roll back the optimistic removal -- it visually disappeared but
+      // the delete never actually went through server-side. Re-insert at
+      // its original index rather than the end, or the rollback itself
+      // reads as the list having been reordered.
+      if (removed) {
+        setItems((prev) => {
+          if (!prev) return prev;
+          const next = [...prev];
+          next.splice(Math.min(removedIndex, next.length), 0, removed);
+          return next;
+        });
+      }
+      return;
     }
     // Keep the localStorage-backed WishlistButton state (used across product
     // cards) in sync so a product removed here doesn't still show "Saved"

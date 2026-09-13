@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { createClient } from "@/lib/supabase/client";
+import { safeNextPath } from "@/lib/utils";
 
 export default function AuthCallback() {
   const [, navigate] = useLocation();
@@ -8,10 +9,10 @@ export default function AuthCallback() {
   useEffect(() => {
     async function handleCallback() {
       const supabase = createClient();
-      
+
       // Exchange the code from the URL for a session
       const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-      
+
       if (error) {
         console.error("Auth callback error:", error);
         navigate("/login?error=auth");
@@ -21,8 +22,7 @@ export default function AuthCallback() {
       if (data.session) {
         // Successfully logged in - redirect to home or original destination
         const params = new URLSearchParams(window.location.search);
-        const next = params.get("next") || "/";
-        navigate(next);
+        navigate(safeNextPath(params.get("next"), "/"));
       } else {
         navigate("/login");
       }

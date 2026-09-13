@@ -82,6 +82,7 @@ export default function SubmitProductPage() {
     e.preventDefault();
     if (!user) { navigate("/login?next=/submit-product"); return; }
     if (!url.trim()) { setError("Product URL is required"); return; }
+    if (price.trim() && (!Number.isFinite(Number.parseFloat(price)) || Number.parseFloat(price) < 0)) { setError("Price must be a positive number."); return; }
     if (duplicate) { setError(`This looks like it might already be in GIVIT ("${duplicate.name}"). Double-check before resubmitting, or edit the details if this is actually different.`); return; }
     setLoading(true);
     setError("");
@@ -100,7 +101,7 @@ export default function SubmitProductPage() {
         url: normalizedUrl,
         name: name.trim() || aiExtracted.name,
         brand: brand.trim() || aiExtracted.brand,
-        price_cents: price ? Math.round(parseFloat(price) * 100) : Math.round(parseFloat(aiExtracted.price) * 100),
+        price_cents: price.trim() ? Math.round(parseFloat(price) * 100) : Math.round(parseFloat(aiExtracted.price) * 100),
         description: description.trim() || `AI scraped summary for ${aiExtracted.name} from ${aiExtracted.brand}. Admins can edit before approval.`,
         category: itemType === "experience" ? "experiences" : aiExtracted.category,
         image_url: bestProductImageUrl(normalizedUrl),
@@ -243,6 +244,7 @@ export default function SubmitProductPage() {
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="29.99"
