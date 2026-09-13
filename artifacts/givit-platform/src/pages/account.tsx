@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useLocation, Link } from "wouter";
-import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2, Camera, Shuffle } from "lucide-react";
+import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2, Camera, Shuffle, Lock } from "lucide-react";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -91,11 +91,49 @@ export default function AccountPage() {
   const [showQuiz, setShowQuiz] = useState(false);
   const cohort = getCohort(profile?.gifting_cohort);
 
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
   async function saveCohort(cohortId: string) {
     if (!user) return;
     await updateProfile(user.id, { gifting_cohort: cohortId });
     refresh();
     setShowQuiz(false);
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess(false);
+    if (newPassword.length < 8) { setPasswordError("New password must be at least 8 characters."); return; }
+    if (newPassword !== confirmPassword) { setPasswordError("New passwords don't match."); return; }
+    if (!profile?.email) { setPasswordError("Couldn't verify your account email. Try refreshing the page."); return; }
+
+    setChangingPassword(true);
+    try {
+      const supabase = createClient();
+      // Supabase's client has no "verify current password" call on its own --
+      // re-authenticating with it first is what actually confirms the user
+      // knows the current password before updateUser() is allowed to change
+      // it, rather than letting anyone with an open session swap it blind.
+      const { error: reauthError } = await supabase.auth.signInWithPassword({ email: profile.email, password: currentPassword });
+      if (reauthError) { setPasswordError("Current password is incorrect."); return; }
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) { setPasswordError(updateError.message); return; }
+
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } finally {
+      setChangingPassword(false);
+    }
   }
 
   async function handleAvatarSelected(e: React.ChangeEvent<HTMLInputElement>) {
@@ -548,6 +586,53 @@ export default function AccountPage() {
             />
           </div>
         )}
+
+        {/* Change Password */}
+        <div className="slide-up givit-panel p-6 lg:col-span-2">
+          <div className="mb-4 flex items-center gap-2">
+            <Lock className="h-4 w-4 text-givit-ember" />
+            <h2 className="font-semibold text-givit-ink">Password</h2>
+          </div>
+          <form onSubmit={handleChangePassword} className="max-w-sm space-y-3">
+            {passwordError && <p className="text-xs text-destructive">{passwordError}</p>}
+            {passwordSuccess && <p className="text-xs text-success">Password updated.</p>}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Current password</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">New password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={8}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Confirm new password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+              />
+            </div>
+            <Button type="submit" disabled={changingPassword} size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+              {changingPassword ? "Updating…" : "Update password"}
+            </Button>
+          </form>
+        </div>
       </div>
 
       {/* Quick Links -- ramps up gradually (2 -> 3 -> 6 columns) instead of
