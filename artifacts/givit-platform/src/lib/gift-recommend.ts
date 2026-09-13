@@ -324,8 +324,15 @@ function isGreeting(query: string) {
   return /^(hi|hello|hey|howdy|good morning|good afternoon|yo)\b/i.test(query.trim());
 }
 
+// Includes self-identity phrasings ("tell me about yourself", "who are
+// you") -- these used to sit in OFF_TOPIC_PATTERNS below, which answered
+// them with a flat "I don't know, I'm focused on gifts" deflection. A real
+// chatbot should never coldly deflect a basic question about itself; it
+// belongs with "what can you do" since both get the same honest answer
+// about what GIVIT actually is. Checked before isOffTopicQuery, so these
+// phrasings never reach that deflection at all.
 function isHelpQuery(query: string) {
-  return /\b(help|how does|what can you|what do you)\b/i.test(query);
+  return /\b(help|how does|what can you|what do you|about yourself\b|describe yourself|who are you|what are you|who (?:made|created|built) you)/i.test(query);
 }
 
 // Deliberately narrow and high-precision — this should only ever catch
@@ -338,11 +345,8 @@ function isHelpQuery(query: string) {
 const OFF_TOPIC_PATTERNS = [
   /\bwhat(?:'s| is) my name\b/,
   /\bwho am i\b/,
-  /\bwho are you\b/,
-  /\bwhat are you\b/,
   /\bwhat(?:'s| is) your name\b/,
   /\bare you (?:a |an )?(?:ai|bot|human|robot|real person)\b/,
-  /\bwho (?:made|created|built) you\b/,
   /\bhow old are you\b/,
   /\bwhat(?:'s| is) the capital of\b/,
   /\bwhat(?:'s| is)\s+\d+\s*[+\-*/]\s*\d+\b/,
