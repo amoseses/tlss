@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useLocation, Link } from "wouter";
-import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2, Camera, Shuffle } from "lucide-react";
+import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2, Camera, Shuffle, Lock } from "lucide-react";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -14,6 +14,7 @@ import { addressValidationError } from "@/lib/validation/autogift";
 import { uploadFileToS3 } from "@/lib/upload";
 import { getCohort } from "@/lib/data/gifting-cohorts";
 import { GiftingQuizModal, CohortMark } from "@/components/personalization/gifting-quiz-modal";
+import { Reveal } from "@/components/ui/reveal";
 
 async function authedFetch(path: string, init?: RequestInit) {
   const { data } = await createClient().auth.getSession();
@@ -90,11 +91,49 @@ export default function AccountPage() {
   const [showQuiz, setShowQuiz] = useState(false);
   const cohort = getCohort(profile?.gifting_cohort);
 
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
   async function saveCohort(cohortId: string) {
     if (!user) return;
     await updateProfile(user.id, { gifting_cohort: cohortId });
     refresh();
     setShowQuiz(false);
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess(false);
+    if (newPassword.length < 8) { setPasswordError("New password must be at least 8 characters."); return; }
+    if (newPassword !== confirmPassword) { setPasswordError("New passwords don't match."); return; }
+    if (!profile?.email) { setPasswordError("Couldn't verify your account email. Try refreshing the page."); return; }
+
+    setChangingPassword(true);
+    try {
+      const supabase = createClient();
+      // Supabase's client has no "verify current password" call on its own --
+      // re-authenticating with it first is what actually confirms the user
+      // knows the current password before updateUser() is allowed to change
+      // it, rather than letting anyone with an open session swap it blind.
+      const { error: reauthError } = await supabase.auth.signInWithPassword({ email: profile.email, password: currentPassword });
+      if (reauthError) { setPasswordError("Current password is incorrect."); return; }
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) { setPasswordError(updateError.message); return; }
+
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } finally {
+      setChangingPassword(false);
+    }
   }
 
   async function handleAvatarSelected(e: React.ChangeEvent<HTMLInputElement>) {
@@ -315,7 +354,7 @@ export default function AccountPage() {
 
   return (
     <PageShell className="max-w-4xl">
-      <div className="mb-6 overflow-hidden rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-6">
+      <Reveal variant="blur" className="mb-6 overflow-hidden rounded-2xl border border-givit-ember/20 bg-gradient-to-br from-givit-ember/15 to-givit-coral/10 p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
           <div className="group/avatar relative h-16 w-16 shrink-0">
             <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-givit-ember/10">
@@ -405,13 +444,13 @@ export default function AccountPage() {
             )}
           </div>
         </div>
-      </div>
+      </Reveal>
 
       {accountNotice && <div className="mb-4 rounded-xl bg-givit-ember/10 px-4 py-3 text-sm text-givit-ink">{accountNotice}</div>}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="stagger-children grid gap-6 lg:grid-cols-2">
         {/* Orders */}
-        <div className="givit-panel p-6">
+        <div className="slide-up givit-panel p-6">
           <div className="mb-4 flex items-center gap-2">
             <ShoppingBag className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Orders</h2>
@@ -441,7 +480,7 @@ export default function AccountPage() {
         </div>
 
         {/* Wishlist */}
-        <div className="givit-panel p-6">
+        <div className="slide-up givit-panel p-6">
           <div className="mb-4 flex items-center gap-2">
             <Heart className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Wishlist</h2>
@@ -473,7 +512,7 @@ export default function AccountPage() {
         </div>
 
         {/* Saved Addresses */}
-        <div className="givit-panel p-6 lg:col-span-2">
+        <div className="slide-up givit-panel p-6 lg:col-span-2">
           <div className="mb-4 flex items-center gap-2">
             <MapPin className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Saved Addresses</h2>
@@ -489,7 +528,7 @@ export default function AccountPage() {
         </div>
 
         {/* Payment Methods */}
-        <div className="givit-panel p-6 lg:col-span-2">
+        <div className="slide-up givit-panel p-6 lg:col-span-2">
           <div className="mb-4 flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-givit-ember" />
             <h2 className="font-semibold text-givit-ink">Payment Methods</h2>
@@ -535,7 +574,7 @@ export default function AccountPage() {
         </div>
 
         {user && (
-          <div className="lg:col-span-2">
+          <div className="slide-up lg:col-span-2">
             <NotificationSettingsCard
               userId={user.id}
               defaultLeadDays={profile?.default_reminder_lead_days ?? 35}
@@ -547,6 +586,53 @@ export default function AccountPage() {
             />
           </div>
         )}
+
+        {/* Change Password */}
+        <div className="slide-up givit-panel p-6 lg:col-span-2">
+          <div className="mb-4 flex items-center gap-2">
+            <Lock className="h-4 w-4 text-givit-ember" />
+            <h2 className="font-semibold text-givit-ink">Password</h2>
+          </div>
+          <form onSubmit={handleChangePassword} className="max-w-sm space-y-3">
+            {passwordError && <p className="text-xs text-destructive">{passwordError}</p>}
+            {passwordSuccess && <p className="text-xs text-success">Password updated.</p>}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Current password</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">New password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={8}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Confirm new password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+              />
+            </div>
+            <Button type="submit" disabled={changingPassword} size="sm" className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+              {changingPassword ? "Updating…" : "Update password"}
+            </Button>
+          </form>
+        </div>
       </div>
 
       {/* Quick Links -- ramps up gradually (2 -> 3 -> 6 columns) instead of
@@ -554,8 +640,8 @@ export default function AccountPage() {
           which crammed each card into ~110px and wrapped labels unevenly.
           6 items divides evenly at every one of those column counts, so
           unlike the 5-item version this doesn't need an odd-card-out span. */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Link href="/people" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+      <div className="stagger-children mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <Link href="/people" className="slide-up givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:-translate-y-0.5 hover:border-givit-ember/30">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <User className="h-5 w-5 text-givit-ember" />
           </div>
@@ -564,7 +650,7 @@ export default function AccountPage() {
             <p className="text-xs text-muted-foreground">Manage saved people</p>
           </div>
         </Link>
-        <Link href="/concierge" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+        <Link href="/concierge" className="slide-up givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:-translate-y-0.5 hover:border-givit-ember/30">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Settings className="h-5 w-5 text-givit-ember" />
           </div>
@@ -573,7 +659,7 @@ export default function AccountPage() {
             <p className="text-xs text-muted-foreground">Manage gift automation</p>
           </div>
         </Link>
-        <Link href="/gift" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+        <Link href="/gift" className="slide-up givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:-translate-y-0.5 hover:border-givit-ember/30">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Gift className="h-5 w-5 text-givit-ember" />
           </div>
@@ -582,7 +668,7 @@ export default function AccountPage() {
             <p className="text-xs text-muted-foreground">Find gifts with AI</p>
           </div>
         </Link>
-        <Link href="/submit-product" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+        <Link href="/submit-product" className="slide-up givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:-translate-y-0.5 hover:border-givit-ember/30">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <PlusCircle className="h-5 w-5 text-givit-ember" />
           </div>
@@ -591,7 +677,7 @@ export default function AccountPage() {
             <p className="text-xs text-muted-foreground">Add a gift for admin approval</p>
           </div>
         </Link>
-        <Link href="/boards" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+        <Link href="/boards" className="slide-up givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:-translate-y-0.5 hover:border-givit-ember/30">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Star className="h-5 w-5 text-givit-ember" />
           </div>
@@ -600,7 +686,7 @@ export default function AccountPage() {
             <p className="text-xs text-muted-foreground">Your curated boards</p>
           </div>
         </Link>
-        <Link href="/secret-santa" className="givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:border-givit-ember/30">
+        <Link href="/secret-santa" className="slide-up givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:-translate-y-0.5 hover:border-givit-ember/30">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Shuffle className="h-5 w-5 text-givit-ember" />
           </div>

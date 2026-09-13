@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
+import { Reveal } from "@/components/ui/reveal";
 import { useAuth } from "@/lib/auth/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { extractProductWithAI } from "@/lib/admin/imported-products";
@@ -315,10 +316,10 @@ export default function AdminPage() {
 
   return (
     <PageShell wide>
-      <div className="mb-6">
+      <Reveal variant="blur" className="mb-6">
         <p className="text-xs font-bold uppercase tracking-widest text-givit-ember">Admin</p>
         <h1 className="mt-1 font-serif text-3xl font-bold text-givit-ink">Dashboard</h1>
-      </div>
+      </Reveal>
 
       {/* Tabs */}
       <div className="mb-6 flex flex-wrap gap-1 rounded-lg bg-muted p-1">
@@ -337,6 +338,9 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {/* Re-keyed on tab change so switching tabs re-triggers the slide-up
+          entrance instead of a hard content swap. */}
+      <div key={activeTab} className="slide-up">
       {/* PRODUCTS TAB */}
       {activeTab === "products" && (
         <div className="space-y-4">
@@ -882,6 +886,7 @@ export default function AdminPage() {
           </table>
         </div>
       )}
+      </div>
 
       {/* EDIT PRODUCT MODAL */}
       {showEditModal && editingProduct && (

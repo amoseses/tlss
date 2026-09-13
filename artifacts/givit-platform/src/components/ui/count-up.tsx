@@ -24,13 +24,18 @@ export function CountUp({ value, duration = 1100, className }: { value: number; 
       ([entry]) => {
         if (!entry.isIntersecting || startedRef.current) return;
         startedRef.current = true;
-        const target = valueRef.current;
         const start = performance.now();
         let frame: number;
         function tick(now: number) {
           const t = Math.min(1, (now - start) / duration);
           const eased = 1 - Math.pow(1 - t, 3);
-          setDisplay(Math.round(target * eased));
+          // Reads valueRef fresh every frame rather than a target captured
+          // once at animation start -- an async fetch (e.g. admin products
+          // merging into a page's total count) landing mid-animation used
+          // to get silently overwritten back to the stale starting value on
+          // the animation's own final frame, since that frame's closure
+          // still held the old target.
+          setDisplay(Math.round(valueRef.current * eased));
           if (t < 1) frame = requestAnimationFrame(tick);
         }
         frame = requestAnimationFrame(tick);
