@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ExternalLink, Play } from "lucide-react";
 
@@ -38,6 +38,11 @@ export function ProductCard({
   const categorySlug = marketplaceProduct.category?.slug ?? null;
   const src = resolveProductImageSrc(product.id, images, categorySlug);
   const [imageSrc, setImageSrc] = useState(src);
+  // useState(src) only captures the initial value -- if this same card
+  // instance later renders a different product's data (e.g. an admin/Etsy
+  // row replacing a same-slug seed product once fetched), imageSrc would
+  // otherwise stay frozen on whatever loaded first instead of following it.
+  useEffect(() => setImageSrc(src), [src]);
   const salePrice = marketplaceProduct.sale_price_cents;
   const priceLabel = salePrice ? formatMoney(salePrice) : marketplaceProduct.price_range ?? formatMoney(product.price_cents);
   // Only estimate when there's an exact cents figure to convert -- when
@@ -80,7 +85,15 @@ export function ProductCard({
     // regular vertical card from `sm` up.
     <article className="group flex items-stretch gap-3 overflow-hidden rounded-2xl bg-card p-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10 sm:flex-col sm:gap-0 sm:p-0">
       <Link href={`/products/${product.slug}`} className="flex flex-1 items-center gap-3 sm:flex-col sm:items-stretch sm:gap-0">
-        <div className={`relative aspect-square w-24 shrink-0 self-center overflow-hidden rounded-xl bg-givit-sand sm:w-full sm:self-auto sm:rounded-none ${featured ? "sm:aspect-[4/3]" : "sm:aspect-square"}`}>
+        {/* 4:3 at sm+, matching product-detail.tsx's hero crop exactly --
+            these used to diverge (square here, 4:3 there), so the same
+            object-cover photo got cropped tighter on the card than on its
+            own detail page: more of the frame cut away, which read as
+            "over-zoomed" and sometimes cropped out the exact part of the
+            photo that made the product recognizable. Small aspect-square
+            below `sm` is the compact mobile row thumbnail, unrelated to
+            this -- kept as-is. */}
+        <div className="relative aspect-square w-24 shrink-0 self-center overflow-hidden rounded-xl bg-givit-sand sm:aspect-[4/3] sm:w-full sm:self-auto sm:rounded-none">
           <img
             src={imageSrc}
             alt={product.name}
