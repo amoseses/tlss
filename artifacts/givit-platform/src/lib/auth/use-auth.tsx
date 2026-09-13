@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
 
@@ -47,6 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const userRef = useRef<{ id: string; email?: string } | null>(null);
+
+  function updateUser(next: { id: string; email?: string } | null) {
+    userRef.current = next;
+    setUser(next);
+  }
 
   async function load(initial = false, silent = false) {
     if (!silent) setLoading(true);
@@ -61,12 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!authUser) {
-        setUser(null);
+        updateUser(null);
         setProfile(null);
         return;
       }
 
-      setUser({ id: authUser.id, email: authUser.email });
+      updateUser({ id: authUser.id, email: authUser.email });
       const { data, error } = await supabase
         .from("profiles")
         .select("full_name, email, role, phone, default_reminder_lead_days, sms_opt_in, sms_opted_out_at, email_digest_opt_in, avatar_url, gifting_cohort, concierge_onboarding_completed")
@@ -76,9 +82,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) console.warn("[Auth] Profile lookup failed; using auth user fallback", error);
       setProfile((data as Profile | null) ?? fallbackProfile(authUser));
     } catch (err) {
+      // A slow/flaky network (getSession/getUser timing out after 8s) looks
+      // identical to "not logged in" here, but it isn't one -- forcing a
+      // logout on every transient timeout was booting genuinely signed-in
+      // users back to /login. Only clear state when we don't already have
+      // a signed-in user to fall back on; otherwise just log it and let
+      // the next retry (focus, auth event) sort it out.
       console.error("[Auth] Failed to load user:", err);
-      setUser(null);
-      setProfile(null);
+      if (!userRef.current) setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -87,14 +98,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     load(true);
     const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session?.user) {
-        setUser(null);
+        updateUser(null);
         setProfile(null);
         setLoading(false);
         return;
       }
-      void load();
+      // TOKEN_REFRESHED fires on its own roughly hourly on any open tab and
+      // changes nothing about who's signed in -- treating it like a fresh
+      // sign-in flipped `loading` back to true for it, causing the same
+      // app-wide spinner flicker the visibilitychange handler above was
+      // specifically written to avoid, just from a different trigger.
+      void load(false, event === "TOKEN_REFRESHED");
     });
 
     // Re-fetch the profile when the tab regains focus so changes made

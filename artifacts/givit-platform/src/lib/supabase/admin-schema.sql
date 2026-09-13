@@ -950,3 +950,62 @@ AS $$
   JOIN secret_santa_participants r ON r.id = a.recipient_id
   WHERE me.group_id = p_group_id AND me.user_id = auth.uid();
 $$;
+
+-- ============================================================
+-- LOCK DOWN PROFILES: "Public profiles are viewable by everyone" (line
+-- ~454) had no auth check at all -- USING (true) -- so any signed-in (or
+-- even anonymous) caller could run supabase.from("profiles").select("*")
+-- and dump every user's email, phone, role, gifting_cohort, and ship-from
+-- address. Replaced with own-row + admin-row access; app code that
+-- legitimately needs to look up OTHER users (board owner names, comment
+-- authors, the Secret Santa "does this email already have an account"
+-- check in findProfileByEmail) now goes through the public_profiles view
+-- below, which only exposes id/full_name/avatar_url.
+-- ============================================================
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Admins can view all profiles" ON profiles FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- security_invoker defaults to false, so this view checks privileges as
+-- its owner (the role that runs this script, which has BYPASSRLS in
+-- Supabase) rather than the calling user -- that's what lets it read
+-- across all profiles despite the row-restrictive policies above, while
+-- only ever surfacing these three non-sensitive columns.
+CREATE OR REPLACE VIEW public_profiles AS
+  SELECT id, full_name, avatar_url FROM profiles WHERE is_banned = false;
+
+GRANT SELECT ON public_profiles TO anon, authenticated;
+
+-- Secret Santa's "add participant" flow needs to check whether an email
+-- already has a GIVIT account (see findProfileByEmail in
+-- lib/supabase/secret-santa.ts) -- the account has to exist first, or the
+-- invite would create a slot nobody could ever sign in to claim. This is a
+-- SECURITY DEFINER function rather than another view because the email
+-- column stays out of public_profiles entirely -- this is a narrow,
+-- single-row lookup scoped to exactly the email the caller already typed
+-- and searched by, not a broad listing, so returning that row's own
+-- canonical stored email back isn't a new exposure (unlike putting email
+-- in public_profiles, which would let anyone dump every user's address).
+-- It's still needed in the response, though: without it, the caller only
+-- has whatever casing/whitespace variant they happened to type, and that
+-- was getting stored as the participant's display email instead of the
+-- account's real one.
+CREATE OR REPLACE FUNCTION find_profile_by_email(p_email TEXT)
+RETURNS TABLE(id UUID, email TEXT, full_name TEXT)
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE sql
+STABLE
+AS $$
+  -- Exact (case-insensitive) match, not ILIKE -- ILIKE treats `%`/`_` in
+  -- p_email as wildcards, and since this now returns the matched row's
+  -- email back to the caller, an unescaped pattern like "%" or "%@x.com"
+  -- would turn this into an email-enumeration oracle instead of the
+  -- single-known-address lookup it's meant to be.
+  SELECT p.id, p.email, p.full_name FROM profiles p WHERE lower(p.email) = lower(p_email) LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION find_profile_by_email(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION find_profile_by_email(TEXT) TO authenticated;

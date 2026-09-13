@@ -71,7 +71,6 @@ export function HeaderProfileButton({ loggedIn, email, displayName, role, avatar
         {isAdmin && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/manager")}>Manager console</DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/admin")}>Admin products</DropdownMenuItem>
           </>
         )}

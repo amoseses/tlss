@@ -5,6 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Guards the post-login redirect target (?next=...) against open-redirect
+// payloads -- "//evil.com" and "https://evil.com" both parse as valid
+// same-origin-looking strings to a naive check, but the browser treats a
+// leading "//" as protocol-relative and follows it off-site. Only a single
+// leading "/" (not "//" or "/\") counts as safe; anything else falls back
+// to the default.
+export function safeNextPath(value: string | null | undefined, fallback = "/home"): string {
+  if (!value) return fallback;
+  if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return fallback;
+  return value;
+}
+
 // First + last initial (e.g. "Bob Mark" -> "BM") for avatar circles --
 // a single first-name letter reads ambiguous once there's more than one
 // saved person with the same first initial.

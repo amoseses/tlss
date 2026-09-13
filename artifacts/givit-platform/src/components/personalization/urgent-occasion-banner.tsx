@@ -78,7 +78,7 @@ export function UrgentOccasionBanner() {
           <Link href="/concierge" className="rounded-full bg-givit-ember px-4 py-1.5 text-xs font-semibold text-white hover:bg-givit-ember-hover">
             Build it now
           </Link>
-          <button type="button" onClick={dismiss} aria-label="Dismiss" className="rounded-md p-1 text-muted-foreground hover:bg-black/5 hover:text-foreground">
+          <button type="button" onClick={dismiss} aria-label="Dismiss" className="rounded-md p-1 text-muted-foreground hover:bg-foreground/5 hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>

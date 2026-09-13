@@ -5,11 +5,12 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { safeNextPath } from "@/lib/utils";
 
 export default function SignupPage() {
   const [, navigate] = useLocation();
   const search = useSearch();
-  const nextPath = new URLSearchParams(search).get("next") ?? "/home";
+  const nextPath = safeNextPath(new URLSearchParams(search).get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -26,20 +27,25 @@ export default function SignupPage() {
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { 
+        options: {
           data: { full_name: name },
-          emailRedirectTo: `${window.location.origin}/auth-callback`,
+          emailRedirectTo: `${window.location.origin}/auth-callback?next=${encodeURIComponent(nextPath)}`,
         },
       });
       if (authError) { setError(authError.message); return; }
 
       if (data.user) {
-        await supabase.from("profiles").upsert({
+        const { error: profileError } = await supabase.from("profiles").upsert({
           id: data.user.id,
           full_name: name.trim() || null,
           email: data.user.email ?? email,
           role: "customer",
         }, { onConflict: "id" });
+        if (profileError) {
+          console.error("Failed to create profile:", profileError);
+          setError("Your account was created, but we couldn't finish setting up your profile. Please contact support.");
+          return;
+        }
       }
 
       window.localStorage.setItem("givit-just-signed-up", "1");
@@ -75,18 +81,18 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error ? <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
+            {error ? <div role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="name">Full name</label>
-              <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
+              <input id="name" type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="email">Email</label>
-              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
+              <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="password">Password</label>
-              <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
+              <input id="password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
             </div>
             <Button type="submit" disabled={loading} className="h-11 w-full rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
               {loading ? "Creating account…" : "Create account"}

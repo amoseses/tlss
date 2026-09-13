@@ -4,14 +4,18 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { safeNextPath } from "@/lib/utils";
 
 export default function LoginPage() {
   const [, navigate] = useLocation();
   const search = useSearch();
-  const nextPath = new URLSearchParams(search).get("next") ?? "/home";
+  const searchParams = new URLSearchParams(search);
+  const nextPath = safeNextPath(searchParams.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    searchParams.get("error") === "auth" ? "That sign-in link didn't work -- it may have expired. Please sign in again." : "",
+  );
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -37,17 +41,17 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error ? <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
+            {error ? <div role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="email">Email</label>
-              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
+              <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium" htmlFor="password">Password</label>
                 <Link href="/forgot-password" className="givit-link text-xs font-medium">Forgot password?</Link>
               </div>
-              <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
+              <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
             </div>
             <Button type="submit" disabled={loading} className="h-11 w-full rounded-full bg-givit-ember text-white hover:bg-givit-ember-hover">
               {loading ? "Signing in…" : "Sign in"}

@@ -51,6 +51,7 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-givit-teal: var(--givit-teal);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -100,6 +101,11 @@
      had nowhere to reach except raw Tailwind emerald-*, copy-pasted
      independently across several files with no shared definition. */
   --success: #059669;
+  /* "Mid-urgency" badges (a gift date in 2-6 weeks, neither urgent nor
+     comfortably on-time) were hardcoding bg-amber-50/text-amber-700,
+     which doesn't adapt to dark mode like its destructive/success
+     siblings do -- this is that same semantic slot, themed. */
+  --warning: #b45309;
   --border: #e8e2d8;
   --input: #e8e2d8;
   --ring: #ff5a3d;
@@ -153,6 +159,7 @@
   --accent-foreground: #ffd9c2;
   --destructive: #ff5470;
   --success: #34d399;
+  --warning: #f59e0b;
   --border: #29272d;
   --input: #29272d;
   --ring: #ff5a3d;

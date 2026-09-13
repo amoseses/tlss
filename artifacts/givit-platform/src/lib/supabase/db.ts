@@ -369,7 +369,7 @@ export async function getPublicBoards() {
 
   const userIds = Array.from(new Set(boards.map((b: any) => b.user_id).filter(Boolean)));
   const { data: profiles } = userIds.length
-    ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
+    ? await supabase.from("public_profiles").select("id, full_name").in("id", userIds)
     : { data: [] as { id: string; full_name: string | null }[] };
   const nameById = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
 
@@ -410,9 +410,21 @@ export async function saveBoard(board: Record<string, unknown>) {
 
 export async function saveBoardsToDb(userId: string, boards: any[]) {
   const supabase = getDb();
-  // Save/update boards
-  for (const board of boards) {
-    await supabase.from("gift_boards").upsert({
+  // Callers must only pass boards this user actually owns -- boards.tsx's
+  // merged local list also holds other users' public boards (needed for
+  // the public gallery view), and re-upserting those here would stamp
+  // user_id: userId over their real owner. RLS's "auth.uid() = user_id"
+  // policy already blocks that at the DB layer (the existing row's owner
+  // fails the USING check), but filtering here avoids the wasted,
+  // silently-rejected requests and keeps this function's contract honest.
+  const ownBoards = boards.filter((b) => !b.ownerId || b.ownerId === userId);
+  if (ownBoards.length === 0) return;
+  // One batched upsert instead of one request per board -- this used to
+  // be N sequential round-trips for a user with N boards, and it runs on
+  // every single mutation (add an item, delete a board), not just bulk
+  // saves.
+  const { error } = await supabase.from("gift_boards").upsert(
+    ownBoards.map((board) => ({
       id: board.id,
       user_id: userId,
       title: board.title,
@@ -420,8 +432,15 @@ export async function saveBoardsToDb(userId: string, boards: any[]) {
       cover_image: board.coverImage,
       is_public: board.isPublic ?? false,
       likes: board.likes,
-    });
-  }
+    })),
+  );
+  if (error) throw error;
+}
+
+export async function deleteBoardFromDb(boardId: string) {
+  const supabase = getDb();
+  const { error } = await supabase.from("gift_boards").delete().eq("id", boardId);
+  return { error };
 }
 
 // ============================================================
@@ -464,7 +483,7 @@ export async function getBoardComments(boardId: string) {
 
   const userIds = Array.from(new Set(comments.map((c: any) => c.user_id).filter(Boolean)));
   const { data: profiles } = userIds.length
-    ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
+    ? await supabase.from("public_profiles").select("id, full_name").in("id", userIds)
     : { data: [] as { id: string; full_name: string | null }[] };
   const nameById = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
 
