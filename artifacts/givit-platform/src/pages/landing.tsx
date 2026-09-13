@@ -4,6 +4,7 @@ import { ArrowRight, Bell, ChevronDown, Gift, Heart, PackageCheck, PartyPopper, 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
+import { AmbientNetwork } from "@/components/ui/ambient-network";
 import { useScrollProgress } from "@/lib/hooks/use-scroll-progress";
 import { getMarketplaceProductBySlug } from "@/lib/data/marketplace";
 import { formatMoney } from "@/lib/format";
@@ -190,6 +191,11 @@ export default function LandingPage() {
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 py-16 text-center text-white">
       <div className="pointer-events-none absolute -left-24 top-0 h-[420px] w-[420px] animate-drift rounded-full bg-givit-ember/25 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-0 h-[420px] w-[420px] animate-drift-slow rounded-full bg-givit-coral/20 blur-3xl" />
+      {/* Toned down here specifically -- this hero already carries its own
+          established motif (floating gift/heart icons, typing cycle text),
+          so the network reads as a faint structural texture tying it to the
+          rest of the site rather than another competing layer of motion. */}
+      <AmbientNetwork className="opacity-40" />
 
       {FLOATING_ICONS.map(({ Icon, className, duration, delay }, i) => (
         <Icon
