@@ -193,6 +193,18 @@ const IMAGE_OVERRIDES: Record<string, string> = {
   "private-pottery-class": img("photo-1595351298020-038700609878"),
   "admin-sourced-pottery-wheel-session": img("photo-1595351298020-038700609878"),
   "cozymeal-cooking-class-credit": img("photo-1507048331197-7d4ac70811cf"),
+  // Sourced 2026-09-13 -- these "GIVIT Experiences" (generic, admin-sourced
+  // credit) products were cycling through the shared experiences image
+  // pool by array index, not by topic, and had landed on genuinely
+  // nonsensical photos: a spa massage for a sports ticket, a desk/keyboard
+  // setup for a museum membership, the exact same pottery-wheel photo
+  // already used for Private Pottery Wheel Class for a jazz club, and a
+  // wine-toast photo for a botanical garden.
+  "sports-ticket-credit": img("photo-1565483276060-e6730c0cc6a1"),
+  "museum-membership-credit": img("photo-1544213456-bc37cb97df74"),
+  "jazz-club-night": img("photo-1548163111-bc419d75fef4"),
+  "botanical-garden-membership": img("photo-1506277450472-30e3f3f55129"),
+  "chef-table-credit": img("photo-1565895405140-6b9830a88c19"),
   // Sourced 2026-09-07 from a background catalog scan flagging these as
   // named brand products still cycling a generic category stock photo.
   // Brand-site scrapes were blocked or thin for most of these; Amazon
