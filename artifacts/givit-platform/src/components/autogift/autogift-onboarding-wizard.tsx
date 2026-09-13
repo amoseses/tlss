@@ -453,6 +453,9 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
           {step === "payment" && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">You'll approve each purchase before any charge. Card details are handled directly by Stripe — they never touch GIVIT's own servers.</p>
+              <p className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+                <strong className="text-foreground">Not ready to add a card?</strong> That's fine — hit "Skip for now" below. AutoGift will still watch dates and send reminders; a card is only needed once you actually approve a purchase.
+              </p>
               {paymentFetching && !paymentClientSecret ? (
                 <div className="flex h-32 items-center justify-center rounded-lg border border-border/40">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-givit-ember border-t-transparent" />
@@ -557,9 +560,9 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
           </div>
           <div className="flex items-center gap-2">
             {(step === "address" || step === "payment") && (
-              <button type="button" onClick={skip} className="text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline">
+              <Button type="button" variant="outline" onClick={skip} className="rounded-md text-xs font-semibold">
                 Skip for now
-              </button>
+              </Button>
             )}
             {step !== "done" ? (
               <Button onClick={next} disabled={saving || (step === "payment" && !paymentReady)} className="rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
