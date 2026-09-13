@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Bookmark,
   Compass,
@@ -181,8 +181,23 @@ function MarketplaceFilters({ q, categorySlug, sortVal, occasion, ageGroup, minS
   maxStr: string;
 }) {
   const hasActiveFilters = Boolean(occasion) || Boolean(ageGroup) || Boolean(minStr) || Boolean(maxStr);
+  const [, navigate] = useLocation();
+  // A plain `<form method="get">` submit is a real browser navigation --
+  // full page reload, white flash, scroll reset to top -- since wouter only
+  // intercepts <Link> clicks, not native form submissions. Building the
+  // query string and pushing it through wouter keeps this a client-side
+  // route change instead.
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const params = new URLSearchParams();
+    for (const [key, value] of data.entries()) {
+      if (typeof value === "string" && value) params.set(key, value);
+    }
+    navigate(`/products?${params.toString()}`);
+  }
   return (
-    <form method="get" action="/products" className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {q ? <input type="hidden" name="q" value={q} /> : null}
       {categorySlug ? <input type="hidden" name="category" value={categorySlug} /> : null}
       <input type="hidden" name="sort" value={sortVal} />
@@ -241,6 +256,7 @@ function MarketplaceFilters({ q, categorySlug, sortVal, occasion, ageGroup, minS
 
 export default function ProductsPage() {
   const { get } = useSearchParams();
+  const [, navigate] = useLocation();
   const categorySlug = get("category") || undefined;
   const q = get("q") || undefined;
   const occasion = get("occasion") || undefined;
@@ -249,6 +265,18 @@ export default function ProductsPage() {
   const minStr = get("min") || "";
   const maxStr = get("max") || "";
   const forId = get("for") || undefined;
+
+  // Changing just one control (e.g. the sort dropdown) should carry every
+  // other active filter along with it, not silently drop them -- and stay
+  // a client-side route change (no full reload/white-flash/scroll-reset).
+  function navigateWithParams(overrides: Record<string, string | undefined>) {
+    const current: Record<string, string | undefined> = { q, category: categorySlug, occasion, age: ageGroup, sort: sortVal, min: minStr, max: maxStr, for: forId };
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries({ ...current, ...overrides })) {
+      if (value) params.set(key, value);
+    }
+    navigate(`/products?${params.toString()}`);
+  }
 
   const { user } = useAuth();
   const [savedPeople, setSavedPeople] = useState<ShoppingForPerson[]>([]);
@@ -458,7 +486,18 @@ export default function ProductsPage() {
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60 md:text-base">
               Search by recipient, occasion, budget, or category.
             </p>
-            <form action="/products" className="mt-7 flex max-w-2xl overflow-hidden rounded-full bg-card text-givit-ink shadow-xl">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                // A fresh search from the hero box replaces the view
+                // entirely (matches the old native-submit behavior, which
+                // only ever sent `q`) rather than layering onto whatever
+                // category/sort/filters happened to be active already.
+                const query = new FormData(e.currentTarget).get("q");
+                navigate(typeof query === "string" && query ? `/products?q=${encodeURIComponent(query)}` : "/products");
+              }}
+              className="mt-7 flex max-w-2xl overflow-hidden rounded-full bg-card text-givit-ink shadow-xl"
+            >
               <input
                 type="search"
                 name="q"
@@ -644,14 +683,12 @@ export default function ProductsPage() {
               {shoppingFor ? <span className="text-muted-foreground"> · sorted for {shoppingFor.name}'s interests</span> : null}
             </p>
             <div className="flex flex-wrap items-center gap-2">
-              <form method="get" className="flex items-center gap-2">
-                {q ? <input type="hidden" name="q" value={q} /> : null}
-                {categorySlug ? <input type="hidden" name="category" value={categorySlug} /> : null}
+              <div className="flex items-center gap-2">
                 <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
                 <select
                   name="sort"
-                  defaultValue={sortVal}
-                  onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                  value={sortVal}
+                  onChange={(e) => navigateWithParams({ sort: e.target.value })}
                   className="h-8 rounded-full border border-border/40 bg-card px-3 text-xs font-medium text-foreground outline-none"
                 >
                   <option value="shuffled">Explore Marketplace</option>
@@ -660,7 +697,7 @@ export default function ProductsPage() {
                   <option value="price_asc">Price: Low to High</option>
                   <option value="price_desc">Price: High to Low</option>
                 </select>
-              </form>
+              </div>
               <Link href="/gift" className="inline-flex items-center gap-1 text-sm font-semibold text-givit-ember hover:underline">
                 <Sparkles className="h-4 w-4" /> Ask Your Gift AI
               </Link>
