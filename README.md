@@ -31,7 +31,7 @@ Copy `artifacts/givit-platform/.env.example` to `artifacts/givit-platform/.env.l
 | `SUPABASE_URL` | Same project URL as `VITE_SUPABASE_URL`, without the `VITE_` prefix (used server-side by the notification cron). | `https://your-project.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key (Project Settings → API). Bypasses RLS — server-only, never expose to the client. | `eyJhbGci...` |
 | `AWS_REGION` / `AWS_S3_BUCKET` | AWS region and S3 bucket used to mint 5-minute presigned upload URLs so browsers can upload files directly to S3. | `us-east-1`, `your-bucket` |
-| `SES_FROM_EMAIL` | SES verified from-address for transactional email. AWS credentials are resolved server-side by the AWS SDK. | `Givit <notifications@yourdomain.com>` |
+| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Resend API key and verified from-address for all transactional email (AutoGift reminders, weekly digest, wishlist shares). | `re_...`, `GIVIT <outreach@yourdomain.com>` |
 | `CRON_SECRET` | Shared secret the notification-dispatch cron checks on its `Authorization: Bearer` header. | any long random string |
 
 Givit AI needs `GROQ_API_KEY` — see §5.
@@ -75,7 +75,8 @@ SUPABASE_URL=https://zbhumepxaywxnluapcbs.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 AWS_REGION=us-east-1
 AWS_S3_BUCKET=your-upload-bucket
-SES_FROM_EMAIL=Givit <notifications@yourdomain.com>
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=GIVIT <outreach@yourdomain.com>
 CRON_SECRET=...
 ```
 
