@@ -51,6 +51,12 @@ async function fetchListingsForCategory(apiKey, categorySlug, keywords) {
     keywords,
     limit: String(LISTINGS_PER_CATEGORY),
     sort_on: "score",
+    // Without this, Etsy returns each listing's price in whatever currency
+    // that specific shop prices in (many are EUR/GBP/CAD/etc, not USD) --
+    // listingToProductRow requires currency_code === "USD", so without a
+    // forced conversion, a shop mix skewed non-USD can silently fail that
+    // check for every single result with no error thrown anywhere.
+    currency: "USD",
   });
   const res = await fetch(`${ETSY_API_BASE}/listings/active?${params.toString()}`, {
     headers: { "x-api-key": apiKey },
@@ -85,8 +91,15 @@ async function fetchImagesAndShopsByIds(apiKey, listingIds) {
 }
 
 function listingToProductRow(listing, enrichment, categorySlug) {
-  const priceCents = centsFromEtsyPrice(listing.price);
-  if (listing.price?.currency_code !== "USD" || !priceCents || priceCents <= 0) return null;
+  // `price` is always the shop's own native currency (EUR/GBP/CAD/etc for
+  // plenty of real shops) regardless of the `currency` request param --
+  // Etsy only exposes the converted amount via the separate `converted_price`
+  // field, and only once that param is set. Falling back to `price` covers
+  // the rare case Etsy couldn't get a conversion rate.
+  const converted = listing.converted_price;
+  const priceCents = centsFromEtsyPrice(converted) ?? centsFromEtsyPrice(listing.price);
+  const currencyCode = converted?.currency_code ?? listing.price?.currency_code;
+  if (currencyCode !== "USD" || !priceCents || priceCents <= 0) return null;
 
   const images = Array.isArray(enrichment?.images) ? enrichment.images.map(bestImageUrl).filter(Boolean) : [];
   if (images.length === 0) return null;
