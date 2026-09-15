@@ -459,8 +459,14 @@
   to { background-position: 0 42px, 0 0; }
 }
 
-.ambient-grid-orb {
+/* Same technique as every other hero's background glow blob sitewide
+   (solid color, heavy blur, no visible edge) -- deliberately not a
+   sharp-edged circle with its own drop-shadow ring, which read as a
+   distinct floating "ball" rather than ambient light. */
+.ambient-grid-glow {
   position: absolute;
   border-radius: 9999px;
   transform: translate(-50%, -50%);
+  filter: blur(60px);
+  opacity: 0.35;
 }
