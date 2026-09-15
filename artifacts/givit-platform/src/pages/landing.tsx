@@ -4,7 +4,7 @@ import { ArrowRight, Bell, ChevronDown, Gift, Heart, PackageCheck, PartyPopper, 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
-import { AmbientGrid } from "@/components/ui/ambient-grid";
+import { AmbientParticles } from "@/components/ui/ambient-particles";
 import { useScrollProgress } from "@/lib/hooks/use-scroll-progress";
 import { getMarketplaceProductBySlug } from "@/lib/data/marketplace";
 import { formatMoney } from "@/lib/format";
@@ -195,7 +195,7 @@ export default function LandingPage() {
           established motif (floating gift/heart icons, typing cycle text),
           so the network reads as a faint structural texture tying it to the
           rest of the site rather than another competing layer of motion. */}
-      <AmbientGrid className="opacity-50" />
+      <AmbientParticles />
 
       {FLOATING_ICONS.map(({ Icon, className, duration, delay }, i) => (
         <Icon

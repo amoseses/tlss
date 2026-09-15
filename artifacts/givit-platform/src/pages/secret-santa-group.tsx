@@ -4,7 +4,7 @@ import { ArrowLeft, Gift, Trash2, UserPlus, Shuffle, Gem, Sparkles, ExternalLink
 import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
-import { AmbientGrid } from "@/components/ui/ambient-grid";
+import { AmbientParticles } from "@/components/ui/ambient-particles";
 import { useAuth } from "@/lib/auth/use-auth";
 import {
   getSecretSantaGroup,
@@ -172,7 +172,7 @@ export default function SecretSantaGroupPage() {
       <section className="relative mb-6 overflow-hidden rounded-3xl bg-black p-6 text-white shadow-xl md:p-8">
         <div className="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-givit-coral/25 blur-3xl" />
         <div className="pointer-events-none absolute -left-12 -bottom-8 h-48 w-48 rounded-full bg-givit-ember/20 blur-3xl" />
-        <AmbientGrid />
+        <AmbientParticles />
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className={`flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest ${group.status === "shuffled" ? "text-success" : "text-givit-coral"}`}>

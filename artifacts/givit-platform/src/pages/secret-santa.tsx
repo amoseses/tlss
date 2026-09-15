@@ -4,7 +4,7 @@ import { Gift, PlusCircle, Users, Sparkles, ShieldCheck, Shuffle, PartyPopper } 
 import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
-import { AmbientGrid } from "@/components/ui/ambient-grid";
+import { AmbientParticles } from "@/components/ui/ambient-particles";
 import { useAuth } from "@/lib/auth/use-auth";
 import { createSecretSantaGroup, listMySecretSantaGroups, type SecretSantaGroup } from "@/lib/supabase/secret-santa";
 
@@ -88,7 +88,7 @@ export default function SecretSantaPage() {
         <div className="pointer-events-none absolute -right-16 -top-24 h-80 w-80 rounded-full bg-givit-coral/25 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 -bottom-10 h-72 w-72 rounded-full bg-givit-ember/20 blur-3xl" />
         <div className="pointer-events-none absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
-        <AmbientGrid />
+        <AmbientParticles />
         <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] font-bold uppercase tracking-widest text-white/50">
