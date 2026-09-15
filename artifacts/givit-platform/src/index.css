@@ -435,20 +435,32 @@
 }
 .animate-badge-pop { animation: badge-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-/* AmbientNetwork's node/line motion -- a soft breathing glow per node
-   (staggered per-node via inline animation-delay) and a slow traveling
-   dash along each connecting line, so the network reads as quietly
-   "live" rather than a static diagram. */
-@keyframes ambient-network-node-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.55; }
-  50% { transform: scale(1.5); opacity: 1; }
+/* AmbientGrid: a perspective-transformed repeating grid, anchored to the
+   bottom of its container and faded out toward the top via mask-image, so
+   it reads as a lit floor receding into the distance rather than a flat
+   tiled pattern. background-position drifts slowly for a subtle "moving
+   forward" feel instead of a static grid sitting there. */
+.ambient-grid-floor {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--givit-ember) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--givit-ember) 45%, transparent) 1px, transparent 1px);
+  background-size: 42px 42px;
+  transform: perspective(420px) rotateX(62deg);
+  transform-origin: bottom center;
+  -webkit-mask-image: linear-gradient(to top, black 15%, transparent 85%);
+  mask-image: linear-gradient(to top, black 15%, transparent 85%);
+  opacity: 0.5;
+  animation: ambient-grid-drift 3.5s linear infinite;
 }
-.ambient-network-node { animation: ambient-network-node-pulse 4.5s ease-in-out infinite; }
+@keyframes ambient-grid-drift {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 0 42px, 0 0; }
+}
 
-@keyframes ambient-network-flow {
-  to { stroke-dashoffset: -12; }
-}
-.ambient-network-line {
-  stroke-dasharray: 1.2 3.5;
-  animation: ambient-network-flow 5s linear infinite;
+.ambient-grid-orb {
+  position: absolute;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
 }

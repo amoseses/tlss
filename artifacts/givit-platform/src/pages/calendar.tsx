@@ -11,7 +11,7 @@ import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
 import { GoogleCalendarConnect } from "@/components/calendar/google-calendar-connect";
 import { getHolidaysForRegion, SUPPORTED_REGIONS } from "@/lib/data/holidays";
 import { useUserRegion } from "@/lib/hooks/use-user-region";
-import { AmbientNetwork } from "@/components/ui/ambient-network";
+import { AmbientGrid } from "@/components/ui/ambient-grid";
 
 export default function CalendarPage() {
   const { user, profile, loading } = useAuth();
@@ -90,7 +90,7 @@ export default function CalendarPage() {
         <div className="relative overflow-hidden rounded-2xl bg-black px-6 py-16 text-center sm:px-12">
           <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-givit-ember/25 blur-3xl" />
           <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-givit-coral/20 blur-3xl" />
-          <AmbientNetwork />
+          <AmbientGrid />
           <div className="relative mx-auto flex max-w-lg flex-col items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl givit-gradient givit-glow">
               <CalendarDays className="h-6 w-6 text-white" />
