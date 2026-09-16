@@ -270,6 +270,7 @@ export default function AdminPage() {
   }
 
   async function handleRejectSubmission(id: string) {
+    if (!confirm("Reject this product submission?")) return;
     await updateProductSubmission(id, { status: "rejected", reviewed_by: user?.id });
     loadData();
   }
@@ -778,6 +779,7 @@ export default function AdminPage() {
                           disabled={chargingOrderId === order.id}
                           className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover"
                           onClick={async () => {
+                            if (!confirm(`Charge the saved card on file $${(order.total / 100).toFixed(2)} for this order? This is a real charge and can't be undone.`)) return;
                             setChargingOrderId(order.id);
                             setChargeErrors((prev) => { const next = { ...prev }; delete next[order.id]; return next; });
                             try {

@@ -35,7 +35,12 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (seedProduct || !slug) { setDbChecked(true); return; }
     let mounted = true;
-    fetchProductBySlug(slug).then((p) => { if (mounted) { setDbProduct(p); setDbChecked(true); } });
+    fetchProductBySlug(slug)
+      .then((p) => { if (mounted) { setDbProduct(p); setDbChecked(true); } })
+      .catch((err) => {
+        console.error("Failed to load product:", err);
+        if (mounted) setDbChecked(true);
+      });
     return () => { mounted = false; };
   }, [slug, seedProduct]);
 

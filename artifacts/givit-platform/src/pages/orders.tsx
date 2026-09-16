@@ -4,6 +4,7 @@ import { ShoppingBag, Sparkles, ArrowLeft, ExternalLink } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getUserOrders, getUserAutoGiftOrders } from "@/lib/supabase/db";
+import { formatMoney } from "@/lib/format";
 
 type UnifiedOrder = {
   id: string;
@@ -61,6 +62,8 @@ export default function OrdersPage() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const [orders, setOrders] = useState<UnifiedOrder[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) navigate("/login?next=/orders");
@@ -69,6 +72,7 @@ export default function OrdersPage() {
   useEffect(() => {
     if (!user) return;
     let mounted = true;
+    setLoadError(false);
     Promise.all([getUserOrders(user.id), getUserAutoGiftOrders(user.id)]).then(([marketplaceOrders, autoGiftOrders]) => {
       if (!mounted) return;
       const unified: UnifiedOrder[] = [
@@ -99,9 +103,12 @@ export default function OrdersPage() {
         })),
       ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setOrders(unified);
+    }).catch((err) => {
+      console.error("Failed to load orders:", err);
+      if (mounted) setLoadError(true);
     });
     return () => { mounted = false; };
-  }, [user]);
+  }, [user, reloadKey]);
 
   if (loading || !user) {
     return (
@@ -124,7 +131,12 @@ export default function OrdersPage() {
         <p className="mt-1 text-sm text-muted-foreground">Marketplace purchases and AutoGift orders, newest first.</p>
       </div>
 
-      {orders === null ? (
+      {loadError ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border py-16 text-center">
+          <p className="text-sm text-muted-foreground">Couldn't load your orders right now.</p>
+          <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-foreground hover:border-givit-ember/40">Try again</button>
+        </div>
+      ) : orders === null ? (
         <div className="flex min-h-[200px] items-center justify-center">
           <div className="h-6 w-6 animate-spin rounded-full border-4 border-givit-ember border-t-transparent" />
         </div>
@@ -176,7 +188,7 @@ export default function OrdersPage() {
                           </a>
                         )}
                       </span>
-                      <span className="shrink-0 font-medium text-foreground">${(item.priceCents / 100).toFixed(2)}</span>
+                      <span className="shrink-0 font-medium text-foreground">{formatMoney(item.priceCents)}</span>
                     </div>
                   ))}
                 </div>
@@ -188,7 +200,7 @@ export default function OrdersPage() {
 
               <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-3">
                 <span className="text-sm font-semibold text-foreground">Total</span>
-                <span className="font-bold text-givit-ember">${(order.totalCents / 100).toFixed(2)}</span>
+                <span className="font-bold text-givit-ember">{formatMoney(order.totalCents)}</span>
               </div>
             </div>
           ))}

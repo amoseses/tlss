@@ -1,6 +1,7 @@
 /// <reference path="../mjs-modules.d.ts" />
 import { randomUUID } from "node:crypto";
 import { getUploadUrl } from "../../server/api-lib/s3.mjs";
+import { getUserFromRequest } from "../../server/api-lib/auth.mjs";
 
 const MAX_FILE_NAME_LENGTH = 160;
 
@@ -16,6 +17,12 @@ function safeFileName(value: unknown) {
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  const user = await getUserFromRequest(req);
+  if (!user) {
+    res.status(401).json({ error: "Not signed in." });
     return;
   }
 

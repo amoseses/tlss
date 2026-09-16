@@ -1,7 +1,13 @@
+import { createClient } from "@/lib/supabase/client";
+
 export async function uploadFileToS3(file: File, prefix = "uploads") {
+  const { data } = await createClient().auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not signed in.");
+
   const res = await fetch("/api/upload/url", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ fileName: file.name, contentType: file.type || "application/octet-stream", prefix }),
   });
 

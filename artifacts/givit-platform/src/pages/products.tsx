@@ -296,6 +296,9 @@ export default function ProductsPage() {
         budgetCents: row.default_budget_cents ?? null,
       })));
       setPeopleReady(true);
+    }).catch((err) => {
+      console.error("Failed to load gift recipients:", err);
+      if (mounted) setPeopleReady(true);
     });
     return () => { mounted = false; };
   }, [user]);

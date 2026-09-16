@@ -100,18 +100,17 @@ export async function getGroupParticipants(groupId: string) {
 // Someone needs an existing GIVIT account before they can be added -- the
 // group only ever grants access to real accounts (get_my_secret_santa_recipient
 // matches on user_id = auth.uid()), so silently adding an email with no
-// account would create a slot nobody could ever claim or see. profiles is
-// public-select (see admin-schema.sql), so this lookup works for any
-// signed-in caller, not just admins.
+// account would create a slot nobody could ever claim or see. Goes through
+// the find_profile_by_email() RPC (see admin-schema.sql) rather than
+// querying profiles directly, since profiles is locked down to
+// own-row/admin-only -- the RPC only ever returns id/full_name, never the
+// stored email, since the caller already knows the email they typed.
 export async function findProfileByEmail(email: string) {
   const supabase = getDb();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, email, full_name")
-    .ilike("email", email.trim())
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("find_profile_by_email", { p_email: email.trim() });
   if (error) console.error("findProfileByEmail failed:", error.message);
-  return data as { id: string; email: string; full_name: string | null } | null;
+  const found = (data as { id: string; email: string; full_name: string | null }[] | null)?.[0];
+  return found ? { id: found.id, email: found.email, full_name: found.full_name } : null;
 }
 
 export async function addSecretSantaParticipant(params: { groupId: string; email: string; name: string; userId: string }) {

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
+import { toast } from "sonner";
 import { Bookmark, Grid3X3, Heart, ImagePlus, Plus, Share2, Sparkles, X, Camera, ExternalLink, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -15,7 +16,7 @@ import {
   type BoardImage,
   type UserBoard,
 } from "@/lib/boards/storage";
-import { getPublicBoards, getUserBoardsFromDb, saveBoardsToDb, addBoardItem, saveBoard, getBoardComments, addBoardComment, toggleBoardLike, getBoardLikeCounts, getUserLikedBoardIds } from "@/lib/supabase/db";
+import { getPublicBoards, getUserBoardsFromDb, saveBoardsToDb, deleteBoardFromDb, addBoardItem, saveBoard, getBoardComments, addBoardComment, toggleBoardLike, getBoardLikeCounts, getUserLikedBoardIds } from "@/lib/supabase/db";
 
 const LIKED_BOARDS_KEY = "givit-liked-board-ids";
 
@@ -38,6 +39,7 @@ function dbBoardToUserBoard(board: any): UserBoard {
     likes: board.likes ?? 0,
     liked: false,
     isPublic: board.is_public ?? true,
+    ownerId: board.user_id ?? undefined,
   };
 }
 
@@ -292,40 +294,55 @@ export default function BoardsPage() {
     if (!user && !authLoading) setActiveTabState("public");
   }, [user, authLoading]);
 
+  // Single loader for both the signed-out and signed-in cases -- these
+  // used to be two independent effects (one keyed on `[]`, one on
+  // `[user, authLoading]`) that both called setUserBoards with a different,
+  // incomplete picture. Whichever's request happened to resolve last won,
+  // so on a page load where the user was already signed in, a slow public-
+  // boards fetch in the "anonymous" effect could overwrite the correct
+  // (userBoardsData-included) state from the "signed-in" effect a moment
+  // later, making the user's own DB boards vanish from "My boards" until a
+  // refresh. One effect means one fetch, one state write, no race.
   useEffect(() => {
+    if (authLoading) return;
+    let cancelled = false;
     async function loadBoards() {
       const saved = mergeBoardLikes(readUserBoards());
-      try {
-        const publicBoards = (await getPublicBoards()).map(dbBoardToUserBoard);
-        const merged = mergeBoardLikes([...publicBoards, ...saved]);
-        const deduped = Array.from(new Map(merged.map((b) => [b.id, b])).values());
-        const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
-        setUserBoards(deduped.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
-      } catch {
-        const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
-        setUserBoards(saved.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
+      const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
+      if (!user) {
+        try {
+          const publicBoards = (await getPublicBoards()).map(dbBoardToUserBoard);
+          if (cancelled) return;
+          const merged = mergeBoardLikes([...publicBoards, ...saved]);
+          const deduped = Array.from(new Map(merged.map((b) => [b.id, b])).values());
+          setUserBoards(deduped.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
+        } catch {
+          if (cancelled) return;
+          setUserBoards(saved.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
+        }
+        return;
       }
-    }
-    void loadBoards();
-  }, []);
-
-  // Load user's gift boards from Supabase when logged in
-  useEffect(() => {
-    const userId = user?.id;
-    if (!userId || authLoading) return;
-    async function loadUserBoards() {
       try {
-        const userBoardsData = (await getUserBoardsFromDb(userId as string)).map(dbBoardToUserBoard);
-        const publicBoards = (await getPublicBoards()).map(dbBoardToUserBoard);
-        const localStorageBoards = readUserBoards();
+        const [userBoardsData, publicBoards] = await Promise.all([
+          getUserBoardsFromDb(user.id).then((rows) => rows.map(dbBoardToUserBoard)),
+          getPublicBoards().then((rows) => rows.map(dbBoardToUserBoard)),
+        ]);
+        if (cancelled) return;
+        // Local-only boards predate this browser session's login (or were
+        // never synced), so they belong to whoever's signed in now.
+        const localStorageBoards = saved.map((b) => ({ ...b, ownerId: b.ownerId ?? user.id }));
         const merged = mergeBoardLikes([...publicBoards, ...userBoardsData, ...localStorageBoards]);
-        const likedIds = new Set(JSON.parse(window.localStorage.getItem(LIKED_BOARDS_KEY) ?? "[]") as string[]);
-        setUserBoards(merged.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
+        // De-dupe by id (a board can be both "public" and "mine") -- later
+        // entries win, so userBoardsData's copy (correct ownerId) overrides
+        // the publicBoards copy of the same board.
+        const deduped = Array.from(new Map(merged.map((b) => [b.id, b])).values());
+        setUserBoards(deduped.map((b) => ({ ...b, liked: likedIds.has(b.id) })));
       } catch (err) {
         console.error("Failed to load boards:", err);
       }
     }
-    loadUserBoards();
+    void loadBoards();
+    return () => { cancelled = true; };
   }, [user, authLoading]);
 
   // Load real (server-side) like count/status and comments whenever a board is opened.
@@ -365,32 +382,45 @@ export default function BoardsPage() {
   }
 
   async function persistBoards(boards: UserBoard[]) {
+    const previous = userBoards;
     setUserBoards(boards);
     writeUserBoards(boards.map(({ liked, ...rest }) => ({ ...rest, liked: false })));
     if (user) {
       try {
-        await saveBoardsToDb(user.id, boards);
+        // Only ever send boards this user owns -- `boards` here is the
+        // merged local list, which also holds other users' public boards.
+        await saveBoardsToDb(user.id, boards.filter((b) => !b.ownerId || b.ownerId === user.id));
       } catch (err) {
         console.error("Failed to save boards to DB:", err);
+        toast.error("Couldn't save your changes. Please try again.");
+        // Roll back the optimistic update -- it's already visible on
+        // screen and written to localStorage, but the DB save never
+        // actually went through, so leaving it in place would make the
+        // board list drift from what's actually persisted.
+        setUserBoards(previous);
+        writeUserBoards(previous.map(({ liked, ...rest }) => ({ ...rest, liked: false })));
       }
     }
   }
 
   async function createBoard(b: UserBoard) {
-    const newBoard = { ...b, isPublic: true };
+    const newBoard = { ...b, isPublic: true, ownerId: user?.id };
     if (user) {
       try {
-        const { data } = await saveBoard({ 
-          user_id: user.id, 
-          title: b.title, 
-          description: b.description, 
+        const { data, error } = await saveBoard({
+          user_id: user.id,
+          title: b.title,
+          description: b.description,
           cover_image: b.coverImage,
           is_public: true,
-          likes: b.likes 
+          likes: b.likes
         });
+        if (error) throw error;
         if (data?.id) newBoard.id = data.id;
       } catch (err) {
         console.error("Failed to save board to DB:", err);
+        toast.error("Couldn't create that board. Please try again.");
+        return;
       }
     }
     await persistBoards([...userBoards, newBoard]);
@@ -398,34 +428,52 @@ export default function BoardsPage() {
     setActiveTab("mine");
   }
 
-  function deleteBoard(id: string) {
-    persistBoards(userBoards.filter((b) => b.id !== id));
+  async function deleteBoard(id: string) {
+    if (!confirm("Delete this board? This can't be undone.")) return;
+    const board = userBoards.find((b) => b.id === id);
+    if (user && board?.ownerId && board.ownerId !== user.id) return; // not yours to delete
+    if (user) {
+      const { error } = await deleteBoardFromDb(id);
+      if (error) {
+        console.error("Failed to delete board:", error);
+        toast.error("Couldn't delete that board. Please try again.");
+        return;
+      }
+    }
+    setUserBoards((prev) => {
+      const next = prev.filter((b) => b.id !== id);
+      writeUserBoards(next.map(({ liked, ...rest }) => ({ ...rest, liked: false })));
+      return next;
+    });
     if (selectedBoardId === id) setSelectedBoardId(null);
   }
 
   async function addImageToBoard(img: BoardImage) {
     if (!selectedBoardId) return;
-    
+
     if (user) {
       try {
-        await addBoardItem({
+        const { error } = await addBoardItem({
           board_id: selectedBoardId,
           item_type: "product",
           image_url: img.src,
           caption: img.caption,
           metadata: { description: img.description },
         });
+        if (error) throw error;
       } catch (err) {
         console.error("Failed to save product to DB:", err);
+        toast.error("Couldn't save that item. Please try again.");
+        return;
       }
     }
-    
+
     persistBoards(userBoards.map((b) => b.id === selectedBoardId ? { ...b, images: [...b.images, img] } : b));
   }
 
   async function addProductToBoard(product: typeof MARKETPLACE_PRODUCTS[0]) {
     if (!selectedBoardId) return;
-    
+
     const imgSrc = resolveProductImageSrc(product.id, product.images ?? []);
     const priceCents = (product as any).priceCents ?? (product as any).price_cents ?? 0;
 
@@ -437,10 +485,10 @@ export default function BoardsPage() {
       productUrl: product.affiliate_url ?? undefined,
       kind: "product",
     };
-    
+
     if (user) {
       try {
-        await addBoardItem({
+        const { error } = await addBoardItem({
           board_id: selectedBoardId,
           item_type: "product",
           product_slug: product.slug,
@@ -450,11 +498,14 @@ export default function BoardsPage() {
           caption: product.name,
           metadata: { description: product.description, product_url: product.affiliate_url },
         });
+        if (error) throw error;
       } catch (err) {
         console.error("Failed to save product to DB:", err);
+        toast.error("Couldn't save that product. Please try again.");
+        return;
       }
     }
-    
+
     persistBoards(userBoards.map((b) => b.id === selectedBoardId ? { ...b, images: [...b.images, productImage] } : b));
     setShowAddProduct(false);
     setProductSearchQuery("");
@@ -469,6 +520,11 @@ export default function BoardsPage() {
   }
 
   const selectedBoard = userBoards.find((b) => b.id === selectedBoardId);
+  // The merged `userBoards` list holds every public board (any owner) plus
+  // this user's own -- "My boards" must only ever show boards this user
+  // actually owns, or anyone signed in sees (and gets a delete button for)
+  // everyone else's public boards too.
+  const myBoards = userBoards.filter((b) => !user || !b.ownerId || b.ownerId === user.id);
   // Empty boards aren't useful to anyone browsing public boards — a board
   // can still have a coverImage here even with zero items, since
   // CreateBoardModal auto-generates a random placeholder cover when none is
@@ -570,7 +626,7 @@ export default function BoardsPage() {
               Public boards
             </button>
             <button type="button" onClick={() => setActiveTab("mine")} className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${activeTab === "mine" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-              My boards {userBoards.length > 0 && <span className="ml-1 rounded-full bg-givit-ember/10 px-1.5 py-0.5 text-xs text-givit-ember">{userBoards.length}</span>}
+              My boards {myBoards.length > 0 && <span className="ml-1 rounded-full bg-givit-ember/10 px-1.5 py-0.5 text-xs text-givit-ember">{myBoards.length}</span>}
             </button>
           </div>
         )}
@@ -629,7 +685,7 @@ export default function BoardsPage() {
 
       {activeTab === "mine" && (
         <>
-          {userBoards.length === 0 ? (
+          {myBoards.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-20 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-givit-ember/10"><Bookmark className="h-6 w-6 text-givit-ember" /></div>
               <p className="mt-4 font-serif text-xl font-bold text-givit-ink">No boards yet</p>
@@ -713,7 +769,7 @@ export default function BoardsPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-                {userBoards.map((b) => (
+                {myBoards.map((b) => (
                   <BoardCard
                     key={b.id}
                     board={b}
