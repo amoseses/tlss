@@ -1,8 +1,12 @@
 /// <reference path="../mjs-modules.d.ts" />
 import { randomUUID } from "node:crypto";
-import { getUploadUrl } from "../../server/api-lib/s3.mjs";
+import { uploadFileDirect } from "../../server/api-lib/s3.mjs";
 
 const MAX_FILE_NAME_LENGTH = 160;
+// Vercel serverless functions cap request bodies around 4.5MB; the client
+// resizes images before base64-encoding them, but this is the server-side
+// backstop against anything unexpectedly large getting through.
+const MAX_BASE64_LENGTH = 6_000_000;
 
 function safeFileName(value: unknown) {
   if (typeof value !== "string" || !value.trim()) return "upload";
@@ -19,9 +23,17 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const { fileName, contentType, prefix = "uploads" } = req.body ?? {};
+  const { fileName, contentType, prefix = "uploads", dataBase64 } = req.body ?? {};
   if (typeof contentType !== "string" || !contentType.trim()) {
     res.status(400).json({ error: "contentType is required." });
+    return;
+  }
+  if (typeof dataBase64 !== "string" || !dataBase64) {
+    res.status(400).json({ error: "dataBase64 is required." });
+    return;
+  }
+  if (dataBase64.length > MAX_BASE64_LENGTH) {
+    res.status(413).json({ error: "That file is too large." });
     return;
   }
 
@@ -29,10 +41,11 @@ export default async function handler(req: any, res: any) {
   const key = `${normalizedPrefix}/${randomUUID()}-${safeFileName(fileName)}`;
 
   try {
-    const uploadUrl = await getUploadUrl(key, contentType.trim());
-    res.status(200).json({ uploadUrl, key });
+    const buffer = Buffer.from(dataBase64, "base64");
+    const url = await uploadFileDirect(key, contentType.trim(), buffer);
+    res.status(200).json({ url, key });
   } catch (error: any) {
-    console.error("S3 upload URL creation failed:", error?.message);
-    res.status(502).json({ error: "Couldn't create an upload URL right now." });
+    console.error("S3 upload failed:", error?.message);
+    res.status(502).json({ error: "Couldn't upload the file right now." });
   }
 }

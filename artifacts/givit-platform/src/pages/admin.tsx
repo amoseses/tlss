@@ -76,6 +76,7 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [etsySyncing, setEtsySyncing] = useState(false);
   const [etsySyncMessage, setEtsySyncMessage] = useState("");
+  const [etsySyncErrors, setEtsySyncErrors] = useState<string[]>([]);
 
   useEffect(() => {
     // The auth profile is cached from login; re-fetch on mount so a role
@@ -149,6 +150,7 @@ export default function AdminPage() {
   async function syncFromEtsy() {
     setEtsySyncing(true);
     setEtsySyncMessage("");
+    setEtsySyncErrors([]);
     try {
       const res = await authedFetch("/api/metadata?action=etsy_sync", { method: "POST" });
       const data = await res.json().catch(() => ({}));
@@ -158,6 +160,10 @@ export default function AdminPage() {
       }
       const errorNote = data.errors?.length ? ` (${data.errors.length} categor${data.errors.length === 1 ? "y" : "ies"} failed)` : "";
       setEtsySyncMessage(`Synced ${data.synced} listing${data.synced === 1 ? "" : "s"} from Etsy.${errorNote}`);
+      // The count alone gives no way to actually diagnose a failure --
+      // show the real per-category error text so "11 categories failed"
+      // doesn't require opening DevTools to find out why.
+      if (Array.isArray(data.errors)) setEtsySyncErrors(data.errors);
       loadData();
     } catch (err: any) {
       setEtsySyncMessage(err?.message || "Etsy sync failed.");
@@ -363,6 +369,11 @@ export default function AdminPage() {
             </Button>
           </div>
           {etsySyncMessage && <p className="text-xs text-muted-foreground">{etsySyncMessage}</p>}
+          {etsySyncErrors.length > 0 && (
+            <div className="space-y-1 rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
+              {etsySyncErrors.map((err, i) => <p key={i}>{err}</p>)}
+            </div>
+          )}
 
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-sm">

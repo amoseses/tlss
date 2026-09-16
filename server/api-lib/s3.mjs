@@ -1,21 +1,27 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-
-const UPLOAD_URL_EXPIRES_SECONDS = 300;
 
 const s3 = new S3Client({ region: process.env.AWS_REGION });
 
-export async function getUploadUrl(key, contentType) {
+function bucketName() {
   const bucket = process.env.AWS_S3_BUCKET;
   if (!process.env.AWS_REGION || !bucket) {
     throw new Error("AWS_REGION / AWS_S3_BUCKET are not configured on the server.");
   }
+  return bucket;
+}
 
-  const command = new PutObjectCommand({
+// Uploads the file server-side and hands back its public URL, rather than
+// a presigned URL for the browser to PUT to directly -- a direct-from-
+// browser PUT is a cross-origin request the S3 bucket's own CORS config
+// has to explicitly allow, which was a recurring point of failure. A
+// server-to-server PutObjectCommand has no CORS layer to misconfigure.
+export async function uploadFileDirect(key, contentType, buffer) {
+  const bucket = bucketName();
+  await s3.send(new PutObjectCommand({
     Bucket: bucket,
     Key: key,
+    Body: buffer,
     ContentType: contentType,
-  });
-
-  return getSignedUrl(s3, command, { expiresIn: UPLOAD_URL_EXPIRES_SECONDS });
+  }));
+  return `https://${bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 }
