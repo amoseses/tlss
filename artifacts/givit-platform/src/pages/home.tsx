@@ -143,14 +143,16 @@ export default function HomePage() {
       )}
 
       {/* People dashboard — the actual front door for returning, logged-in users */}
-      <PeopleDashboard />
+      <div id="tour-people">
+        <PeopleDashboard />
+      </div>
 
       {/* Visual map of who GIVIT remembers, right after the people it's about --
           a faint tint here (rather than the bare page background) is what
           actually separates it from the sections above and below; without
           it the whole run from the people grid through relationship
           intelligence reads as one undifferentiated scroll. */}
-      <div className="bg-givit-sand/30">
+      <div id="tour-graph" className="bg-givit-sand/30">
         <RelationshipGraph />
       </div>
 
