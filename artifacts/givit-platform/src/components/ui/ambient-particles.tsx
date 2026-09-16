@@ -31,14 +31,30 @@ const BOW_FRACTION = 0.16; // most particles are ribbon streaks; a few are small
 const EMBER_RGB = "255, 90, 61"; // --givit-ember
 const AMBER_RGB = "255, 176, 0"; // --chart-3
 
-function drawRibbon(ctx: CanvasRenderingContext2D, p: Particle) {
+// A gradient stroke (transparent -> bright -> transparent along the
+// ribbon's own length) plus a soft shadowBlur glow, rather than a flat
+// solid-color line -- this is what actually reads as "holographic sheen"
+// rather than a plain colored streak. shadowBlur is reset immediately
+// after stroking so it doesn't bleed into the next frame's trail-fade
+// fillRect.
+function drawRibbon(ctx: CanvasRenderingContext2D, p: Particle, rgb: string) {
   const sway = Math.sin(p.swayPhase) * p.swayAmount;
+  const x1 = p.x;
+  const y1 = p.y + p.length;
+  const gradient = ctx.createLinearGradient(p.x, p.y, x1, y1);
+  gradient.addColorStop(0, `rgba(${rgb}, 0)`);
+  gradient.addColorStop(0.5, `rgba(${rgb}, ${p.opacity})`);
+  gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+  ctx.strokeStyle = gradient;
+  ctx.shadowColor = `rgba(${rgb}, ${p.opacity * 0.7})`;
+  ctx.shadowBlur = 3;
   ctx.beginPath();
   ctx.moveTo(p.x, p.y);
   // A gentle S-curve rather than a straight line -- this alone is most of
   // what reads as "fluttering ribbon" instead of "falling rain streak".
-  ctx.quadraticCurveTo(p.x + sway, p.y + p.length / 2, p.x, p.y + p.length);
+  ctx.quadraticCurveTo(p.x + sway, p.y + p.length / 2, x1, y1);
   ctx.stroke();
+  ctx.shadowBlur = 0;
 }
 
 // Two thin open loops meeting at a small center knot -- stroked, not
@@ -117,10 +133,11 @@ export function AmbientParticles({ className = "" }: { className?: string }) {
     resizeObserver.observe(parent);
 
     function draw(p: Particle) {
-      ctx!.strokeStyle = `rgba(${p.hue === "ember" ? EMBER_RGB : AMBER_RGB}, ${p.opacity})`;
+      const rgb = p.hue === "ember" ? EMBER_RGB : AMBER_RGB;
+      ctx!.strokeStyle = `rgba(${rgb}, ${p.opacity})`;
       ctx!.lineWidth = 1.4;
       if (p.isBow) drawBow(ctx!, p);
-      else drawRibbon(ctx!, p);
+      else drawRibbon(ctx!, p, rgb);
     }
 
     if (reduceMotion) {

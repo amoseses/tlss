@@ -139,8 +139,15 @@ async function collectRowsForCategory(apiKey, categorySlug, keywords) {
  * category's Etsy call failing shouldn't block the rest from syncing.
  */
 export async function collectEtsyProductRows() {
-  const apiKey = process.env.ETSY_API_KEY;
-  if (!apiKey) throw new Error("ETSY_API_KEY is not configured on the server.");
+  const keystring = process.env.ETSY_API_KEY;
+  const sharedSecret = process.env.ETSY_SHARED_SECRET;
+  if (!keystring) throw new Error("ETSY_API_KEY is not configured on the server.");
+  if (!sharedSecret) throw new Error("ETSY_SHARED_SECRET is not configured on the server.");
+  // Etsy's own docs describe this format ("keystring:shared_secret") but
+  // don't make clear it's actually enforced for these endpoints -- it is:
+  // the keystring alone got a 403 "Shared secret is required in x-api-key
+  // header" on every single category.
+  const apiKey = `${keystring}:${sharedSecret}`;
 
   const rows = [];
   const errors = [];

@@ -45,7 +45,12 @@ export default async function handler(req: any, res: any) {
     const url = await uploadFileDirect(key, contentType.trim(), buffer);
     res.status(200).json({ url, key });
   } catch (error: any) {
+    // Surfaced verbatim (not a generic message) -- AWS SDK errors here are
+    // descriptive ("Access Denied", "The specified bucket does not
+    // exist", a missing-credentials message) and not secret-leaking, and
+    // there's no way to check Vercel's function logs directly, so a vague
+    // "couldn't upload" here would just be another dead end to debug.
     console.error("S3 upload failed:", error?.message);
-    res.status(502).json({ error: "Couldn't upload the file right now." });
+    res.status(502).json({ error: error?.message ? `Upload failed: ${error.message}` : "Couldn't upload the file right now." });
   }
 }
