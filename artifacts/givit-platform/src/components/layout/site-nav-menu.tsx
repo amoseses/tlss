@@ -32,7 +32,6 @@ export function SiteNavMenu({ categories, isSeller }: Props) {
         <DropdownMenuLabel className="font-serif text-base">Browse</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate("/products")}>Marketplace</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/boards")}>Gift Boards</DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate("/concierge")}>AutoGift</DropdownMenuItem>
         {categories.length > 0 ? <DropdownMenuSeparator /> : null}
         {categories.map((c) => (
