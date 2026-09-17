@@ -230,7 +230,7 @@ function PaymentCard({ stripePublishableKey, paymentReady }: { stripePublishable
         {stripePublishableKey ? (
           <Elements stripe={getStripePromise(stripePublishableKey)}><StripeSetupForm paymentReady={paymentReady} /></Elements>
         ) : (
-          <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to enable Stripe Elements.</p>
+          <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">Set VITE_STRIPE_PUBLISHABLE_KEY to enable Stripe Elements.</p>
         )}
       </CardContent>
     </Card>

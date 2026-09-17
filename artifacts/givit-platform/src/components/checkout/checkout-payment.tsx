@@ -1,20 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { CardElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { getClientStripeKey } from "@/lib/commerce/stripe-checkout";
+import { getStripePromise, hasStripePublishableKey } from "@/lib/stripe/client";
 import type { CheckoutQuote } from "@/lib/commerce/types";
-
-// ── Stripe promise cache ──────────────────────────────────────────
-const stripePromises = new Map<string, ReturnType<typeof loadStripe>>();
-
-function getStripePromise(key: string) {
-  if (!stripePromises.has(key)) stripePromises.set(key, loadStripe(key));
-  return stripePromises.get(key)!;
-}
 
 // ── Types ─────────────────────────────────────────────────────────
 type CheckoutPaymentProps = {
@@ -28,18 +19,16 @@ type CheckoutPaymentProps = {
 
 // ── Public component (wraps in Stripe Elements) ───────────────────
 export function CheckoutPayment(props: CheckoutPaymentProps) {
-  const publishableKey = getClientStripeKey();
-
-  if (!publishableKey) {
+  if (!hasStripePublishableKey()) {
     return (
       <div className="rounded-2xl border border-amber-300 bg-amber-50 p-6 text-center text-sm text-amber-800">
-        Stripe is not configured. Set <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> to enable payments.
+        Stripe is not configured. Set <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">VITE_STRIPE_PUBLISHABLE_KEY</code> to enable payments.
       </div>
     );
   }
 
   return (
-    <Elements stripe={getStripePromise(publishableKey)}>
+    <Elements stripe={getStripePromise()}>
       <CheckoutPaymentForm {...props} />
     </Elements>
   );

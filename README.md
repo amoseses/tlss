@@ -22,7 +22,7 @@ Copy `artifacts/givit-platform/.env.example` to `artifacts/givit-platform/.env.l
 | `VITE_SUPABASE_URL` | Supabase project URL | `https://your-project.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon/public key | `eyJhbGci...` |
 | `STRIPE_SECRET_KEY` | Stripe secret key (for server) | `sk_live_...` |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key | `pk_live_...` |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (this is a Vite app, not Next.js — `VITE_` is the prefix Vite actually inlines into the browser bundle) | `pk_live_...` |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | `whsec_...` |
 | `SHIPPO_API_TOKEN` | Shippo API token (shipping) | `shippo_...` |
 | `NEXT_PUBLIC_APP_URL` | Base URL of your deployed app | `https://your-app.vercel.app` |

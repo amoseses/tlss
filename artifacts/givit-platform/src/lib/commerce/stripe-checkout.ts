@@ -1,5 +1,4 @@
 import { getStripe } from "@/lib/stripe";
-import { getStripePublishableKey } from "@/lib/env/commerce";
 import type { ConciergeApproval, GiftBundleItem } from "@/lib/gifting/concierge";
 
 /**
@@ -183,11 +182,4 @@ export async function createBundleCheckout(input: {
       bundle_item_count: String(input.items.length),
     },
   });
-}
-
-/**
- * Returns the Stripe publishable key for client-side usage.
- */
-export function getClientStripeKey(): string {
-  return getStripePublishableKey();
 }
