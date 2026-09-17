@@ -67,7 +67,7 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthShell title="Gift better, effortlessly." subtitle="Create your account to set up AutoGift reminders, save boards, and get AI picks tuned to your people.">
+    <AuthShell title="Gift better, effortlessly." subtitle="Create your account to set up AutoGift reminders, save a wishlist, and get AI picks tuned to your people.">
       <Card className="givit-panel rounded-2xl shadow-md">
         <CardHeader>
           <CardTitle className="text-2xl font-normal">Create account</CardTitle>

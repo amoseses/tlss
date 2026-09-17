@@ -38,7 +38,6 @@ export function SiteFooter() {
               <li><Link href="/products" className="transition-colors hover:text-foreground">Marketplace</Link></li>
               <li><Link href="/gift" className="transition-colors hover:text-foreground">Your Gift AI</Link></li>
               <li><Link href="/concierge" className="transition-colors hover:text-foreground">AutoGift</Link></li>
-              <li><Link href="/boards" className="transition-colors hover:text-foreground">Gift Boards</Link></li>
               <li><Link href="/about" className="transition-colors hover:text-foreground">About</Link></li>
             </ul>
           </div>

@@ -673,13 +673,13 @@ export default function AccountPage() {
             <p className="text-xs text-muted-foreground">Add a gift for admin approval</p>
           </div>
         </Link>
-        <Link href="/boards" className="slide-up givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:-translate-y-0.5 hover:border-givit-ember/30">
+        <Link href="/wishlist" className="slide-up givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:-translate-y-0.5 hover:border-givit-ember/30">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-givit-ember/10">
             <Star className="h-5 w-5 text-givit-ember" />
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-givit-ink">Gift Boards</p>
-            <p className="text-xs text-muted-foreground">Your curated boards</p>
+            <p className="font-semibold text-givit-ink">Wishlist</p>
+            <p className="text-xs text-muted-foreground">Products you've saved</p>
           </div>
         </Link>
         <Link href="/secret-santa" className="slide-up givit-panel flex min-w-0 items-center gap-3 p-4 transition hover:-translate-y-0.5 hover:border-givit-ember/30">

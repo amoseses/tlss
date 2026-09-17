@@ -26,7 +26,6 @@ import AuthCallbackPage from "@/pages/auth-callback";
 import ConciergePage from "@/pages/concierge";
 import CalendarPage from "@/pages/calendar";
 import PeoplePage from "@/pages/people";
-import BoardsPage from "@/pages/boards";
 import FeedbackPage from "@/pages/feedback";
 import BetaTesterSurveyPage from "@/pages/beta-tester-survey";
 import SubmitProductPage from "@/pages/submit-product";
@@ -138,7 +137,6 @@ function Router() {
           <Route path="/concierge" component={ConciergePage} />
           <Route path="/calendar" component={CalendarPage} />
           <Route path="/people" component={PeoplePage} />
-          <Route path="/boards" component={BoardsPage} />
           <Route path="/feedback" component={FeedbackPage} />
           <Route path="/beta-tester-survey" component={BetaTesterSurveyPage} />
           <Route path="/submit-product" component={SubmitProductPage} />
