@@ -451,56 +451,77 @@ ALTER TABLE secret_santa_assignments ENABLE ROW LEVEL SECURITY;
 -- ============================================================
 
 -- PROFILES
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
 CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Admins can update any profile" ON profiles;
 CREATE POLICY "Admins can update any profile" ON profiles FOR UPDATE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 -- CATEGORIES
+DROP POLICY IF EXISTS "Categories are viewable by everyone" ON categories;
 CREATE POLICY "Categories are viewable by everyone" ON categories FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admins can manage categories" ON categories;
 CREATE POLICY "Admins can manage categories" ON categories FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 -- PRODUCTS
+DROP POLICY IF EXISTS "Published products are viewable by everyone" ON products;
 CREATE POLICY "Published products are viewable by everyone" ON products FOR SELECT USING (is_published = true OR is_approved = true);
+DROP POLICY IF EXISTS "Admins can manage all products" ON products;
 CREATE POLICY "Admins can manage all products" ON products FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+DROP POLICY IF EXISTS "Sellers can manage their own products" ON products;
 CREATE POLICY "Sellers can manage their own products" ON products FOR ALL USING (auth.uid() = seller_id);
 
 -- ORDERS
+DROP POLICY IF EXISTS "Users can view their own orders" ON orders;
 CREATE POLICY "Users can view their own orders" ON orders FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Admins can view all orders" ON orders;
 CREATE POLICY "Admins can view all orders" ON orders FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 -- GIFT RECIPIENTS
+DROP POLICY IF EXISTS "Users can manage their own recipients" ON gift_recipients;
 CREATE POLICY "Users can manage their own recipients" ON gift_recipients FOR ALL USING (auth.uid() = user_id);
 
 -- GIFT OCCASIONS
+DROP POLICY IF EXISTS "Users can manage their own occasions" ON gift_occasions;
 CREATE POLICY "Users can manage their own occasions" ON gift_occasions FOR ALL USING (auth.uid() = user_id);
 
 -- GIFT NOTIFICATIONS
+DROP POLICY IF EXISTS "Users can view their own notifications" ON gift_notifications;
 CREATE POLICY "Users can view their own notifications" ON gift_notifications FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can create their own notifications" ON gift_notifications;
 CREATE POLICY "Users can create their own notifications" ON gift_notifications FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update their own notifications" ON gift_notifications;
 CREATE POLICY "Users can update their own notifications" ON gift_notifications FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Admins can manage all notifications" ON gift_notifications;
 CREATE POLICY "Admins can manage all notifications" ON gift_notifications FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 -- GIFT APPROVALS
+DROP POLICY IF EXISTS "Users can manage their own approvals" ON gift_approvals;
 CREATE POLICY "Users can manage their own approvals" ON gift_approvals FOR ALL USING (auth.uid() = user_id);
 
 -- FEEDBACK
+DROP POLICY IF EXISTS "Anyone can insert feedback" ON feedback;
 CREATE POLICY "Anyone can insert feedback" ON feedback FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Admins can view feedback" ON feedback;
 CREATE POLICY "Admins can view feedback" ON feedback FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 -- AI LEARNING
+DROP POLICY IF EXISTS "Users can manage their own learning" ON ai_learning;
 CREATE POLICY "Users can manage their own learning" ON ai_learning FOR ALL USING (auth.uid() = user_id);
 
 -- PRODUCT SUBMISSIONS
@@ -514,28 +535,39 @@ CREATE POLICY "Admins can manage submissions" ON product_submissions FOR ALL USI
 );
 
 -- ANALYTICS
+DROP POLICY IF EXISTS "Admins can view analytics" ON analytics_events;
 CREATE POLICY "Admins can view analytics" ON analytics_events FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+DROP POLICY IF EXISTS "Anyone can insert analytics" ON analytics_events;
 CREATE POLICY "Anyone can insert analytics" ON analytics_events FOR INSERT WITH CHECK (true);
 
 -- USER ADDRESSES
+DROP POLICY IF EXISTS "Users can manage their own addresses" ON user_addresses;
 CREATE POLICY "Users can manage their own addresses" ON user_addresses FOR ALL USING (auth.uid() = user_id);
 
 -- USER PAYMENT METHODS
+DROP POLICY IF EXISTS "Users can manage their own payment methods" ON user_payment_methods;
 CREATE POLICY "Users can manage their own payment methods" ON user_payment_methods FOR ALL USING (auth.uid() = user_id);
 
 -- WISHLIST
+DROP POLICY IF EXISTS "Users can manage their own wishlist" ON wishlist_items;
 CREATE POLICY "Users can manage their own wishlist" ON wishlist_items FOR ALL USING (auth.uid() = user_id);
 
--- GIFT BOARDS
+-- GIFT BOARDS (tables/policies kept for existing rows -- the app no longer
+-- links to /boards, see the PR that removed the page, but these were never
+-- dropped from the live database)
+DROP POLICY IF EXISTS "Public boards are viewable by everyone" ON gift_boards;
 CREATE POLICY "Public boards are viewable by everyone" ON gift_boards FOR SELECT USING (is_public = true OR auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can manage their own boards" ON gift_boards;
 CREATE POLICY "Users can manage their own boards" ON gift_boards FOR ALL USING (auth.uid() = user_id);
 
 -- GIFT BOARD ITEMS
+DROP POLICY IF EXISTS "Board items are viewable with board" ON gift_board_items;
 CREATE POLICY "Board items are viewable with board" ON gift_board_items FOR SELECT USING (
   EXISTS (SELECT 1 FROM gift_boards WHERE id = board_id AND (is_public = true OR user_id = auth.uid()))
 );
+DROP POLICY IF EXISTS "Users can manage their own board items" ON gift_board_items;
 CREATE POLICY "Users can manage their own board items" ON gift_board_items FOR ALL USING (
   EXISTS (SELECT 1 FROM gift_boards WHERE id = board_id AND user_id = auth.uid())
 );
