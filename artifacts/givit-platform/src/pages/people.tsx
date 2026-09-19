@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { ArrowRight, Bell, CalendarPlus, Flower2, Pencil, Plus, Search, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { ArrowRight, Bell, CalendarPlus, Flower2, Lightbulb, Pencil, Plus, Search, Sparkles, Trash2, UserRound, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -10,11 +10,10 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
 import { nextOccurrenceDate } from "@/lib/date-utils";
-import { trackEvent } from "@/lib/supabase/db";
+import { trackEvent, getHints, saveHint, deleteHint } from "@/lib/supabase/db";
 import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
 import { CountUp } from "@/components/ui/count-up";
-import { AmbientParticles } from "@/components/ui/ambient-particles";
 import { GoogleCalendarConnect } from "@/components/calendar/google-calendar-connect";
 import { birthdayValidationError } from "@/lib/validation/autogift";
 
@@ -370,18 +369,149 @@ function splitTags(text: string) {
 // their current profile. The "tell us about them" box stays available so
 // GIVIT AI can still extract from a fresh sentence; anything it finds is
 // merged into (not replacing) whatever's typed directly into the fields.
+// ============================================================
+// HINT CATCHER (V1) -- see /docs proposal. Self-contained panel: logs a
+// passing comment ("she mentioned wanting to try pottery") against this
+// recipient, timestamped, so there's real accumulated context by the time
+// an occasion actually comes up instead of starting from a blank form.
+// ============================================================
+type Hint = { id: string; hint_text: string; sentiment: string; created_at: string };
+
+// Lightweight local heuristic, not an AI call -- keeps V1 dependency-free.
+// A fast-follow can swap this for the same extraction pipeline "Or just
+// describe them" already uses, without changing the storage shape.
+const ASPIRATIONAL_HINTS = ["want", "wish", "love to", "always wanted", "been meaning", "hoping"];
+const COMPLAINT_HINTS = ["broke", "broken", "died", "hate", "annoying", "ran out", "worn out"];
+function guessSentiment(text: string): "aspirational" | "complaint" | "neutral" {
+  const lower = text.toLowerCase();
+  if (COMPLAINT_HINTS.some((w) => lower.includes(w))) return "complaint";
+  if (ASPIRATIONAL_HINTS.some((w) => lower.includes(w))) return "aspirational";
+  return "neutral";
+}
+
+function timeAgo(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diffMs / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}y ago`;
+}
+
+function HintsPanel({ recipientId, recipientName, userId }: { recipientId: string; recipientName: string; userId: string }) {
+  const [hints, setHints] = useState<Hint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    // A freshly-added person has no id conflicts yet, but loading still
+    // shouldn't throw the whole modal if this one request fails -- hints
+    // are supplementary context, not a blocker to editing core fields.
+    getHints(recipientId)
+      .then((rows) => { if (!cancelled) setHints(rows as Hint[]); })
+      .catch((err) => console.error("Failed to load hints:", err))
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [recipientId]);
+
+  async function addHint() {
+    const text = draft.trim();
+    if (!text || saving) return;
+    setSaving(true);
+    const sentiment = guessSentiment(text);
+    const { data, error } = await saveHint({
+      user_id: userId,
+      recipient_id: recipientId,
+      hint_text: text,
+      sentiment,
+      source: "manual",
+    });
+    setSaving(false);
+    if (error || !data) {
+      toast.error("Couldn't save that hint. Try again.");
+      console.error("Failed to save hint:", error);
+      return;
+    }
+    setHints((prev) => [data as Hint, ...prev]);
+    setDraft("");
+    void trackEvent("hint_logged", { recipientId, sentiment });
+  }
+
+  async function removeHint(id: string) {
+    const prev = hints;
+    setHints((current) => current.filter((h) => h.id !== id));
+    const { error } = await deleteHint(id);
+    if (error) {
+      console.error("Failed to delete hint:", error);
+      setHints(prev);
+      toast.error("Couldn't remove that hint.");
+    }
+  }
+
+  return (
+    <div className="grid gap-2 rounded-xl border border-border bg-muted/30 p-3">
+      <label className="flex items-center gap-1.5 text-sm font-semibold">
+        <Lightbulb className="h-3.5 w-3.5 text-givit-ember" /> Hints
+      </label>
+      <p className="text-xs text-muted-foreground">
+        Log the small things {recipientName || "they"} mention in passing -- GIVIT surfaces these when their next occasion comes up, instead of starting cold.
+      </p>
+      <div className="flex gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void addHint(); } }}
+          placeholder="e.g. mentioned wanting to try pottery"
+          className="h-9 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
+        />
+        <Button type="button" size="sm" disabled={!draft.trim() || saving} onClick={() => void addHint()} className="rounded-lg bg-givit-ember text-white hover:bg-givit-ember-hover disabled:opacity-60">
+          {saving ? "…" : "Add"}
+        </Button>
+      </div>
+      {loading ? (
+        <p className="text-xs text-muted-foreground">Loading hints…</p>
+      ) : hints.length === 0 ? (
+        <p className="text-xs italic text-muted-foreground/70">No hints logged yet.</p>
+      ) : (
+        <ul className="grid gap-1.5">
+          {hints.map((hint) => (
+            <li key={hint.id} className="flex items-start justify-between gap-2 rounded-lg bg-background px-3 py-2 text-xs">
+              <div className="min-w-0">
+                <p className="text-foreground">{hint.hint_text}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {timeAgo(hint.created_at)}
+                  {hint.sentiment !== "neutral" && <span className="ml-1.5 rounded-full bg-givit-ember/10 px-1.5 py-0.5 text-givit-ember">{hint.sentiment}</span>}
+                </p>
+              </div>
+              <button type="button" onClick={() => void removeHint(hint.id)} className="shrink-0 text-muted-foreground hover:text-destructive" aria-label="Remove hint">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function EditRecipientModal({
   recipient,
   onSave,
   onSaveOccasions,
   onClose,
   defaultLeadDays,
+  userId,
 }: {
   recipient: Recipient;
   onSave: (updates: Partial<Recipient>) => Promise<{ error: unknown }>;
   onSaveOccasions: (occasions: Occasion[]) => Promise<{ error: unknown }>;
   onClose: () => void;
   defaultLeadDays: number;
+  userId: string;
 }) {
   const [name, setName] = useState(recipient.name);
   const [relationship, setRelationship] = useState(recipient.relationship || "");
@@ -554,6 +684,8 @@ function EditRecipientModal({
             <label className="text-sm font-semibold">Notes / gift history</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
           </div>
+
+          <HintsPanel recipientId={recipient.id} recipientName={name} userId={userId} />
           <div className="grid gap-1.5">
             <label className="flex items-center gap-1.5 text-sm font-semibold">
               <Sparkles className="h-3.5 w-3.5 text-givit-ember" /> Or just describe them (optional)
@@ -880,7 +1012,6 @@ export default function PeoplePage() {
         <div className="relative overflow-hidden rounded-2xl bg-black px-6 py-16 text-center sm:px-12">
           <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-givit-ember/25 blur-3xl" />
           <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-givit-coral/20 blur-3xl" />
-          <AmbientParticles />
           <div className="relative mx-auto flex max-w-lg flex-col items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl givit-gradient givit-glow">
               <UserRound className="h-6 w-6 text-white" />
@@ -927,6 +1058,7 @@ export default function PeoplePage() {
           onSaveOccasions={(occasions) => updateOccasions(editingRecipient.id, occasions)}
           onClose={() => setEditingId(null)}
           defaultLeadDays={defaultLeadDays}
+          userId={user.id}
         />
       )}
 
