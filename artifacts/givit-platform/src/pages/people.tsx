@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
 import { nextOccurrenceDate } from "@/lib/date-utils";
-import { trackEvent, getHints, saveHint, deleteHint } from "@/lib/supabase/db";
+import { trackEvent, getHints, getAllHints, saveHint, deleteHint } from "@/lib/supabase/db";
 import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
 import { CountUp } from "@/components/ui/count-up";
@@ -714,7 +714,7 @@ function EditRecipientModal({
   );
 }
 
-function PersonProfileRow({ recipient, onDelete, onEdit, onToggleAutomation }: { recipient: Recipient; onDelete: () => void; onEdit: () => void; onToggleAutomation: () => void }) {
+function PersonProfileRow({ recipient, latestHint, onDelete, onEdit, onToggleAutomation }: { recipient: Recipient; latestHint?: { hint_text: string; sentiment: string } | null; onDelete: () => void; onEdit: () => void; onToggleAutomation: () => void }) {
   const today = new Date();
   const upcoming = recipient.occasions
     .filter((o) => o.date)
@@ -749,6 +749,11 @@ function PersonProfileRow({ recipient, onDelete, onEdit, onToggleAutomation }: {
             <p className="text-xs italic text-muted-foreground/70">No interests learned yet</p>
           )}
           {lastGift && <p className="truncate text-[11px] text-givit-ember/80">{lastGift}</p>}
+          {latestHint && (
+            <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-amber-600">
+              <Lightbulb className="h-3 w-3 shrink-0" /> "{latestHint.hint_text}"
+            </p>
+          )}
         </div>
       </div>
 
@@ -971,6 +976,28 @@ export default function PeoplePage() {
   const [sortBy, setSortBy] = useState<"name" | "next">("next");
   const editingRecipient = editingId ? recipients.find((r) => r.id === editingId) : null;
   const cancelingRecipient = cancelingId ? recipients.find((r) => r.id === cancelingId) : null;
+  // One query for every hint across all saved people, rather than one query
+  // per roster row -- refetched whenever the recipient list changes (e.g.
+  // right after logging a new hint and closing the edit modal) so the
+  // roster preview doesn't go stale.
+  const [hintsByRecipient, setHintsByRecipient] = useState<Record<string, { hint_text: string; sentiment: string }>>({});
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    getAllHints(user.id)
+      .then((rows) => {
+        if (cancelled) return;
+        const latest: Record<string, { hint_text: string; sentiment: string }> = {};
+        for (const row of rows as any[]) {
+          // Rows already come back newest-first, so the first one seen per
+          // recipient_id is the most recent -- skip anything after that.
+          if (!latest[row.recipient_id]) latest[row.recipient_id] = { hint_text: row.hint_text, sentiment: row.sentiment };
+        }
+        setHintsByRecipient(latest);
+      })
+      .catch((err) => console.error("Failed to load hints for roster:", err));
+    return () => { cancelled = true; };
+  }, [user, recipients.length, editingId]);
 
   const visibleRecipients = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -1140,6 +1167,7 @@ export default function PeoplePage() {
                 <PersonProfileRow
                   key={r.id}
                   recipient={r}
+                  latestHint={hintsByRecipient[r.id]}
                   onDelete={() => setCancelingId(r.id)}
                   onEdit={() => setEditingId(r.id)}
                   onToggleAutomation={() => void toggleAutomation(r.id, r.automationEnabled === false)}
