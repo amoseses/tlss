@@ -145,6 +145,32 @@ export async function deleteGiftOccasion(id: string) {
 }
 
 // ============================================================
+// GIFT HINTS (Hint Catcher)
+// ============================================================
+export async function getHints(recipientId: string) {
+  const supabase = getDb();
+  const { data, error } = await supabase
+    .from("gift_hints")
+    .select("*")
+    .eq("recipient_id", recipientId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function saveHint(hint: Record<string, unknown>) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("gift_hints").insert(hint).select().single();
+  return { data, error };
+}
+
+export async function deleteHint(id: string) {
+  const supabase = getDb();
+  const { error } = await supabase.from("gift_hints").delete().eq("id", id);
+  return { error };
+}
+
+// ============================================================
 // GIFT NOTIFICATIONS
 // ============================================================
 export async function getNotifications(userId: string) {
@@ -351,6 +377,130 @@ export async function removeFromWishlist(id: string) {
   const supabase = getDb();
   const { error } = await supabase.from("wishlist_items").delete().eq("id", id);
   return { error };
+}
+
+// ============================================================
+// GIFT BOARDS
+// ============================================================
+export async function getPublicBoards() {
+  const supabase = getDb();
+  // gift_boards.user_id references auth.users, not profiles, so PostgREST
+  // can't auto-embed profiles(...) here — fetch owner names separately.
+  const { data: boards } = await supabase
+    .from("gift_boards")
+    .select("*, gift_board_items(*)")
+    .eq("is_public", true)
+    .order("likes", { ascending: false });
+  if (!boards || boards.length === 0) return [];
+
+  const userIds = Array.from(new Set(boards.map((b: any) => b.user_id).filter(Boolean)));
+  const { data: profiles } = userIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
+    : { data: [] as { id: string; full_name: string | null }[] };
+  const nameById = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
+
+  return boards.map((b: any) => ({ ...b, profiles: { full_name: nameById.get(b.user_id) ?? null } }));
+}
+
+export async function getUserBoards(userId: string) {
+  const supabase = getDb();
+  const { data } = await supabase
+    .from("gift_boards")
+    .select("*, gift_board_items(*)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
+export async function addBoardItem(item: Record<string, unknown>) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("gift_board_items").insert(item).select().single();
+  return { data, error };
+}
+
+export async function getUserBoardsFromDb(userId: string) {
+  const supabase = getDb();
+  const { data } = await supabase
+    .from("gift_boards")
+    .select("*, gift_board_items(*)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as any[];
+}
+
+export async function saveBoard(board: Record<string, unknown>) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("gift_boards").upsert(board).select().single();
+  return { data, error };
+}
+
+export async function saveBoardsToDb(userId: string, boards: any[]) {
+  const supabase = getDb();
+  // Save/update boards
+  for (const board of boards) {
+    await supabase.from("gift_boards").upsert({
+      id: board.id,
+      user_id: userId,
+      title: board.title,
+      description: board.description,
+      cover_image: board.coverImage,
+      is_public: board.isPublic ?? false,
+      likes: board.likes,
+    });
+  }
+}
+
+// ============================================================
+// GIFT BOARD LIKES + COMMENTS
+// ============================================================
+export async function getBoardLikeCounts(boardIds: string[]): Promise<Record<string, number>> {
+  if (boardIds.length === 0) return {};
+  const supabase = getDb();
+  const { data } = await supabase.from("gift_board_likes").select("board_id").in("board_id", boardIds);
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) counts[row.board_id] = (counts[row.board_id] ?? 0) + 1;
+  return counts;
+}
+
+export async function getUserLikedBoardIds(userId: string, boardIds: string[]): Promise<Set<string>> {
+  if (boardIds.length === 0) return new Set();
+  const supabase = getDb();
+  const { data } = await supabase.from("gift_board_likes").select("board_id").eq("user_id", userId).in("board_id", boardIds);
+  return new Set((data ?? []).map((row: any) => row.board_id));
+}
+
+export async function toggleBoardLike(boardId: string, userId: string, currentlyLiked: boolean) {
+  const supabase = getDb();
+  if (currentlyLiked) {
+    const { error } = await supabase.from("gift_board_likes").delete().eq("board_id", boardId).eq("user_id", userId);
+    return { liked: false, error };
+  }
+  const { error } = await supabase.from("gift_board_likes").insert({ board_id: boardId, user_id: userId });
+  return { liked: true, error };
+}
+
+export async function getBoardComments(boardId: string) {
+  const supabase = getDb();
+  const { data: comments } = await supabase
+    .from("gift_board_comments")
+    .select("*")
+    .eq("board_id", boardId)
+    .order("created_at", { ascending: true });
+  if (!comments || comments.length === 0) return [];
+
+  const userIds = Array.from(new Set(comments.map((c: any) => c.user_id).filter(Boolean)));
+  const { data: profiles } = userIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
+    : { data: [] as { id: string; full_name: string | null }[] };
+  const nameById = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
+
+  return comments.map((c: any) => ({ ...c, author_name: nameById.get(c.user_id) ?? "GIVIT user" }));
+}
+
+export async function addBoardComment(boardId: string, userId: string, message: string) {
+  const supabase = getDb();
+  const { data, error } = await supabase.from("gift_board_comments").insert({ board_id: boardId, user_id: userId, message }).select().single();
+  return { data, error };
 }
 
 // ============================================================
