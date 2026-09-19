@@ -158,6 +158,20 @@ export async function getHints(recipientId: string) {
   return data ?? [];
 }
 
+// Batch fetch for the roster view -- one query for every hint across all of
+// a user's saved people, instead of one query per row (N+1) just to show a
+// "most recent hint" preview on each card.
+export async function getAllHints(userId: string) {
+  const supabase = getDb();
+  const { data, error } = await supabase
+    .from("gift_hints")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function saveHint(hint: Record<string, unknown>) {
   const supabase = getDb();
   const { data, error } = await supabase.from("gift_hints").insert(hint).select().single();
