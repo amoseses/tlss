@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, Bell, ChevronDown, Gift, Heart, PackageCheck, PartyPopper, ShieldCheck, Sparkles, Star, UserRound } from "lucide-react";
+import { ArrowRight, Bell, ChevronDown, Gift, Heart, PackageCheck, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 import { GiftBox3D } from "@/components/ui/gift-box-3d";
@@ -20,13 +20,13 @@ const ROTATING_PROMPTS = [
 // Ambient floating icons scattered around the splash — purely decorative
 // movement, kept low-opacity and pointer-events-none so they never compete
 // with the actual content or intercept clicks.
+// Cut from 6 icons to 4, and each dimmed further -- feedback was that the
+// hero read as a bit too bright/busy for a minimalist site.
 const FLOATING_ICONS = [
-  { Icon: Gift, className: "left-[8%] top-[18%] h-7 w-7 text-givit-ember/25", duration: "7s", delay: "0s" },
-  { Icon: Sparkles, className: "right-[12%] top-[14%] h-6 w-6 text-givit-coral/30", duration: "8.5s", delay: "0.6s" },
-  { Icon: Star, className: "left-[15%] bottom-[22%] h-5 w-5 text-givit-coral/25", duration: "6.5s", delay: "1.2s" },
-  { Icon: Heart, className: "right-[18%] bottom-[28%] h-6 w-6 text-givit-ember/20", duration: "9s", delay: "0.3s" },
-  { Icon: PartyPopper, className: "left-[6%] top-[55%] h-6 w-6 text-givit-ember/20", duration: "7.5s", delay: "1.6s" },
-  { Icon: Sparkles, className: "right-[7%] top-[50%] h-5 w-5 text-givit-coral/20", duration: "6.8s", delay: "0.9s" },
+  { Icon: Gift, className: "left-[8%] top-[18%] h-7 w-7 text-givit-ember/15", duration: "7s", delay: "0s" },
+  { Icon: Sparkles, className: "right-[12%] top-[14%] h-6 w-6 text-givit-coral/18", duration: "8.5s", delay: "0.6s" },
+  { Icon: Heart, className: "right-[18%] bottom-[28%] h-6 w-6 text-givit-ember/12", duration: "9s", delay: "0.3s" },
+  { Icon: Sparkles, className: "right-[7%] top-[50%] h-5 w-5 text-givit-coral/12", duration: "6.8s", delay: "0.9s" },
 ];
 
 // Trimmed from 4 steps to 3 (and from 120vh to 90vh each, ~460vh down to
@@ -189,13 +189,14 @@ export default function LandingPage() {
   return (
     <div className="bg-black">
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 py-16 text-center text-white">
-      <div className="pointer-events-none absolute -left-24 top-0 h-[420px] w-[420px] animate-drift rounded-full bg-givit-ember/25 blur-3xl" />
-      <div className="pointer-events-none absolute -right-24 bottom-0 h-[420px] w-[420px] animate-drift-slow rounded-full bg-givit-coral/20 blur-3xl" />
-      {/* Toned down here specifically -- this hero already carries its own
-          established motif (floating gift/heart icons, typing cycle text),
-          so the network reads as a faint structural texture tying it to the
-          rest of the site rather than another competing layer of motion. */}
-      <AmbientParticles />
+      <div className="pointer-events-none absolute -left-24 top-0 h-[360px] w-[360px] animate-drift rounded-full bg-givit-ember/15 blur-3xl" />
+      <div className="pointer-events-none absolute -right-24 bottom-0 h-[360px] w-[360px] animate-drift-slow rounded-full bg-givit-coral/12 blur-3xl" />
+      {/* Toned down further on top of its own default -- this hero already
+          carries its own established motif (floating gift/heart icons,
+          typing cycle text), so the ribbons read as a faint structural
+          texture tying it to the rest of the site rather than another
+          competing layer of motion or brightness. */}
+      <AmbientParticles className="opacity-40" />
 
       {FLOATING_ICONS.map(({ Icon, className, duration, delay }, i) => (
         <Icon
@@ -207,7 +208,7 @@ export default function LandingPage() {
 
       <div className="slide-up mb-10 flex flex-col items-center gap-3" style={{ animationDelay: "0ms" }}>
         <div className="relative">
-          <div className="animate-pulse-ring pointer-events-none absolute inset-0 rounded-2xl bg-givit-ember/40 blur-xl" />
+          <div className="animate-pulse-ring pointer-events-none absolute inset-0 rounded-2xl bg-givit-ember/25 blur-xl" />
           <img src="/Screenshot 2026-06-23 095149.png" alt="GIVIT" className="animate-float relative h-20 w-20 rounded-2xl object-cover shadow-2xl md:h-24 md:w-24" />
         </div>
         <span className="font-serif text-3xl font-bold tracking-tight">
