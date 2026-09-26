@@ -30,7 +30,8 @@ Copy `artifacts/givit-platform/.env.example` to `artifacts/givit-platform/.env.l
 | `VITE_VAPID_PUBLIC_KEY` | Same value as `VAPID_PUBLIC_KEY`, but `VITE_`-prefixed so the browser can subscribe. This one is meant to be public. | same as above |
 | `SUPABASE_URL` | Same project URL as `VITE_SUPABASE_URL`, without the `VITE_` prefix (used server-side by the notification cron). | `https://your-project.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key (Project Settings → API). Bypasses RLS — server-only, never expose to the client. | `eyJhbGci...` |
-| `AWS_REGION` / `AWS_S3_BUCKET` | AWS region and S3 bucket used to mint 5-minute presigned upload URLs so browsers can upload files directly to S3. | `us-east-1`, `your-bucket` |
+| `AWS_REGION` | AWS region for SNS (SMS reminders) only — uploads no longer use AWS. | `us-east-1` |
+| `SUPABASE_STORAGE_BUCKET` | Supabase Storage bucket for file uploads (profile photos etc). Create it (public) in the Supabase dashboard's Storage tab first — see §2. Optional; defaults to `uploads`. | `uploads` |
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Resend API key and verified from-address for all transactional email (AutoGift reminders, weekly digest, wishlist shares). | `re_...`, `GIVIT <outreach@yourdomain.com>` |
 | `CRON_SECRET` | Shared secret the notification-dispatch cron checks on its `Authorization: Bearer` header. | any long random string |
 
@@ -45,7 +46,8 @@ Givit AI needs `GROQ_API_KEY` — see §5.
    - `push_subscriptions` — phone/desktop push notification subscriptions
    - Until you run the updated file, those three features degrade gracefully (empty likes/comments, admin only sees local-browser orders, no push) rather than erroring.
 3. Enable **Email Auth** in Authentication → Providers (disable "Confirm email" for testing)
-4. Upload your logo to `artifacts/givit-platform/public/` (the header currently points at `Screenshot 2026-06-23 095149.png` — replace that file or update the `src` in `site-header.tsx`/`auth-shell.tsx`/`site-footer.tsx`)
+4. Create a **Storage** bucket named `uploads`, with "Public bucket" turned on (Storage tab → New bucket). This is what profile photos and other uploads go through — see `SUPABASE_STORAGE_BUCKET` above.
+5. Upload your logo to `artifacts/givit-platform/public/` (the header currently points at `Screenshot 2026-06-23 095149.png` — replace that file or update the `src` in `site-header.tsx`/`auth-shell.tsx`/`site-footer.tsx`)
 
 ### 3. Vercel Deployment (Important!)
 
@@ -74,7 +76,6 @@ VITE_VAPID_PUBLIC_KEY=...          (same value as VAPID_PUBLIC_KEY)
 SUPABASE_URL=https://zbhumepxaywxnluapcbs.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 AWS_REGION=us-east-1
-AWS_S3_BUCKET=your-upload-bucket
 RESEND_API_KEY=re_...
 RESEND_FROM_EMAIL=GIVIT <outreach@yourdomain.com>
 CRON_SECRET=...
