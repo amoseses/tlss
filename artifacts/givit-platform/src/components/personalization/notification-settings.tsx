@@ -2,6 +2,17 @@ import { useEffect, useState } from "react";
 import { Bell, BellOff, BellRing, CalendarClock, Loader2, MessageSquare } from "lucide-react";
 import { isPushSupported, isSubscribedToPush, subscribeToPush, unsubscribeFromPush, sendTestPush } from "@/lib/push/subscribe";
 import { updateProfile } from "@/lib/supabase/db";
+import { createClient } from "@/lib/supabase/client";
+
+async function authedFetch(path: string, init?: RequestInit) {
+  const { data } = await createClient().auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not signed in.");
+  return fetch(path, {
+    ...init,
+    headers: { ...(init?.headers ?? {}), Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  });
+}
 
 const LEAD_TIME_OPTIONS = [7, 14, 21, 35, 56];
 
@@ -36,6 +47,7 @@ export function NotificationSettingsCard({
   const [savingLeadDays, setSavingLeadDays] = useState(false);
   const [smsBusy, setSmsBusy] = useState(false);
   const [smsMessage, setSmsMessage] = useState("");
+  const [smsTesting, setSmsTesting] = useState(false);
   const [digestBusy, setDigestBusy] = useState(false);
   const [digestMessage, setDigestMessage] = useState("");
 
@@ -85,6 +97,20 @@ export function NotificationSettingsCard({
     if (error) { setSmsMessage("Couldn't save that. Try again."); return; }
     onSmsOptInChange?.(nextOptedIn);
     setSmsMessage(nextOptedIn ? "Text reminders are on." : "Text reminders turned off.");
+  }
+
+  async function sendTestSms() {
+    setSmsTesting(true);
+    setSmsMessage("");
+    try {
+      const res = await authedFetch("/api/cron/dispatch-notifications?webhook=send-test-sms", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      setSmsMessage(res.ok ? "Test text sent, check your phone." : data.error || "Couldn't send that text.");
+    } catch (err: any) {
+      setSmsMessage(err.message || "Couldn't send that text.");
+    } finally {
+      setSmsTesting(false);
+    }
   }
 
   async function toggleDigestOptIn(nextOptedIn: boolean) {
@@ -166,6 +192,17 @@ export function NotificationSettingsCard({
               />
               <span>{SMS_CONSENT_TEXT}</span>
             </label>
+            {smsOptIn && (
+              <button
+                type="button"
+                onClick={sendTestSms}
+                disabled={smsTesting}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted disabled:opacity-50"
+              >
+                {smsTesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Send test
+              </button>
+            )}
             {smsMessage && <p className="text-xs text-muted-foreground">{smsMessage}</p>}
           </>
         )}

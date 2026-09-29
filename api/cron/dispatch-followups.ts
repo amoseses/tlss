@@ -60,6 +60,9 @@ export default async function handler(req: any, res: any) {
         console.error(`dispatch-followups: failed to send follow-up for ${notification.id}`, error?.message);
         results.failed++;
       }
+      // Same small stagger as dispatch-notifications.ts -- keeps a big batch
+      // of follow-ups well under Resend's per-second rate limit.
+      await new Promise((resolve) => setTimeout(resolve, 150));
     }
 
     res.status(200).json({ ok: true, ...results, total: unopened.length });

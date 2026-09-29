@@ -249,9 +249,15 @@ export default function AccountPage() {
     // (SNS requires E.164) and inbound STOP/START replies (matched back to
     // a profile by exact E.164 string) -- rejecting an unrecognizable
     // number here beats saving something that fails silently later.
+    // Required (not just validated) so every account has one on file --
+    // otherwise text reminders/test SMS have nothing to send to.
     const trimmedPhone = phone.trim();
-    const normalizedPhone = trimmedPhone ? normalizePhoneE164(trimmedPhone) : null;
-    if (trimmedPhone && !normalizedPhone) {
+    if (!trimmedPhone) {
+      setProfileError("Phone number is required.");
+      return;
+    }
+    const normalizedPhone = normalizePhoneE164(trimmedPhone);
+    if (!normalizedPhone) {
       setProfileError("Enter a valid US phone number, e.g. (555) 123-4567.");
       return;
     }
@@ -388,14 +394,16 @@ export default function AccountPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground">Phone</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Phone (required)</label>
                   <input
                     type="tel"
+                    required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="(555) 123-4567"
                     className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
                   />
+                  <p className="text-xs text-muted-foreground">Needed for text reminders and order updates.</p>
                 </div>
                 {profileError && <p className="text-xs text-destructive">{profileError}</p>}
                 <div className="flex gap-2 pt-1">

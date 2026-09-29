@@ -8,7 +8,7 @@ import { fetchDueNotifications, fetchProfileByPhone, fetchProfilesByIds, fetchPu
 import { sendEmail } from "../../server/api-lib/email.mjs";
 import { sendPushToSubscription } from "../../server/api-lib/push.mjs";
 import { classifySmsKeyword, sendSms } from "../../server/api-lib/sms.mjs";
-import { signState, verifyState } from "../../server/api-lib/auth.mjs";
+import { signState, verifyState, getUserFromRequest } from "../../server/api-lib/auth.mjs";
 import { restFetch } from "../../server/api-lib/supabase-rest.mjs";
 
 function emailBody(title: string, body: string, notificationId?: string) {
@@ -71,12 +71,33 @@ function digestEmailBody(fullName: string | null, upcoming: Array<{ recipient: s
   return { html, text };
 }
 
+// Every profile hashes to the same day-of-week every time (stable, not
+// random per run), so each user still gets exactly one digest a week --
+// this only decides WHICH day. Spreads what used to be one all-at-once
+// Monday blast across all 7 days instead, so the cron's own daily email
+// volume is roughly 1/7th of the total opted-in user count on any given
+// day, rather than 100% of it landing on Monday and eating the whole
+// Resend daily quota in one run.
+function dayBucket(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  return hash % 7;
+}
+
+const DIGEST_SEND_DELAY_MS = 150; // keeps this well under Resend's per-second rate limit during a burst
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Best-effort, separate from the main due-notifications dispatch above: a
 // failure here (or the whole digest being skipped some days) should never
 // affect real AutoGift reminders, which is why this is called from its own
 // try/catch and never throws back to the caller.
-async function dispatchWeeklyDigest() {
-  const profiles = await fetchDigestEligibleProfiles();
+async function dispatchWeeklyDigest(forceAll: boolean) {
+  const allProfiles = await fetchDigestEligibleProfiles();
+  const today = new Date().getUTCDay();
+  const profiles = forceAll ? allProfiles : allProfiles.filter((p: any) => dayBucket(p.id) === today);
   if (profiles.length === 0) return { sent: 0 };
 
   const occasions = await fetchOccasionsForUsers(profiles.map((p: any) => p.id));
@@ -99,6 +120,7 @@ async function dispatchWeeklyDigest() {
     } catch (error: any) {
       console.error(`dispatch-notifications: weekly digest failed for ${profile.id}`, error?.message);
     }
+    await delay(DIGEST_SEND_DELAY_MS);
   }
   return { sent };
 }
@@ -188,12 +210,50 @@ async function handleInboundSms(req: any, res: any) {
   }
 }
 
+// Lets a signed-in user text themselves a one-off test message from the
+// account page's notification settings, the same way "Send test" already
+// works for push -- the only way to actually confirm SNS delivery works for
+// a given phone number without waiting for a real AutoGift reminder to come
+// due. Folded in here (not its own api/ file) for the same Hobby-plan
+// 12-function-cap reason as the sms-inbound webhook above.
+async function handleSendTestSms(req: any, res: any) {
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+  const user = await getUserFromRequest(req);
+  if (!user) {
+    res.status(401).json({ error: "Not signed in." });
+    return;
+  }
+  try {
+    const rows = await restFetch(`profiles?id=eq.${user.id}&select=phone,sms_opt_in,sms_opted_out_at`);
+    const profile = rows?.[0];
+    if (!profile?.phone) {
+      res.status(400).json({ error: "Add a phone number first." });
+      return;
+    }
+    if (!profile.sms_opt_in || profile.sms_opted_out_at) {
+      res.status(400).json({ error: "Turn on text reminders first." });
+      return;
+    }
+    await sendSms(profile.phone, "This is a test text from GIVIT. Your real AutoGift reminders will look like this. Reply STOP to opt out.");
+    res.status(200).json({ ok: true });
+  } catch (error: any) {
+    console.error("dispatch-notifications: test SMS failed", error?.message);
+    res.status(502).json({ error: error?.message || "Couldn't send that text right now." });
+  }
+}
+
 export default async function handler(req: any, res: any) {
   if (req.query?.webhook === "sms-inbound") {
     return handleInboundSms(req, res);
   }
   if (req.query?.webhook === "unsubscribe-digest") {
     return handleUnsubscribeDigest(req, res);
+  }
+  if (req.query?.webhook === "send-test-sms") {
+    return handleSendTestSms(req, res);
   }
 
   const cronSecret = process.env.CRON_SECRET;
@@ -209,16 +269,17 @@ export default async function handler(req: any, res: any) {
 
   // Runs inside this same daily cron rather than its own cron entry --
   // Vercel's Hobby plan caps cron jobs at 2, and both are already spoken
-  // for (this function's own daily schedule, plus dispatch-followups).
-  // Gated to Monday so it's actually weekly despite the function itself
-  // running every day; ?job=weekly-digest forces it on any day for testing.
-  let digestResult: { sent: number } | null = null;
-  if (new Date().getUTCDay() === 1 || req.query?.job === "weekly-digest") {
-    digestResult = await dispatchWeeklyDigest().catch((error: any) => {
-      console.error("dispatch-notifications: weekly digest batch failed", error?.message);
-      return { sent: 0 };
-    });
-  }
+  // for (this function's own daily schedule, plus dispatch-followups). Runs
+  // every day now (not just Monday) because dispatchWeeklyDigest itself
+  // buckets each user to one fixed day of the week -- each user still gets
+  // exactly one digest a week, just spread across all 7 days instead of
+  // everyone landing on Monday and exhausting Resend's daily send quota in
+  // one run. ?job=weekly-digest forces it to send to EVERY eligible user
+  // right now regardless of bucket, for testing.
+  const digestResult = await dispatchWeeklyDigest(req.query?.job === "weekly-digest").catch((error: any) => {
+    console.error("dispatch-notifications: weekly digest batch failed", error?.message);
+    return { sent: 0 };
+  });
 
   try {
     const due = await fetchDueNotifications();
@@ -249,6 +310,7 @@ export default async function handler(req: any, res: any) {
           await sendEmail({ to, subject: notification.title, html, text });
           await markNotificationStatus(notification.id, "sent");
           results.sent++;
+          await delay(DIGEST_SEND_DELAY_MS);
         } else if (notification.channel === "sms") {
           const phone = phoneByUserId.get(notification.user_id);
           if (!phone || !smsAllowedByUserId.get(notification.user_id)) {
