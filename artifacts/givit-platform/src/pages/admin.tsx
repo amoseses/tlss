@@ -368,6 +368,7 @@ export default function AdminPage() {
               <Plus className="h-4 w-4" /> Add Product
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">Also syncs automatically once a day — this button is only for pulling a fresh batch right now.</p>
           {etsySyncMessage && <p className="text-xs text-muted-foreground">{etsySyncMessage}</p>}
           {etsySyncErrors.length > 0 && (
             <div className="space-y-1 rounded-lg bg-destructive/10 p-3 text-xs text-destructive">

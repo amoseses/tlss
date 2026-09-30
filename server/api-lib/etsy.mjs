@@ -3,6 +3,8 @@
 // account, cart, or shop) and maps them onto GIVIT's own `products` row
 // shape so they merge into the marketplace the exact same way any other
 // admin-added product does (see src/lib/data/data-layer.ts).
+import { restFetch } from "./supabase-rest.mjs";
+
 const ETSY_API_BASE = "https://openapi.etsy.com/v3/application";
 const LISTINGS_PER_CATEGORY = 10;
 
@@ -167,4 +169,21 @@ export async function collectEtsyProductRows() {
   });
 
   return { rows, errors };
+}
+
+// Shared by the admin-triggered sync (api/metadata.ts) and the daily
+// auto-sync (api/cron/dispatch-followups.ts) so the actual upsert logic
+// only lives in one place. on_conflict=slug means re-syncing the same
+// listing updates its existing row (price/stock/etc drift) rather than
+// creating a duplicate -- slugs are stable (`etsy-<listing_id>`).
+export async function syncEtsyProducts() {
+  const { rows, errors } = await collectEtsyProductRows();
+  if (rows.length > 0) {
+    await restFetch(`products?on_conflict=slug`, {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(rows),
+    });
+  }
+  return { synced: rows.length, errors };
 }

@@ -7,8 +7,13 @@
 // already-sent notifications by open status, not scheduled ones by time,
 // a different enough query that keeping them apart is clearer than
 // branching one handler on two unrelated conditions.
+//
+// Also runs the daily Etsy catalog sync (see below) -- unrelated to
+// follow-up emails, but folded into this same function for the same
+// Hobby-plan 2-cron-slot reason.
 import { fetchUnopenedEmailNotifications, fetchProfilesByIds, markFollowupSent } from "../../server/api-lib/notifications.mjs";
 import { sendEmail } from "../../server/api-lib/email.mjs";
+import { syncEtsyProducts } from "../../server/api-lib/etsy.mjs";
 
 const UNOPENED_AFTER_HOURS = 72;
 
@@ -34,10 +39,20 @@ export default async function handler(req: any, res: any) {
 
   const results = { sent: 0, failed: 0 };
 
+  // Runs inside this existing daily cron rather than its own -- Vercel's
+  // Hobby plan caps cron jobs at 2, both already spoken for. Best-effort
+  // and isolated from the follow-up dispatch below: a failed Etsy sync (or
+  // ETSY_API_KEY simply not being configured) should never block real
+  // follow-up emails from sending.
+  const etsyResult = await syncEtsyProducts().catch((error: any) => {
+    console.error("dispatch-followups: Etsy sync failed", error?.message);
+    return { synced: 0, errors: [error?.message || "Etsy sync failed"] };
+  });
+
   try {
     const unopened = await fetchUnopenedEmailNotifications(UNOPENED_AFTER_HOURS);
     if (!Array.isArray(unopened) || unopened.length === 0) {
-      res.status(200).json({ ok: true, ...results, message: "Nothing to follow up on." });
+      res.status(200).json({ ok: true, ...results, etsy: etsyResult, message: "Nothing to follow up on." });
       return;
     }
 
@@ -65,7 +80,7 @@ export default async function handler(req: any, res: any) {
       await new Promise((resolve) => setTimeout(resolve, 150));
     }
 
-    res.status(200).json({ ok: true, ...results, total: unopened.length });
+    res.status(200).json({ ok: true, ...results, total: unopened.length, etsy: etsyResult });
   } catch (error: any) {
     res.status(500).json({ error: error?.message ?? "dispatch-followups failed" });
   }

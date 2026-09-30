@@ -1,6 +1,6 @@
 /// <reference path="./mjs-modules.d.ts" />
 import { fetchPageMetadata } from "../server/api-lib/metadata.mjs";
-import { collectEtsyProductRows } from "../server/api-lib/etsy.mjs";
+import { syncEtsyProducts } from "../server/api-lib/etsy.mjs";
 import { getUserFromRequest } from "../server/api-lib/auth.mjs";
 import { restFetch } from "../server/api-lib/supabase-rest.mjs";
 import { getCreditStatus, spendCredits } from "../server/api-lib/credits.mjs";
@@ -27,15 +27,8 @@ async function handleEtsySync(req: any, res: any) {
       return;
     }
 
-    const { rows, errors } = await collectEtsyProductRows();
-    if (rows.length > 0) {
-      await restFetch(`products?on_conflict=slug`, {
-        method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify(rows),
-      });
-    }
-    res.status(200).json({ synced: rows.length, errors });
+    const { synced, errors } = await syncEtsyProducts();
+    res.status(200).json({ synced, errors });
   } catch (error: any) {
     console.error("Etsy sync failed:", error?.message);
     res.status(502).json({ error: error?.message || "Etsy sync failed." });
