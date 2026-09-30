@@ -4,6 +4,7 @@ import { useTheme } from "next-themes";
 import { Bell, CalendarDays, Gift, LayoutGrid, Sparkles, UserRound } from "lucide-react";
 
 import { HeaderProfileButton } from "@/components/layout/header-profile-button";
+import { CreditBalanceBadge } from "@/components/layout/credit-balance-badge";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/lib/auth/use-auth";
 
@@ -44,6 +45,7 @@ export function SiteHeader() {
           </Link>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            {user && profile ? <CreditBalanceBadge isDark={isDark} /> : null}
             <ThemeToggle />
             <HeaderProfileButton
               loggedIn={Boolean(user && profile)}
