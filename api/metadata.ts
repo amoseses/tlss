@@ -3,6 +3,7 @@ import { fetchPageMetadata } from "../server/api-lib/metadata.mjs";
 import { collectEtsyProductRows } from "../server/api-lib/etsy.mjs";
 import { getUserFromRequest } from "../server/api-lib/auth.mjs";
 import { restFetch } from "../server/api-lib/supabase-rest.mjs";
+import { getCreditStatus, spendCredits } from "../server/api-lib/credits.mjs";
 
 const GROQ_DEFAULT_MODEL = "openai/gpt-oss-120b";
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -38,6 +39,52 @@ async function handleEtsySync(req: any, res: any) {
   } catch (error: any) {
     console.error("Etsy sync failed:", error?.message);
     res.status(502).json({ error: error?.message || "Etsy sync failed." });
+  }
+}
+
+// GET ?action=credits = this user's current balance + free-tier remaining.
+// POST ?action=credits_spend = the single gate every metered feature
+// (Your Gift AI, Secret Santa matching, AutoGift) calls through before it
+// runs the actual action -- see credit-system-proposal.md. Branched onto
+// this existing endpoint for the same Hobby-plan 12-function-cap reason
+// as etsy_sync and the Groq branch below.
+async function handleCreditStatus(req: any, res: any) {
+  try {
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      res.status(401).json({ error: "Not signed in." });
+      return;
+    }
+    const status = await getCreditStatus(user.id);
+    res.status(200).json(status);
+  } catch (error: any) {
+    console.error("Credit status failed:", error?.message);
+    res.status(500).json({ error: "Couldn't load credit balance." });
+  }
+}
+
+async function handleCreditSpend(req: any, res: any) {
+  try {
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      res.status(401).json({ error: "Not signed in." });
+      return;
+    }
+    const { amount, reason, referenceId } = req.body ?? {};
+    const VALID_REASONS = new Set(["autogift_purchase", "gift_ai_chat", "secret_santa_match"]);
+    if (!VALID_REASONS.has(reason) || typeof amount !== "number" || amount <= 0) {
+      res.status(400).json({ error: "Invalid spend request." });
+      return;
+    }
+    const result = await spendCredits(user.id, amount, reason, typeof referenceId === "string" ? referenceId : null);
+    if (!result?.ok) {
+      res.status(402).json(result ?? { error: "insufficient_credits" });
+      return;
+    }
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Credit spend failed:", error?.message);
+    res.status(500).json({ error: "Couldn't process that -- try again." });
   }
 }
 
@@ -88,6 +135,16 @@ async function handleGroqChat(req: any, res: any) {
 export default async function handler(req: any, res: any) {
   if (req.method === "POST" && req.query?.action === "etsy_sync") {
     await handleEtsySync(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.query?.action === "credits_spend") {
+    await handleCreditSpend(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.query?.action === "credits") {
+    await handleCreditStatus(req, res);
     return;
   }
 
