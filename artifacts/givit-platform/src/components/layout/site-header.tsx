@@ -45,7 +45,7 @@ export function SiteHeader() {
           </Link>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            {user && profile ? <CreditBalanceBadge isDark={isDark} /> : null}
+            {user ? <CreditBalanceBadge isDark={isDark} /> : null}
             <ThemeToggle />
             <HeaderProfileButton
               loggedIn={Boolean(user && profile)}
