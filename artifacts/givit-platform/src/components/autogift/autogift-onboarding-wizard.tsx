@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 import { createNotification, saveGiftOccasion, saveGiftRecipient, saveUserAddress, saveUserPaymentMethod, updateProfile } from "@/lib/supabase/db";
 import { SPECIAL_DATES } from "@/lib/data/special-dates";
+import { currentAgeFromBirthDate, birthDateFromCurrentAge } from "@/lib/date-utils";
 import { getStripePromise, hasStripePublishableKey } from "@/lib/stripe/client";
 import { createClient } from "@/lib/supabase/client";
 import { addressValidationError, birthdayValidationError } from "@/lib/validation/autogift";
@@ -16,10 +17,16 @@ type Step = "welcome" | "address" | "payment" | "recipient" | "done";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function dateMonth(iso: string): number {
+  return iso ? Number(iso.slice(5, 7)) : new Date().getMonth() + 1;
+}
+function dateDay(iso: string): number {
+  return iso ? Number(iso.slice(8, 10)) : new Date().getDate();
+}
 type RecipientDraft = { name: string; relationship: string; occasionLabel: string; occasionDate: string; yearsContext: string };
 const emptyRecipient = (): RecipientDraft => ({ name: "", relationship: "", occasionLabel: "Birthday", occasionDate: "", yearsContext: "" });
 function scheduledAt10Est(occasionDate: string) { const d = new Date(`${occasionDate}T12:00:00`); d.setDate(d.getDate() - 35); d.setUTCHours(15,0,0,0); return d.toISOString(); }
-function todayIso() { return new Date().toISOString().slice(0, 10); }
 
 // Standardized holidays (Christmas, Valentine's Day, etc.) fall on the same
 // real calendar date every year — the date field should reflect that
@@ -489,7 +496,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 
           {step === "recipient" && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Add one or more people. Use the date field for the occasion date, then add age, year, or relationship context below only when it helps the AI.</p>
+              <p className="text-sm text-muted-foreground">Add one or more people and their occasion. Extra context below is optional, only add it when it helps the AI.</p>
               {recipients.map((r, index) => (
                 <div key={index} className="space-y-3 rounded-lg border border-border/40 p-3">
                   <div className="flex items-center justify-between"><p className="text-sm font-semibold text-givit-ink">Recipient {index + 1}</p>{recipients.length > 1 && <button type="button" onClick={() => setRecipients((prev) => prev.filter((_, i) => i !== index))} className="text-xs text-destructive">Remove</button>}</div>
@@ -509,22 +516,63 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                     >
                       {OCCASIONS.map((item) => <option key={item}>{item}</option>)}
                     </select>
-                    <div className="relative">
-                      <input
-                        type="date"
-                        value={r.occasionDate}
-                        // Birthdays/anniversaries need a real past date (AI
-                        // calculates age/years from it) -- min=today here
-                        // was blocking exactly that, only letting future
-                        // dates be picked. Only Birthday gets a cap, and
-                        // it's a max (today or earlier), not a min.
-                        max={r.occasionLabel === "Birthday" && !standardHoliday(r.occasionLabel) ? todayIso() : undefined}
-                        readOnly={Boolean(standardHoliday(r.occasionLabel))}
-                        onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: e.target.value } : item))}
-                        className={`h-9 w-full rounded-md border border-border bg-background px-3 text-sm ${standardHoliday(r.occasionLabel) ? "cursor-not-allowed text-muted-foreground" : ""}`}
-                      />
-                      {standardHoliday(r.occasionLabel) && <Lock className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />}
-                    </div>
+                    {r.occasionLabel === "Birthday" ? (
+                      // Age + month/day instead of a plain year-inclusive date
+                      // picker -- scrolling a date picker back 30+ years to find
+                      // a birth year is slow, and most people think in terms of
+                      // current age anyway. occasionDate still ends up a real
+                      // ISO date underneath (see birthDateFromCurrentAge).
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <input
+                          type="number"
+                          min={0}
+                          max={130}
+                          value={currentAgeFromBirthDate(r.occasionDate)}
+                          onChange={(e) => {
+                            if (e.target.value === "") return;
+                            const age = Number(e.target.value);
+                            const date = birthDateFromCurrentAge(age, dateMonth(r.occasionDate), dateDay(r.occasionDate));
+                            setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: date } : item));
+                          }}
+                          placeholder="Age"
+                          title="Current age"
+                          className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+                        />
+                        <select
+                          value={dateMonth(r.occasionDate)}
+                          onChange={(e) => {
+                            const age = currentAgeFromBirthDate(r.occasionDate);
+                            const date = birthDateFromCurrentAge(typeof age === "number" ? age : 0, Number(e.target.value), dateDay(r.occasionDate));
+                            setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: date } : item));
+                          }}
+                          className="h-9 w-full rounded-md border border-border bg-background px-1.5 text-sm"
+                        >
+                          {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                        </select>
+                        <select
+                          value={dateDay(r.occasionDate)}
+                          onChange={(e) => {
+                            const age = currentAgeFromBirthDate(r.occasionDate);
+                            const date = birthDateFromCurrentAge(typeof age === "number" ? age : 0, dateMonth(r.occasionDate), Number(e.target.value));
+                            setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: date } : item));
+                          }}
+                          className="h-9 w-full rounded-md border border-border bg-background px-1.5 text-sm"
+                        >
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={r.occasionDate}
+                          readOnly={Boolean(standardHoliday(r.occasionLabel))}
+                          onChange={(e) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: e.target.value } : item))}
+                          className={`h-9 w-full rounded-md border border-border bg-background px-3 text-sm ${standardHoliday(r.occasionLabel) ? "cursor-not-allowed text-muted-foreground" : ""}`}
+                        />
+                        {standardHoliday(r.occasionLabel) && <Lock className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />}
+                      </div>
+                    )}
                   </div>
                   {standardHoliday(r.occasionLabel) && (
                     <p className="-mt-1 text-xs text-muted-foreground">{r.occasionLabel} is a fixed date, set automatically each year.</p>
@@ -581,7 +629,7 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
 }
 function occasionDateHelp(label: string) {
   const lower = label.toLowerCase();
-  if (lower.includes("birthday")) return "Date of birth: AI calculates age each year";
+  if (lower.includes("birthday")) return "Optional: anything else to know (milestone birthday, interests, etc.)";
   if (lower.includes("father")) return "Year they became a father / how many years a father";
   if (lower.includes("mother")) return "Year they became a mother / how many years a mother";
   if (lower.includes("anniversary")) return "Anniversary year and relationship context";

@@ -9,7 +9,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
-import { nextOccurrenceDate } from "@/lib/date-utils";
+import { nextOccurrenceDate, currentAgeFromBirthDate, birthDateFromCurrentAge } from "@/lib/date-utils";
 import { trackEvent, getHints, getAllHints, saveHint, deleteHint } from "@/lib/supabase/db";
 import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
@@ -43,10 +43,6 @@ const LOCKED_OCCASION_LABELS = new Set(["Christmas", "Hanukkah", "Valentine's Da
 // month-and-day-only reminder with no meaningful year of its own.
 const YEARLESS_OCCASION_LABELS = new Set(["Graduation", "Other"]);
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 // Mother's/Father's Day float to the Nth Sunday of a fixed month rather than
 // a fixed day-of-month, but are still fully determined by the label alone.
@@ -103,9 +99,11 @@ function dateDay(iso: string): number {
 }
 
 // Shared date control for one occasion row: a locked auto-filled date for
-// fixed holidays, a plain year-inclusive date picker for Birthday/Anniversary
-// (the only two occasions where the year itself matters), and a month+day
-// picker with no year field for everything else.
+// fixed holidays, age + month/day for Birthday (see ageFromBirthDate above
+// -- asking for a birth year via a date picker means scrolling back 30+
+// years), a plain year-inclusive date picker for Anniversary (the one
+// remaining occasion where the exact year matters and age doesn't apply),
+// and a month+day picker with no year field for everything else.
 function OccasionDateInput({ label, value, onChange }: { label: string; value: string; onChange: (iso: string) => void }) {
   const locked = LOCKED_OCCASION_LABELS.has(label);
   if (locked) {
@@ -117,6 +115,43 @@ function OccasionDateInput({ label, value, onChange }: { label: string; value: s
         title={`${label} falls on a fixed date and is set automatically`}
         className="h-9 w-full rounded-lg border border-border bg-muted px-2 text-sm text-muted-foreground outline-none"
       />
+    );
+  }
+  if (label === "Birthday") {
+    const age = currentAgeFromBirthDate(value);
+    const month = dateMonth(value);
+    const day = dateDay(value);
+    const ageForUpdate = typeof age === "number" ? age : 0;
+    return (
+      <div className="grid grid-cols-3 gap-1.5">
+        <input
+          type="number"
+          min={0}
+          max={130}
+          value={age}
+          onChange={(e) => {
+            if (e.target.value === "") return;
+            onChange(birthDateFromCurrentAge(Number(e.target.value), month, day));
+          }}
+          placeholder="Age"
+          title="Current age"
+          className="h-9 w-full rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+        />
+        <select
+          value={month}
+          onChange={(e) => onChange(birthDateFromCurrentAge(ageForUpdate, Number(e.target.value), day))}
+          className="h-9 w-full rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+        >
+          {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+        </select>
+        <select
+          value={day}
+          onChange={(e) => onChange(birthDateFromCurrentAge(ageForUpdate, month, Number(e.target.value)))}
+          className="h-9 w-full rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+        >
+          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
     );
   }
   if (YEARLESS_OCCASION_LABELS.has(label)) {
@@ -144,7 +179,6 @@ function OccasionDateInput({ label, value, onChange }: { label: string; value: s
       type="date"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      max={label === "Birthday" ? todayISO() : undefined}
       className="h-9 w-full rounded-lg border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20"
     />
   );

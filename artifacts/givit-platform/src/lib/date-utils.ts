@@ -29,6 +29,29 @@ export function upcomingAge(dateStr: string, from: Date = new Date()): number | 
   return age >= 1 && age <= 130 ? age : null;
 }
 
+// Converts a birthday into "current age as of today" and back, so the UI
+// can ask "how old are they" instead of making someone scroll a date picker
+// back 30+ years to find a birth year. occasion_date still needs a real
+// year underneath for upcomingAge() above to read -- these just hide that
+// year behind an age the person actually knows offhand. Reuses
+// nextOccurrenceDate's own "has this year's occurrence already passed"
+// logic rather than re-comparing month/day separately.
+export function currentAgeFromBirthDate(dateStr: string, from: Date = new Date()): number | "" {
+  if (!dateStr) return "";
+  const year = Number(dateStr.slice(0, 4));
+  if (!year) return "";
+  const hadBirthdayThisYear = nextOccurrenceDate(dateStr, from).getFullYear() > from.getFullYear();
+  const age = from.getFullYear() - year - (hadBirthdayThisYear ? 0 : 1);
+  return age >= 0 && age <= 130 ? age : "";
+}
+
+export function birthDateFromCurrentAge(age: number, month: number, day: number, from: Date = new Date()): string {
+  const probe = `2000-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const hadBirthdayThisYear = nextOccurrenceDate(probe, from).getFullYear() > from.getFullYear();
+  const year = from.getFullYear() - age - (hadBirthdayThisYear ? 0 : 1);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 // Ages worth calling out specifically -- every decade, plus the handful of
 // culturally-significant non-decade ones. Anything else just shows as a
 // normal upcoming birthday with no special badge.
