@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createNotification, deleteGiftOccasion, getGiftRecipients, saveGiftOccasion, saveGiftRecipient, deleteGiftRecipient } from "@/lib/supabase/db";
+import { createNotification, deleteGiftOccasion, getGiftRecipients, saveGiftOccasion, saveGiftRecipient, deleteGiftRecipient, skipScheduledNotifications } from "@/lib/supabase/db";
 import { nextOccurrenceDate } from "@/lib/date-utils";
 import type { User } from "@supabase/supabase-js";
 
@@ -278,6 +278,8 @@ export function useRecipients(user: { id: string; email?: string } | User | null
       return next;
     });
     if (user) {
+      const { error: skipError } = await skipScheduledNotifications({ recipientId: id });
+      if (skipError) console.error("Failed to cancel reminders for deleted recipient:", skipError);
       const { error } = await deleteGiftRecipient(id);
       if (error) console.error("Failed to delete recipient:", error);
     }
@@ -334,12 +336,14 @@ export function useRecipients(user: { id: string; email?: string } | User | null
     const keptIds = new Set(occasions.map((o) => o.id).filter(Boolean));
     for (const occ of recipient.occasions) {
       if (occ.id && !keptIds.has(occ.id)) {
+        if (user) await skipScheduledNotifications({ occasionId: occ.id });
         const { error } = await deleteGiftOccasion(occ.id);
         if (error) console.error("Failed to delete occasion:", error);
       }
     }
 
     const saved: Occasion[] = [];
+    let firstError: unknown = null;
     for (const occ of occasions) {
       if (!occ.date) continue;
       if (!user) { saved.push(occ); continue; }
@@ -365,13 +369,18 @@ export function useRecipients(user: { id: string; email?: string } | User | null
       const { data, error } = await saveGiftOccasion(payload);
       if (error) {
         console.error("Failed to save occasion:", error);
-        saved.push(occ);
+        firstError ??= error;
+        // Keep what's actually in the DB, not the rejected edit -- otherwise
+        // the UI shows a date that silently vanishes on the next reload.
+        saved.push(previous ?? occ);
         continue;
       }
       const resolved: Occasion = { id: data?.id ?? occ.id, label: occ.label, date: occ.date, leadDays };
       saved.push(resolved);
 
       if (isNewOrChanged) {
+        // A changed date/lead time replaces the old reminder, not adds to it.
+        if (previous?.id) await skipScheduledNotifications({ occasionId: previous.id });
         await scheduleOccasionNotifications(user.id, recipientId, recipient.name, resolved);
       }
     }
@@ -386,7 +395,7 @@ export function useRecipients(user: { id: string; email?: string } | User | null
       setNotifications(generateNotifications(nextAll, defaultLeadDays, user?.id));
       return nextAll;
     });
-    return { error: null };
+    return { error: firstError };
   }
 
   async function toggleAutomation(id: string, enabled: boolean) {

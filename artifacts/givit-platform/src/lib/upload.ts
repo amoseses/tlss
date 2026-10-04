@@ -1,3 +1,5 @@
+import { authHeaders } from "@/lib/auth/auth-headers";
+
 // Uploads a file by proxying it through GIVIT's own server (which then
 // puts it in S3), never a direct-from-browser PUT to a presigned S3 URL.
 // The direct-to-S3 approach kept failing with a browser-level "Failed to
@@ -60,7 +62,7 @@ export async function uploadFileToS3(file: File, prefix = "uploads") {
 
   const res = await fetch("/api/upload/url", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify({ fileName: file.name, contentType, prefix, dataBase64 }),
   });
 

@@ -69,9 +69,13 @@ async function paymentMethodSummary(req: any, res: any) {
       return;
     }
 
-    const summary = await getPaymentMethodSummary(paymentMethodId);
+    const summary = await getPaymentMethodSummary(paymentMethodId, user.id);
     res.status(200).json(summary);
   } catch (error: any) {
+    if (error?.statusCode === 404) {
+      res.status(404).json({ error: "Card was saved, but details couldn't be confirmed." });
+      return;
+    }
     res.status(500).json({ error: safeStripeErrorMessage(error, "Card was saved, but details couldn't be confirmed.") });
   }
 }
@@ -98,7 +102,7 @@ async function chargeAutoGiftOrder(req: any, res: any) {
       return;
     }
 
-    const orderRows = await restFetch(`autogift_orders?id=eq.${orderId}&select=*`);
+    const orderRows = await restFetch(`autogift_orders?id=eq.${encodeURIComponent(orderId)}&select=*`);
     const order = orderRows?.[0];
     if (!order) {
       res.status(404).json({ error: "Order not found." });
@@ -111,6 +115,19 @@ async function chargeAutoGiftOrder(req: any, res: any) {
     // rather than relying only on Stripe's idempotency key below.
     if (order.stripe_payment_intent_id || UNCHARGEABLE_STATUSES.has(order.status)) {
       res.status(409).json({ error: `Order is already ${order.status}.`, status: order.status });
+      return;
+    }
+
+    // autogift_orders rows are written by the customer's own browser, so
+    // total_cents is customer-controlled. Refuse to charge unless it
+    // matches what the line items (the thing the admin actually sees and
+    // fulfills) add up to under the same math as calculateOrderTotal() in
+    // src/lib/autogift/survey.ts.
+    const items = Array.isArray(order.items) ? order.items : [];
+    const itemsSubtotal = items.reduce((sum: number, item: any) => sum + Math.round(Number(item?.price) || 0) * Math.max(1, Math.round(Number(item?.quantity) || 1)), 0);
+    const expectedTotal = itemsSubtotal + Math.round(itemsSubtotal * 0.1);
+    if (!Number.isInteger(order.total_cents) || order.total_cents <= 0 || order.total_cents !== expectedTotal) {
+      res.status(422).json({ error: `Order total ($${(Number(order.total_cents) / 100).toFixed(2)}) doesn't match its items ($${(expectedTotal / 100).toFixed(2)} incl. fee). Not charged -- review the order.` });
       return;
     }
 
@@ -137,8 +154,11 @@ async function chargeAutoGiftOrder(req: any, res: any) {
       },
       // Guards against a duplicate PaymentIntent if this request is retried
       // (double-click, network retry) -- Stripe returns the same intent
-      // instead of charging the card twice.
-      { idempotencyKey: `autogift-charge-${order.id}` },
+      // instead of charging the card twice. Keyed on the card too: with
+      // the order id alone, a declined attempt got replayed (or rejected
+      // as a parameter mismatch) for 24h even after the customer added a
+      // new card, so the order couldn't be charged at all.
+      { idempotencyKey: `autogift-charge-${order.id}-${paymentMethod.stripe_payment_method_id}` },
     );
 
     if (intent.status !== "succeeded") {

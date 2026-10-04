@@ -39,8 +39,11 @@ export async function mergeCalendarEvents(userId, events) {
       created++;
     }
 
+    // Month-day only: occasion_date's year is the birth year (or whatever
+    // year it was first synced), while event.date is this year's
+    // instance -- an exact match re-added every occasion once a year.
     const already = (recipient.gift_occasions ?? []).some(
-      (o) => o.occasion === event.label && o.occasion_date === event.date,
+      (o) => o.occasion === event.label && String(o.occasion_date ?? "").slice(5, 10) === String(event.date).slice(5, 10),
     );
     if (already) continue;
 

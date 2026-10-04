@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
 import { createNotification, saveGiftOccasion, saveGiftRecipient, saveUserAddress, saveUserPaymentMethod, updateProfile } from "@/lib/supabase/db";
 import { SPECIAL_DATES } from "@/lib/data/special-dates";
-import { currentAgeFromBirthDate, birthDateFromCurrentAge } from "@/lib/date-utils";
+import { nextOccurrenceDate, toLocalIsoDate } from "@/lib/date-utils";
+import { BirthdayAgeInput } from "@/components/personalization/birthday-age-input";
 import { getStripePromise, hasStripePublishableKey } from "@/lib/stripe/client";
 import { createClient } from "@/lib/supabase/client";
 import { addressValidationError, birthdayValidationError } from "@/lib/validation/autogift";
@@ -17,16 +18,13 @@ type Step = "welcome" | "address" | "payment" | "recipient" | "done";
 
 const RELATIONSHIPS = ["Parent", "Partner", "Sibling", "Friend", "Colleague", "Child", "Other"];
 const OCCASIONS = ["Birthday", "Anniversary", "Christmas", "Mother's Day", "Father's Day", "Graduation", "Valentine's Day", "Other"];
-const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-function dateMonth(iso: string): number {
-  return iso ? Number(iso.slice(5, 7)) : new Date().getMonth() + 1;
-}
-function dateDay(iso: string): number {
-  return iso ? Number(iso.slice(8, 10)) : new Date().getDate();
-}
 type RecipientDraft = { name: string; relationship: string; occasionLabel: string; occasionDate: string; yearsContext: string };
 const emptyRecipient = (): RecipientDraft => ({ name: "", relationship: "", occasionLabel: "Birthday", occasionDate: "", yearsContext: "" });
-function scheduledAt10Est(occasionDate: string) { const d = new Date(`${occasionDate}T12:00:00`); d.setDate(d.getDate() - 35); d.setUTCHours(15,0,0,0); return d.toISOString(); }
+// From the NEXT occurrence, not the stored date: a Birthday's stored date
+// carries the birth year, so "stored date minus 35 days" landed decades in
+// the past and the reminder fired on the very next cron run. Same math as
+// scheduledSurveySendAt() in lib/hooks/use-recipients.ts.
+function scheduledAt10Est(occasionDate: string) { const d = nextOccurrenceDate(occasionDate); d.setDate(d.getDate() - 35); d.setUTCHours(15,0,0,0); return d.toISOString(); }
 
 // Standardized holidays (Christmas, Valentine's Day, etc.) fall on the same
 // real calendar date every year — the date field should reflect that
@@ -40,7 +38,7 @@ function nextOccurrenceIso(getDate: (year: number) => Date) {
   const now = new Date();
   const thisYear = getDate(now.getFullYear());
   const target = thisYear >= new Date(now.getFullYear(), now.getMonth(), now.getDate()) ? thisYear : getDate(now.getFullYear() + 1);
-  return target.toISOString().slice(0, 10);
+  return toLocalIsoDate(target);
 }
 
 // Draft persistence covers step/addresses/recipients so a tab switch, page
@@ -522,45 +520,12 @@ export function AutoGiftOnboardingWizard({ onClose, required = false }: { onClos
                       // a birth year is slow, and most people think in terms of
                       // current age anyway. occasionDate still ends up a real
                       // ISO date underneath (see birthDateFromCurrentAge).
-                      <div className="grid grid-cols-3 gap-1.5">
-                        <input
-                          type="number"
-                          min={0}
-                          max={130}
-                          value={currentAgeFromBirthDate(r.occasionDate)}
-                          onChange={(e) => {
-                            if (e.target.value === "") return;
-                            const age = Number(e.target.value);
-                            const date = birthDateFromCurrentAge(age, dateMonth(r.occasionDate), dateDay(r.occasionDate));
-                            setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: date } : item));
-                          }}
-                          placeholder="Age"
-                          title="Current age"
-                          className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
-                        />
-                        <select
-                          value={dateMonth(r.occasionDate)}
-                          onChange={(e) => {
-                            const age = currentAgeFromBirthDate(r.occasionDate);
-                            const date = birthDateFromCurrentAge(typeof age === "number" ? age : 0, Number(e.target.value), dateDay(r.occasionDate));
-                            setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: date } : item));
-                          }}
-                          className="h-9 w-full rounded-md border border-border bg-background px-1.5 text-sm"
-                        >
-                          {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-                        </select>
-                        <select
-                          value={dateDay(r.occasionDate)}
-                          onChange={(e) => {
-                            const age = currentAgeFromBirthDate(r.occasionDate);
-                            const date = birthDateFromCurrentAge(typeof age === "number" ? age : 0, dateMonth(r.occasionDate), Number(e.target.value));
-                            setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: date } : item));
-                          }}
-                          className="h-9 w-full rounded-md border border-border bg-background px-1.5 text-sm"
-                        >
-                          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                      </div>
+                      <BirthdayAgeInput
+                        value={r.occasionDate}
+                        onChange={(date) => setRecipients((prev) => prev.map((item, i) => i === index ? { ...item, occasionDate: date } : item))}
+                        inputClassName="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+                        selectClassName="h-9 w-full rounded-md border border-border bg-background px-1.5 text-sm"
+                      />
                     ) : (
                       <div className="relative">
                         <input

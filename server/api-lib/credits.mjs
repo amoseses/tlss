@@ -1,5 +1,6 @@
 // Thin wrapper around the spend_credits / grant_credits / get_credit_status
-// Postgres functions (server/api-lib/credits_migration.sql). All the real
+// Postgres functions (the CREDITS block at the end of
+// artifacts/givit-platform/src/lib/supabase/admin-schema.sql). All the real
 // logic -- free-tier draw-down, atomic balance checks, ledger writes --
 // lives in those SQL functions so a spend can never race itself; this
 // file just calls them over PostgREST's /rpc/ endpoint with the
@@ -106,6 +107,9 @@ export async function confirmCreditCheckoutSession(stripe, userId, sessionId, al
   }
   const credits = Number(session.metadata?.credits || 0);
   if (!credits) throw new Error("Session is missing a credits amount.");
+  // grant_credits() is itself idempotent per payment intent (unique
+  // index), so two confirms racing past the check above still can't
+  // double-grant -- the loser just comes back alreadyGranted.
   const result = await grantFn(userId, credits, "pack_purchase", session.payment_intent);
-  return { ok: true, alreadyGranted: false, balance: result.balance, creditsGranted: credits };
+  return { ok: true, alreadyGranted: Boolean(result?.alreadyGranted), balance: result?.balance, creditsGranted: result?.alreadyGranted ? 0 : credits };
 }

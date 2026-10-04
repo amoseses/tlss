@@ -438,6 +438,12 @@ export function createAutoGiftOrder(params: {
   return order;
 }
 
+// Undoes createAutoGiftOrder's local write when the order never made it to
+// the database, so a retry doesn't leave a phantom duplicate behind.
+export function removeLocalAutoGiftOrder(orderId: string) {
+  saveAutoGiftOrders(getAutoGiftOrders().filter((o) => o.id !== orderId));
+}
+
 export function getAutoGiftOrders(): AutoGiftOrder[] {
   try {
     return JSON.parse(window.localStorage.getItem(ORDERS_KEY) ?? "[]");

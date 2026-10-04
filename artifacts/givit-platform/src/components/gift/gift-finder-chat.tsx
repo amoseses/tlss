@@ -28,6 +28,7 @@ type Message = {
   confirmRecipient?: { recipientId: string; recipientName: string; pendingText: string };
   batch?: BatchGiftPlan;
   compare?: { a: GiftResult; b: GiftResult; winner: "a" | "b" | "tie" };
+  cta?: { label: string; href: string };
 };
 
 type Questionnaire = {
@@ -336,6 +337,10 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   // an AI call, reset in startOver() when a genuinely new conversation
   // starts.
   const conversationChargedRef = useRef(false);
+  // The spend round-trip happens before `loading` flips true, so a second
+  // Enter press during it would otherwise fire a second spend. Concurrent
+  // callers share this one in-flight charge instead.
+  const chargeInFlightRef = useRef<Promise<boolean> | null>(null);
   // Recipients who've already gone through the "here's what I have, still
   // accurate?" confirm step this session -- so a follow-up message that
   // mentions them again doesn't ask a second time.
@@ -405,20 +410,33 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   async function ensureConversationCharged(): Promise<boolean> {
     if (conversationChargedRef.current) return true;
     if (!user) return true;
-    const result = await spendCredit("gift_ai_chat", 1);
-    if (!result.ok) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: "You're out of free Your Gift AI uses for this year. Buy more credits to keep going.",
-        },
-      ]);
-      return false;
+    if (chargeInFlightRef.current) return chargeInFlightRef.current;
+    const charge = (async () => {
+      const result = await spendCredit("gift_ai_chat", 1);
+      if (!result.ok) {
+        const outOfCredits = result.error === "insufficient_credits";
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: outOfCredits
+              ? "You've used all your free Your Gift AI conversations for this year. Grab a credit pack to keep going -- each new conversation costs 1 credit."
+              : "I couldn't check your credit balance just now. Give it a moment and try again.",
+            cta: outOfCredits ? { label: "Get credits", href: "/account#credits" } : undefined,
+          },
+        ]);
+        return false;
+      }
+      conversationChargedRef.current = true;
+      return true;
+    })();
+    chargeInFlightRef.current = charge;
+    try {
+      return await charge;
+    } finally {
+      chargeInFlightRef.current = null;
     }
-    conversationChargedRef.current = true;
-    return true;
   }
 
   async function sendMessage(text: string, isRegenerate = false, excludeIds: string[] = []) {
@@ -806,6 +824,11 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
                 <div className="flex flex-col gap-3">
                   <AgentLabel />
                   {msg.content && <div className="chat-bubble-ai max-w-[85%] text-sm leading-relaxed">{msg.content}</div>}
+                  {msg.cta && (
+                    <Link href={msg.cta.href} className="inline-flex w-fit items-center rounded-md bg-givit-ember px-3 py-1.5 text-xs font-semibold text-white hover:bg-givit-ember-hover">
+                      {msg.cta.label}
+                    </Link>
+                  )}
                   {msg.confirmRecipient && (
                     <div className="flex flex-wrap gap-2">
                       <button type="button" disabled={loading} onClick={() => confirmRecipientAndSearch(msg.confirmRecipient!)} className="inline-flex items-center gap-1 rounded-full bg-givit-ember px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-givit-ember-hover disabled:cursor-not-allowed disabled:opacity-40">

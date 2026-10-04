@@ -173,17 +173,50 @@ export async function collectEtsyProductRows() {
 
 // Shared by the admin-triggered sync (api/metadata.ts) and the daily
 // auto-sync (api/cron/dispatch-followups.ts) so the actual upsert logic
-// only lives in one place. on_conflict=slug means re-syncing the same
-// listing updates its existing row (price/stock/etc drift) rather than
-// creating a duplicate -- slugs are stable (`etsy-<listing_id>`).
+// only lives in one place. Slugs are stable (`etsy-<listing_id>`), so a
+// re-sync never duplicates a product.
+//
+// New listings are inserted in full. Listings already in the table only
+// get the fields Etsy owns refreshed (price, stock, link) -- a blanket
+// merge-duplicates upsert used to reset is_published/is_approved to true
+// and restore Etsy's title/description every day, silently undoing any
+// admin who'd unpublished or edited one. (name rides along unchanged only
+// because it's NOT NULL, which Postgres checks before ON CONFLICT.)
+const EXISTING_LOOKUP_CHUNK = 100;
+
 export async function syncEtsyProducts() {
-  const { rows, errors } = await collectEtsyProductRows();
-  if (rows.length > 0) {
+  const { rows: rawRows, errors } = await collectEtsyProductRows();
+  // The same listing can come back for two different keyword searches;
+  // a duplicate slug inside one INSERT ... ON CONFLICT makes Postgres
+  // reject the whole batch ("cannot affect row a second time").
+  const rows = [...new Map(rawRows.map((r) => [r.slug, r])).values()];
+  if (rows.length === 0) return { synced: 0, errors };
+
+  const existingBySlug = new Map();
+  for (let i = 0; i < rows.length; i += EXISTING_LOOKUP_CHUNK) {
+    const slugs = rows.slice(i, i + EXISTING_LOOKUP_CHUNK).map((r) => `"${r.slug}"`).join(",");
+    const found = await restFetch(`products?slug=in.(${encodeURIComponent(slugs)})&select=slug,name`);
+    for (const p of found ?? []) existingBySlug.set(p.slug, p);
+  }
+
+  const newRows = rows.filter((r) => !existingBySlug.has(r.slug));
+  const refreshRows = rows
+    .filter((r) => existingBySlug.has(r.slug))
+    .map((r) => ({ slug: r.slug, name: existingBySlug.get(r.slug).name, price_cents: r.price_cents, stock: r.stock, affiliate_url: r.affiliate_url }));
+
+  if (newRows.length > 0) {
+    await restFetch(`products?on_conflict=slug`, {
+      method: "POST",
+      headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+      body: JSON.stringify(newRows),
+    });
+  }
+  if (refreshRows.length > 0) {
     await restFetch(`products?on_conflict=slug`, {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify(rows),
+      body: JSON.stringify(refreshRows),
     });
   }
-  return { synced: rows.length, errors };
+  return { synced: rows.length, added: newRows.length, refreshed: refreshRows.length, errors };
 }

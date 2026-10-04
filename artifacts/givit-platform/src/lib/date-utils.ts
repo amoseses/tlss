@@ -33,23 +33,61 @@ export function upcomingAge(dateStr: string, from: Date = new Date()): number | 
 // can ask "how old are they" instead of making someone scroll a date picker
 // back 30+ years to find a birth year. occasion_date still needs a real
 // year underneath for upcomingAge() above to read -- these just hide that
-// year behind an age the person actually knows offhand. Reuses
-// nextOccurrenceDate's own "has this year's occurrence already passed"
-// logic rather than re-comparing month/day separately.
+// year behind an age the person actually knows offhand.
+//
+// "Had their birthday yet" is a plain month/day comparison where today
+// itself counts as had -- reusing nextOccurrenceDate() here got that day
+// wrong (it returns today for a birthday that's today), so someone turning
+// 30 today showed as 29, and entering 30 stored a date that read "Turning 31".
+function hadBirthdayThisYear(month: number, day: number, from: Date) {
+  const m = from.getMonth() + 1;
+  return m > month || (m === month && from.getDate() >= day);
+}
+
+export function isLeapYear(year: number) {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+// Feb gets 29 so leap-day birthdays stay selectable; birthDateFromCurrentAge
+// handles the year not actually being a leap year.
+export function daysInMonth(month: number, year = 2000) {
+  return new Date(year, month, 0).getDate();
+}
+
 export function currentAgeFromBirthDate(dateStr: string, from: Date = new Date()): number | "" {
   if (!dateStr) return "";
   const year = Number(dateStr.slice(0, 4));
-  if (!year) return "";
-  const hadBirthdayThisYear = nextOccurrenceDate(dateStr, from).getFullYear() > from.getFullYear();
-  const age = from.getFullYear() - year - (hadBirthdayThisYear ? 0 : 1);
+  const month = Number(dateStr.slice(5, 7));
+  const day = Number(dateStr.slice(8, 10));
+  if (!year || !month || !day) return "";
+  const age = from.getFullYear() - year - (hadBirthdayThisYear(month, day, from) ? 0 : 1);
   return age >= 0 && age <= 130 ? age : "";
 }
 
 export function birthDateFromCurrentAge(age: number, month: number, day: number, from: Date = new Date()): string {
-  const probe = `2000-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-  const hadBirthdayThisYear = nextOccurrenceDate(probe, from).getFullYear() > from.getFullYear();
-  const year = from.getFullYear() - age - (hadBirthdayThisYear ? 0 : 1);
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const year = from.getFullYear() - age - (hadBirthdayThisYear(month, day, from) ? 0 : 1);
+  return isoDateFromParts(year, month, day);
+}
+
+// Always a real calendar date: a day past the end of the month (April 31,
+// or Feb 29 in a non-leap year) is clamped to the month's last day instead
+// of producing a string Postgres's DATE column rejects outright.
+export function isoDateFromParts(year: number, month: number, day: number): string {
+  const safeDay = Math.min(day, daysInMonth(month, year));
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(safeDay).padStart(2, "0")}`;
+}
+
+// YYYY-MM-DD in the browser's own timezone. toISOString() converts to UTC
+// first, which turns local midnight into the previous day anywhere east of
+// UTC (Christmas saved as Dec 24 in Europe/Asia).
+export function toLocalIsoDate(d: Date): string {
+  return isoDateFromParts(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+
+// Parses a bare YYYY-MM-DD as LOCAL midnight. new Date("2026-12-25") is
+// UTC midnight, which displays as Dec 24 anywhere in the Americas.
+export function parseLocalDate(dateStr: string): Date {
+  return new Date(`${dateStr.slice(0, 10)}T00:00:00`);
 }
 
 // Ages worth calling out specifically -- every decade, plus the handful of
