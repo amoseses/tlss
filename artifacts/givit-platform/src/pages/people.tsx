@@ -9,7 +9,8 @@ import { PageShell } from "@/components/layout/page-shell";
 import { useAuth } from "@/lib/auth/use-auth";
 import { extractRecipientProfile } from "@/lib/ai/recipient-extract";
 import { useRecipients, type Occasion, type Recipient } from "@/lib/hooks/use-recipients";
-import { nextOccurrenceDate, currentAgeFromBirthDate, birthDateFromCurrentAge } from "@/lib/date-utils";
+import { daysInMonth, nextOccurrenceDate, parseLocalDate, toLocalIsoDate } from "@/lib/date-utils";
+import { BirthdayAgeInput } from "@/components/personalization/birthday-age-input";
 import { trackEvent, getHints, getAllHints, saveHint, deleteHint } from "@/lib/supabase/db";
 import { parseIcs, type ParsedCalendarEvent } from "@/lib/ics-import";
 import { initials } from "@/lib/utils";
@@ -71,7 +72,7 @@ function nextHolidayDateString(label: string): string | null {
   const thisYear = computeHolidayDate(label, today.getFullYear());
   if (!thisYear) return null;
   const next = thisYear >= today ? thisYear : computeHolidayDate(label, today.getFullYear() + 1);
-  return next ? next.toISOString().slice(0, 10) : null;
+  return next ? toLocalIsoDate(next) : null;
 }
 
 // For month/day-only occasions (no year picker shown): resolve the same
@@ -79,9 +80,10 @@ function nextHolidayDateString(label: string): string | null {
 function nextMonthDayDateString(month: number, day: number): string {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const thisYear = new Date(today.getFullYear(), month - 1, day);
-  const next = thisYear >= today ? thisYear : new Date(today.getFullYear() + 1, month - 1, day);
-  return next.toISOString().slice(0, 10);
+  const at = (year: number) => new Date(year, month - 1, Math.min(day, daysInMonth(month, year)));
+  const thisYear = at(today.getFullYear());
+  const next = thisYear >= today ? thisYear : at(today.getFullYear() + 1);
+  return toLocalIsoDate(next);
 }
 
 // Recipients with no upcoming occasion sort last, not first, when sorting by date.
@@ -118,40 +120,13 @@ function OccasionDateInput({ label, value, onChange }: { label: string; value: s
     );
   }
   if (label === "Birthday") {
-    const age = currentAgeFromBirthDate(value);
-    const month = dateMonth(value);
-    const day = dateDay(value);
-    const ageForUpdate = typeof age === "number" ? age : 0;
     return (
-      <div className="grid grid-cols-3 gap-1.5">
-        <input
-          type="number"
-          min={0}
-          max={130}
-          value={age}
-          onChange={(e) => {
-            if (e.target.value === "") return;
-            onChange(birthDateFromCurrentAge(Number(e.target.value), month, day));
-          }}
-          placeholder="Age"
-          title="Current age"
-          className="h-9 w-full rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
-        />
-        <select
-          value={month}
-          onChange={(e) => onChange(birthDateFromCurrentAge(ageForUpdate, Number(e.target.value), day))}
-          className="h-9 w-full rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
-        >
-          {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-        </select>
-        <select
-          value={day}
-          onChange={(e) => onChange(birthDateFromCurrentAge(ageForUpdate, month, Number(e.target.value)))}
-          className="h-9 w-full rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
-        >
-          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
-      </div>
+      <BirthdayAgeInput
+        value={value}
+        onChange={onChange}
+        inputClassName="h-9 w-full rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+        selectClassName="h-9 w-full rounded-lg border border-border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-givit-ember/20"
+      />
     );
   }
   if (YEARLESS_OCCASION_LABELS.has(label)) {
@@ -981,7 +956,7 @@ function CalendarImportModal({
                   <select value={row.occasion} onChange={(e) => updateRow(i, { occasion: e.target.value })} className="h-8 rounded-lg border border-border bg-background px-1.5 text-xs outline-none">
                     {OCCASION_TYPES.map((t) => <option key={t}>{t}</option>)}
                   </select>
-                  <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">{new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                  <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">{parseLocalDate(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                 </div>
               ))}
             </div>

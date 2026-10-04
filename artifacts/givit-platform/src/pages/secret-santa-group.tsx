@@ -183,7 +183,7 @@ export default function SecretSantaGroupPage() {
             <p className="mt-1 text-sm text-white/60">
               {group.occasion || "Gift exchange"}
               {group.budget_cents ? ` · $${(group.budget_cents / 100).toFixed(0)} per person` : ""}
-              {group.event_date ? ` · ${new Date(group.event_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}
+              {group.event_date ? ` · ${new Date(`${String(group.event_date).slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}
             </p>
             {isOrganizer && (
               <button type="button" onClick={handleDeleteGroup} className="mt-3 flex items-center gap-1 text-xs font-medium text-white/40 hover:text-destructive">

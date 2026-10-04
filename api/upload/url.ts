@@ -1,12 +1,18 @@
 /// <reference path="../mjs-modules.d.ts" />
 import { randomUUID } from "node:crypto";
 import { uploadFileDirect } from "../../server/api-lib/storage.mjs";
+import { getUserFromRequest } from "../../server/api-lib/auth.mjs";
 
 const MAX_FILE_NAME_LENGTH = 160;
 // Vercel serverless functions cap request bodies around 4.5MB; the client
 // resizes images before base64-encoding them, but this is the server-side
 // backstop against anything unexpectedly large getting through.
 const MAX_BASE64_LENGTH = 6_000_000;
+// The bucket is public and serves files with the Content-Type given here,
+// so anything renderable (text/html, image/svg+xml) would turn it into
+// free hosting for phishing pages on our Supabase domain. Raster images
+// only -- the only thing the app uploads (profile photos).
+const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 function safeFileName(value: unknown) {
   if (typeof value !== "string" || !value.trim()) return "upload";
@@ -23,9 +29,15 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  const user = await getUserFromRequest(req);
+  if (!user) {
+    res.status(401).json({ error: "Sign in to upload files." });
+    return;
+  }
+
   const { fileName, contentType, prefix = "uploads", dataBase64 } = req.body ?? {};
-  if (typeof contentType !== "string" || !contentType.trim()) {
-    res.status(400).json({ error: "contentType is required." });
+  if (typeof contentType !== "string" || !ALLOWED_CONTENT_TYPES.has(contentType.trim().toLowerCase())) {
+    res.status(400).json({ error: "Only JPEG, PNG, WebP, or GIF images can be uploaded." });
     return;
   }
   if (typeof dataBase64 !== "string" || !dataBase64) {
@@ -38,11 +50,11 @@ export default async function handler(req: any, res: any) {
   }
 
   const normalizedPrefix = typeof prefix === "string" && prefix.trim() ? safeFileName(prefix) : "uploads";
-  const key = `${normalizedPrefix}/${randomUUID()}-${safeFileName(fileName)}`;
+  const key = `${normalizedPrefix}/${user.id}/${randomUUID()}-${safeFileName(fileName)}`;
 
   try {
     const buffer = Buffer.from(dataBase64, "base64");
-    const url = await uploadFileDirect(key, contentType.trim(), buffer);
+    const url = await uploadFileDirect(key, contentType.trim().toLowerCase(), buffer);
     res.status(200).json({ url, key });
   } catch (error: any) {
     // Surfaced verbatim (not a generic message) -- storage.mjs's errors are

@@ -3,10 +3,20 @@ import { fetchPageMetadata } from "../server/api-lib/metadata.mjs";
 import { syncEtsyProducts } from "../server/api-lib/etsy.mjs";
 import { getUserFromRequest } from "../server/api-lib/auth.mjs";
 import { restFetch } from "../server/api-lib/supabase-rest.mjs";
-import { getCreditStatus, spendCredits } from "../server/api-lib/credits.mjs";
+import { getCreditStatus, spendCredits, grantCredits, hasGrantedForPaymentIntent, createCreditCheckoutSession, confirmCreditCheckoutSession, CREDIT_PACKS } from "../server/api-lib/credits.mjs";
+import { getStripe } from "../server/api-lib/stripe.mjs";
 
 const GROQ_DEFAULT_MODEL = "openai/gpt-oss-120b";
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+// This branch is intentionally open to guests (Gift AI has no sign-in
+// wall), so it's the one place anyone on the internet can make the server
+// spend GROQ_API_KEY. Everything the client controls is clamped to what
+// src/lib/ai/* actually sends (largest is maxTokens 900) so it can't be
+// used as a general-purpose, any-model, any-size LLM proxy.
+const GROQ_ALLOWED_MODELS = new Set([GROQ_DEFAULT_MODEL]);
+const GROQ_MAX_TOKENS = 1200;
+const GROQ_MAX_MESSAGES = 24;
+const GROQ_MAX_CONTENT_CHARS = 40_000;
 
 // POST ?action=etsy_sync = admin-only: pulls a fresh batch of real Etsy
 // listings into the `products` table (see server/api-lib/etsy.mjs for the
@@ -81,6 +91,51 @@ async function handleCreditSpend(req: any, res: any) {
   }
 }
 
+// POST ?action=credits_checkout {packId} = starts a one-time Stripe
+// Checkout for a credit pack and returns its hosted-page URL.
+// POST ?action=credits_confirm {sessionId} = called by /account when Stripe
+// redirects back; grants the pack's credits once (see
+// confirmCreditCheckoutSession for the idempotency story).
+async function handleCreditCheckout(req: any, res: any) {
+  try {
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      res.status(401).json({ error: "Not signed in." });
+      return;
+    }
+    const { packId } = req.body ?? {};
+    if (typeof packId !== "string" || !Object.prototype.hasOwnProperty.call(CREDIT_PACKS, packId)) {
+      res.status(400).json({ error: "Unknown credit pack." });
+      return;
+    }
+    const session = await createCreditCheckoutSession(getStripe(), user.id, user.email, packId);
+    res.status(200).json({ url: session.url });
+  } catch (error: any) {
+    console.error("Credit checkout failed:", error?.message);
+    res.status(500).json({ error: "Couldn't start checkout -- try again." });
+  }
+}
+
+async function handleCreditConfirm(req: any, res: any) {
+  try {
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      res.status(401).json({ error: "Not signed in." });
+      return;
+    }
+    const { sessionId } = req.body ?? {};
+    if (typeof sessionId !== "string" || !sessionId.startsWith("cs_")) {
+      res.status(400).json({ error: "Invalid checkout session." });
+      return;
+    }
+    const result = await confirmCreditCheckoutSession(getStripe(), user.id, sessionId, hasGrantedForPaymentIntent, grantCredits);
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Credit confirm failed:", error?.message);
+    res.status(500).json({ error: "Couldn't confirm that purchase. If you were charged, refresh this page in a minute." });
+  }
+}
+
 // Branched onto this existing endpoint rather than living at its own
 // api/groq.ts -- this project sits at Vercel's Hobby-plan 12-function cap
 // (see the SMS-inbound webhook branched onto api/cron/dispatch-notifications.ts
@@ -96,19 +151,31 @@ async function handleGroqChat(req: any, res: any) {
     }
 
     const { messages, temperature = 0.7, maxTokens = 700, model = GROQ_DEFAULT_MODEL } = req.body ?? {};
-    if (!Array.isArray(messages)) {
-      res.status(400).json({ error: "messages must be an array" });
+    if (!Array.isArray(messages) || messages.length === 0 || messages.length > GROQ_MAX_MESSAGES) {
+      res.status(400).json({ error: "messages must be a non-empty array" });
       return;
     }
+    const validMessages = messages.every((m: any) => m && ["system", "user", "assistant"].includes(m.role) && typeof m.content === "string");
+    const totalChars = validMessages ? messages.reduce((sum: number, m: any) => sum + m.content.length, 0) : Infinity;
+    if (!validMessages || totalChars > GROQ_MAX_CONTENT_CHARS) {
+      res.status(400).json({ error: "Invalid or oversized messages." });
+      return;
+    }
+    if (!GROQ_ALLOWED_MODELS.has(model)) {
+      res.status(400).json({ error: "Unsupported model." });
+      return;
+    }
+    const safeMaxTokens = Math.min(Math.max(Number(maxTokens) || 700, 1), GROQ_MAX_TOKENS);
+    const safeTemperature = Math.min(Math.max(Number(temperature) || 0, 0), 1.5);
 
     const response = await fetch(GROQ_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
+        messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
+        temperature: safeTemperature,
+        max_tokens: safeMaxTokens,
         response_format: { type: "json_object" },
       }),
     });
@@ -133,6 +200,16 @@ export default async function handler(req: any, res: any) {
 
   if (req.method === "POST" && req.query?.action === "credits_spend") {
     await handleCreditSpend(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.query?.action === "credits_checkout") {
+    await handleCreditCheckout(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.query?.action === "credits_confirm") {
+    await handleCreditConfirm(req, res);
     return;
   }
 

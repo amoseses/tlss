@@ -29,8 +29,18 @@ export async function getOrCreateStripeCustomer(userId, email) {
 // Retrieving it here (secret key, server-only) is how the onboarding wizard
 // gets a real brand/last4 to display and store, instead of the last-4
 // digits it used to compute itself from a raw, untokenized card number.
-export async function getPaymentMethodSummary(paymentMethodId) {
+// Scoped to the caller's own Stripe Customer: without the ownership check,
+// any signed-in user could look up brand/last4 for any pm_ id.
+export async function getPaymentMethodSummary(paymentMethodId, userId) {
   const stripe = getStripe();
   const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+  const rows = await restFetch(`profiles?id=eq.${encodeURIComponent(userId)}&select=stripe_customer_id`);
+  const customerId = rows?.[0]?.stripe_customer_id;
+  const pmCustomer = typeof pm.customer === "string" ? pm.customer : pm.customer?.id;
+  if (!customerId || pmCustomer !== customerId) {
+    const err = new Error("Payment method not found.");
+    err.statusCode = 404;
+    throw err;
+  }
   return { brand: pm.card?.brand ?? "card", last4: pm.card?.last4 ?? "" };
 }

@@ -204,6 +204,18 @@ export async function createNotification(notification: Record<string, unknown>) 
   return { data, error };
 }
 
+// Retires reminders that haven't gone out yet for an occasion (date
+// changed or removed) or a whole recipient (deleted). Without this the old
+// rows stayed 'scheduled' -- the FKs are ON DELETE SET NULL, so even
+// deleting the person didn't stop their reminder emails.
+export async function skipScheduledNotifications(filter: { occasionId: string } | { recipientId: string }) {
+  const supabase = getDb();
+  let query = supabase.from("gift_notifications").update({ status: "skipped" }).eq("status", "scheduled");
+  query = "occasionId" in filter ? query.eq("occasion_id", filter.occasionId) : query.eq("recipient_id", filter.recipientId);
+  const { error } = await query;
+  return { error };
+}
+
 export async function upsertNotification(notification: Record<string, unknown>) {
   const supabase = getDb();
   const { data, error } = await supabase.from("gift_notifications").upsert(notification).select().single();

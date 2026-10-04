@@ -74,6 +74,10 @@ export function birthdayValidationError(dateStr: string): string | null {
   if (!dateStr) return "Enter a birthday.";
   const date = new Date(`${dateStr}T00:00:00`);
   if (Number.isNaN(date.getTime())) return "Enter a valid date.";
+  // new Date() silently rolls impossible dates over (April 31 -> May 1),
+  // so they'd pass here and then get rejected by Postgres's DATE column.
+  const [y, m, d] = dateStr.slice(0, 10).split("-").map(Number);
+  if (date.getFullYear() !== y || date.getMonth() + 1 !== m || date.getDate() !== d) return "Enter a valid date.";
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   if (date.getTime() > today.getTime()) return "Birthday can't be in the future.";

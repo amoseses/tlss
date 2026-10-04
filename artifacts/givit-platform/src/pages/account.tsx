@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useLocation, Link } from "wouter";
-import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2, Camera, Shuffle, Lock } from "lucide-react";
+import { User, Heart, Settings, MapPin, CreditCard, Gift, ShoppingBag, Star, Edit2, PlusCircle, Trash2, Camera, Shuffle, Lock, Coins } from "lucide-react";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
@@ -15,6 +15,7 @@ import { uploadFileToS3 } from "@/lib/upload";
 import { getCohort } from "@/lib/data/gifting-cohorts";
 import { GiftingQuizModal, CohortMark } from "@/components/personalization/gifting-quiz-modal";
 import { Reveal } from "@/components/ui/reveal";
+import { CREDIT_PACKS, CREDITS_CHANGED_EVENT, confirmCreditPurchase, getCreditStatus, startCreditCheckout, type CreditPackId, type CreditStatus } from "@/lib/credits/credits";
 
 async function authedFetch(path: string, init?: RequestInit) {
   const { data } = await createClient().auth.getSession();
@@ -89,6 +90,8 @@ export default function AccountPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [creditStatus, setCreditStatus] = useState<CreditStatus | null>(null);
+  const [buyingPack, setBuyingPack] = useState<CreditPackId | null>(null);
   const cohort = getCohort(profile?.gifting_cohort);
 
   // Password change state
@@ -233,6 +236,65 @@ export default function AccountPage() {
     }
     load();
   }, [user]);
+
+  // Credits: load the balance, keep it fresh after spends/purchases, and
+  // finish a pack purchase when Stripe Checkout redirects back here with
+  // ?credits_purchase=success&session_id=... (see credits_confirm in
+  // api/metadata.ts). The query params are stripped right away so a
+  // refresh doesn't re-show the notice -- re-confirming would be harmless
+  // anyway, since the grant is idempotent per payment intent.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const load = () => getCreditStatus().then((s) => { if (!cancelled) setCreditStatus(s); });
+    load();
+    window.addEventListener(CREDITS_CHANGED_EVENT, load);
+    // Back from Stripe restores this page from bfcache with the pack
+    // button still stuck on "Opening checkout…".
+    const onPageShow = (e: PageTransitionEvent) => { if (e.persisted) setBuyingPack(null); };
+    window.addEventListener("pageshow", onPageShow);
+
+    const params = new URLSearchParams(window.location.search);
+    const purchase = params.get("credits_purchase");
+    const sessionId = params.get("session_id");
+    if (purchase) {
+      window.history.replaceState(null, "", `${window.location.pathname}#credits`);
+      if (purchase === "cancelled") {
+        setAccountNotice("Checkout cancelled -- you weren't charged.");
+      } else if (purchase === "success" && sessionId) {
+        setAccountNotice("Confirming your purchase…");
+        confirmCreditPurchase(sessionId).then((result) => {
+          if (cancelled) return;
+          if (result.ok) {
+            setAccountNotice(result.alreadyGranted ? "Those credits are already in your balance." : `Thanks! ${result.creditsGranted} credits added to your balance.`);
+          } else if ("status" in result && result.status) {
+            setAccountNotice("Your payment is still processing. Refresh this page in a minute to see your credits.");
+          } else {
+            setAccountNotice(result.error || "Couldn't confirm that purchase. If you were charged, refresh this page in a minute.");
+          }
+        });
+      }
+    }
+    if (window.location.hash === "#credits") {
+      requestAnimationFrame(() => document.getElementById("credits")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+    return () => {
+      cancelled = true;
+      window.removeEventListener(CREDITS_CHANGED_EVENT, load);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [user]);
+
+  async function handleBuyPack(packId: CreditPackId) {
+    setBuyingPack(packId);
+    const error = await startCreditCheckout(packId);
+    // On success the page is already navigating to Stripe; only an error
+    // returns here.
+    if (error) {
+      setAccountNotice(error);
+      setBuyingPack(null);
+    }
+  }
 
   // Sync profile fields when loaded
   useEffect(() => {
@@ -453,6 +515,42 @@ export default function AccountPage() {
       {accountNotice && <div className="mb-4 rounded-xl bg-givit-ember/10 px-4 py-3 text-sm text-givit-ink">{accountNotice}</div>}
 
       <div className="stagger-children grid gap-6 lg:grid-cols-2">
+        {/* Credits */}
+        <div id="credits" className="slide-up givit-panel scroll-mt-24 p-6 lg:col-span-2">
+          <div className="mb-4 flex items-center gap-2">
+            <Coins className="h-4 w-4 text-givit-ember" />
+            <h2 className="font-semibold text-givit-ink">Credits</h2>
+          </div>
+          {!creditStatus ? (
+            <p className="text-sm text-muted-foreground">Couldn't load your credit balance right now.</p>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+              <div className="space-y-2 text-sm">
+                <p className="text-3xl font-semibold text-givit-ink">{creditStatus.balance}<span className="ml-1.5 text-sm font-normal text-muted-foreground">credits</span></p>
+                <p className="text-muted-foreground">
+                  Free this year: <span className="font-medium text-foreground">{creditStatus.freeAiRemaining} of {creditStatus.freeAiLimit}</span> Gift AI conversations,{" "}
+                  <span className="font-medium text-foreground">{creditStatus.freeAutogiftRemaining} of {creditStatus.freeAutogiftLimit}</span> AutoGifts.
+                </p>
+                <p className="text-xs text-muted-foreground">Free uses are spent first and reset every January. Each Gift AI conversation after that costs 1 credit.</p>
+              </div>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {CREDIT_PACKS.map((pack) => (
+                  <div key={pack.id} className="flex flex-col gap-2 rounded-lg border border-border/40 p-4">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-semibold text-givit-ink">{pack.label}</span>
+                      <span className="text-sm font-medium text-foreground">${(pack.priceCents / 100).toFixed(2)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{pack.credits} credits · ${(pack.priceCents / pack.credits / 100).toFixed(2)} each</p>
+                    <Button type="button" size="sm" disabled={buyingPack !== null} onClick={() => void handleBuyPack(pack.id)} className="mt-auto rounded-md bg-givit-ember text-white hover:bg-givit-ember-hover">
+                      {buyingPack === pack.id ? "Opening checkout…" : `Buy ${pack.credits} credits`}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Orders */}
         <div className="slide-up givit-panel p-6">
           <div className="mb-4 flex items-center gap-2">

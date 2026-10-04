@@ -982,3 +982,325 @@ AS $$
   JOIN secret_santa_participants r ON r.id = a.recipient_id
   WHERE me.group_id = p_group_id AND me.user_id = auth.uid();
 $$;
+
+-- ============================================================
+-- CREDITS (Your Gift AI / Secret Santa matching / AutoGift metering)
+-- server/api-lib/credits.mjs calls the three functions below over
+-- PostgREST's /rpc/ with the service-role key. Until this block existed
+-- those calls 404'd, which made every signed-in user's first Gift AI
+-- message come back "you're out of free uses" (the client fails closed).
+--
+-- Every user gets a free allowance per calendar year (UTC) before paid
+-- credits are touched: FREE_AI covers gift_ai_chat + secret_santa_match,
+-- FREE_AUTOGIFT covers autogift_purchase. Change the limits in
+-- credit_free_limits() only -- get_credit_status() reports them to the
+-- client, so the UI never hardcodes them.
+--
+-- All three functions are SECURITY DEFINER and EXECUTE is revoked from
+-- anon/authenticated: otherwise any signed-in user could POST
+-- /rest/v1/rpc/grant_credits with their own id and mint credits. Only the
+-- service role (the API routes) may call them. Idempotent.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS credit_accounts (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  balance INTEGER NOT NULL DEFAULT 0 CHECK (balance >= 0),
+  free_period INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM (now() AT TIME ZONE 'utc'))::INTEGER,
+  free_ai_used INTEGER NOT NULL DEFAULT 0,
+  free_autogift_used INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS credit_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  delta INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  used_free BOOLEAN NOT NULL DEFAULT false,
+  reference_id TEXT,
+  -- UNIQUE is what makes pack grants idempotent even when two confirm
+  -- requests for the same Checkout Session race each other.
+  stripe_payment_intent_id TEXT UNIQUE,
+  balance_after INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS credit_transactions_user_created_idx ON credit_transactions (user_id, created_at DESC);
+
+ALTER TABLE credit_accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
+
+-- Read-only for the owner; every write goes through the functions below.
+DROP POLICY IF EXISTS "Users can view their own credit account" ON credit_accounts;
+CREATE POLICY "Users can view their own credit account" ON credit_accounts FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can view their own credit transactions" ON credit_transactions;
+CREATE POLICY "Users can view their own credit transactions" ON credit_transactions FOR SELECT USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION credit_free_limits()
+RETURNS TABLE(free_ai INTEGER, free_autogift INTEGER)
+LANGUAGE sql
+IMMUTABLE
+AS $$ SELECT 10, 3 $$;
+
+-- Creates the account row on first touch, rolls the free allowance over
+-- when the calendar year changes, and returns the row locked FOR UPDATE so
+-- concurrent spends for the same user serialize instead of both passing
+-- the balance check.
+CREATE OR REPLACE FUNCTION credit_lock_account(p_user_id UUID)
+RETURNS credit_accounts
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_year INTEGER := EXTRACT(YEAR FROM (now() AT TIME ZONE 'utc'))::INTEGER;
+  v_account credit_accounts;
+BEGIN
+  INSERT INTO credit_accounts (user_id) VALUES (p_user_id) ON CONFLICT (user_id) DO NOTHING;
+  SELECT * INTO v_account FROM credit_accounts WHERE user_id = p_user_id FOR UPDATE;
+  IF v_account.free_period <> v_year THEN
+    UPDATE credit_accounts
+      SET free_period = v_year, free_ai_used = 0, free_autogift_used = 0, updated_at = now()
+      WHERE user_id = p_user_id
+      RETURNING * INTO v_account;
+  END IF;
+  RETURN v_account;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_credit_status(p_user_id UUID)
+RETURNS JSONB
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_account credit_accounts;
+  v_limits RECORD;
+BEGIN
+  v_account := credit_lock_account(p_user_id);
+  SELECT * INTO v_limits FROM credit_free_limits();
+  RETURN jsonb_build_object(
+    'balance', v_account.balance,
+    'freeAiRemaining', GREATEST(v_limits.free_ai - v_account.free_ai_used, 0),
+    'freeAiLimit', v_limits.free_ai,
+    'freeAutogiftRemaining', GREATEST(v_limits.free_autogift - v_account.free_autogift_used, 0),
+    'freeAutogiftLimit', v_limits.free_autogift
+  );
+END;
+$$;
+
+-- One free use covers one metered action regardless of p_amount; paid
+-- credits are only drawn once that pool's free allowance is used up.
+CREATE OR REPLACE FUNCTION spend_credits(p_user_id UUID, p_amount INTEGER, p_reason TEXT, p_reference_id TEXT DEFAULT NULL)
+RETURNS JSONB
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_account credit_accounts;
+  v_limits RECORD;
+  v_is_autogift BOOLEAN := p_reason = 'autogift_purchase';
+BEGIN
+  IF p_amount IS NULL OR p_amount <= 0 THEN
+    RAISE EXCEPTION 'p_amount must be positive';
+  END IF;
+
+  v_account := credit_lock_account(p_user_id);
+  SELECT * INTO v_limits FROM credit_free_limits();
+
+  IF (v_is_autogift AND v_account.free_autogift_used < v_limits.free_autogift)
+     OR (NOT v_is_autogift AND v_account.free_ai_used < v_limits.free_ai) THEN
+    UPDATE credit_accounts SET
+      free_ai_used = free_ai_used + CASE WHEN v_is_autogift THEN 0 ELSE 1 END,
+      free_autogift_used = free_autogift_used + CASE WHEN v_is_autogift THEN 1 ELSE 0 END,
+      updated_at = now()
+      WHERE user_id = p_user_id;
+    INSERT INTO credit_transactions (user_id, delta, reason, used_free, reference_id, balance_after)
+      VALUES (p_user_id, 0, p_reason, true, p_reference_id, v_account.balance);
+    RETURN jsonb_build_object('ok', true, 'usedFree', true, 'balance', v_account.balance);
+  END IF;
+
+  IF v_account.balance < p_amount THEN
+    RETURN jsonb_build_object('ok', false, 'usedFree', false, 'balance', v_account.balance, 'error', 'insufficient_credits');
+  END IF;
+
+  UPDATE credit_accounts SET balance = balance - p_amount, updated_at = now()
+    WHERE user_id = p_user_id
+    RETURNING * INTO v_account;
+  INSERT INTO credit_transactions (user_id, delta, reason, used_free, reference_id, balance_after)
+    VALUES (p_user_id, -p_amount, p_reason, false, p_reference_id, v_account.balance);
+  RETURN jsonb_build_object('ok', true, 'usedFree', false, 'balance', v_account.balance);
+END;
+$$;
+
+-- Idempotent per Stripe payment intent: a repeat call (refreshed success
+-- page, two tabs, a retried request) returns alreadyGranted instead of
+-- granting twice. The ledger insert runs before the balance update inside
+-- the same exception block, so a unique-violation race rolls back both.
+CREATE OR REPLACE FUNCTION grant_credits(p_user_id UUID, p_amount INTEGER, p_reason TEXT, p_stripe_payment_intent_id TEXT DEFAULT NULL)
+RETURNS JSONB
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_account credit_accounts;
+BEGIN
+  IF p_amount IS NULL OR p_amount <= 0 THEN
+    RAISE EXCEPTION 'p_amount must be positive';
+  END IF;
+
+  v_account := credit_lock_account(p_user_id);
+  BEGIN
+    INSERT INTO credit_transactions (user_id, delta, reason, stripe_payment_intent_id, balance_after)
+      VALUES (p_user_id, p_amount, p_reason, p_stripe_payment_intent_id, v_account.balance + p_amount);
+    UPDATE credit_accounts SET balance = balance + p_amount, updated_at = now()
+      WHERE user_id = p_user_id
+      RETURNING * INTO v_account;
+  EXCEPTION WHEN unique_violation THEN
+    RETURN jsonb_build_object('ok', true, 'alreadyGranted', true, 'balance', v_account.balance);
+  END;
+  RETURN jsonb_build_object('ok', true, 'alreadyGranted', false, 'balance', v_account.balance);
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION credit_lock_account(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_credit_status(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION spend_credits(UUID, INTEGER, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION grant_credits(UUID, INTEGER, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION credit_lock_account(UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION get_credit_status(UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION spend_credits(UUID, INTEGER, TEXT, TEXT) TO service_role;
+GRANT EXECUTE ON FUNCTION grant_credits(UUID, INTEGER, TEXT, TEXT) TO service_role;
+
+-- ============================================================
+-- PRIVILEGE GUARDS (column-level protection RLS can't express)
+-- RLS policies decide WHICH rows a user may write, not WHICH COLUMNS --
+-- so "Users can update own profile" let anyone run
+--   supabase.from('profiles').update({ role: 'admin' }).eq('id', myId)
+-- from devtools and become an admin, "Sellers can manage their own
+-- products" let any user insert an already-approved, published product,
+-- and a Secret Santa participant could move their row into another group.
+-- These triggers quietly keep protected columns at their old values for
+-- ordinary users (rather than raising) so existing client writes that
+-- happen to include them -- e.g. signup.tsx's profile upsert with
+-- role: 'customer' -- keep working. Admins, and server-side code using
+-- the service-role key (auth.uid() IS NULL), are unaffected. Idempotent.
+-- ============================================================
+CREATE OR REPLACE FUNCTION is_platform_admin(p_user_id UUID)
+RETURNS BOOLEAN
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE sql
+STABLE
+AS $$ SELECT EXISTS (SELECT 1 FROM profiles WHERE id = p_user_id AND role = 'admin') $$;
+
+CREATE OR REPLACE FUNCTION guard_profile_privileged_columns()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR is_platform_admin(auth.uid()) THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    NEW.role := 'customer';
+    NEW.is_banned := false;
+    NEW.stripe_customer_id := NULL;
+    NEW.stripe_default_payment_method_id := NULL;
+    NEW.stripe_connect_account_id := NULL;
+    NEW.stripe_connect_charges_enabled := false;
+  ELSE
+    NEW.role := OLD.role;
+    NEW.is_banned := OLD.is_banned;
+    NEW.stripe_customer_id := OLD.stripe_customer_id;
+    NEW.stripe_default_payment_method_id := OLD.stripe_default_payment_method_id;
+    NEW.stripe_connect_account_id := OLD.stripe_connect_account_id;
+    NEW.stripe_connect_charges_enabled := OLD.stripe_connect_charges_enabled;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS guard_profile_privileged_columns ON profiles;
+CREATE TRIGGER guard_profile_privileged_columns
+  BEFORE INSERT OR UPDATE ON profiles
+  FOR EACH ROW EXECUTE FUNCTION guard_profile_privileged_columns();
+
+-- Non-admin product writes can never self-approve or self-publish; an
+-- admin approves them from /admin like any other submission.
+CREATE OR REPLACE FUNCTION guard_product_moderation_columns()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR is_platform_admin(auth.uid()) THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    NEW.is_approved := false;
+    NEW.is_published := false;
+  ELSE
+    NEW.is_approved := OLD.is_approved;
+    NEW.is_published := OLD.is_published;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS guard_product_moderation_columns ON products;
+CREATE TRIGGER guard_product_moderation_columns
+  BEFORE INSERT OR UPDATE ON products
+  FOR EACH ROW EXECUTE FUNCTION guard_product_moderation_columns();
+
+-- Participants may edit their own wishlist notes/interests, nothing that
+-- changes group membership or identity.
+CREATE OR REPLACE FUNCTION guard_secret_santa_participant_identity()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR is_secret_santa_organizer(OLD.group_id, auth.uid()) THEN
+    RETURN NEW;
+  END IF;
+  NEW.group_id := OLD.group_id;
+  NEW.user_id := OLD.user_id;
+  NEW.email := OLD.email;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS guard_secret_santa_participant_identity ON secret_santa_participants;
+CREATE TRIGGER guard_secret_santa_participant_identity
+  BEFORE UPDATE ON secret_santa_participants
+  FOR EACH ROW EXECUTE FUNCTION guard_secret_santa_participant_identity();
+
+-- A customer-created AutoGift order can only start life awaiting a charge
+-- -- inserting status 'charged' used to skip payment entirely and drop
+-- straight into the fulfillment queue. (Totals are re-checked against the
+-- line items at charge time in api/stripe/setup-intent.ts.)
+CREATE OR REPLACE FUNCTION guard_autogift_order_insert()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR is_platform_admin(auth.uid()) THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.status NOT IN ('pending_approval', 'approved') THEN
+    NEW.status := 'approved';
+  END IF;
+  NEW.stripe_payment_intent_id := NULL;
+  NEW.admin_notes := NULL;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS guard_autogift_order_insert ON autogift_orders;
+CREATE TRIGGER guard_autogift_order_insert
+  BEFORE INSERT ON autogift_orders
+  FOR EACH ROW EXECUTE FUNCTION guard_autogift_order_insert();

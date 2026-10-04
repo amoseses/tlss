@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Coins } from "lucide-react";
 
-import { getCreditStatus, type CreditStatus } from "@/lib/credits/credits";
+import { CREDITS_CHANGED_EVENT, getCreditStatus, type CreditStatus } from "@/lib/credits/credits";
 
 // Small persistent balance indicator, same idea as the existing bell/
 // notification icon -- always visible, not buried in a menu, since the
@@ -13,15 +13,22 @@ export function CreditBalanceBadge({ isDark }: { isDark: boolean }) {
 
   useEffect(() => {
     let cancelled = false;
-    getCreditStatus().then((s) => { if (!cancelled) setStatus(s); });
-    return () => { cancelled = true; };
+    const load = () => getCreditStatus().then((s) => { if (!cancelled) setStatus(s); });
+    load();
+    // Refetch whenever a spend/purchase lands, so the number never lags
+    // behind what the user just did.
+    window.addEventListener(CREDITS_CHANGED_EVENT, load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(CREDITS_CHANGED_EVENT, load);
+    };
   }, []);
 
   if (!status) return null;
 
   return (
     <Link
-      href="/account"
+      href="/account#credits"
       title={`${status.balance} credits • ${status.freeAiRemaining} free AI actions left this year`}
       className={`flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-semibold transition-colors ${
         isDark ? "bg-white/10 text-white hover:bg-white/15" : "bg-givit-sand/60 text-givit-ink hover:bg-givit-sand"

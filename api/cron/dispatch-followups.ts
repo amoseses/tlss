@@ -28,13 +28,14 @@ function followupBody(title: string, body: string) {
 }
 
 export default async function handler(req: any, res: any) {
+  // Fail closed: with CRON_SECRET unset this used to skip auth entirely,
+  // letting anyone trigger a full digest/reminder blast (and the Etsy
+  // sync) on demand. Vercel Cron sends this header automatically once the
+  // env var is set.
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = req.headers?.authorization;
-    if (auth !== `Bearer ${cronSecret}`) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
+  if (!cronSecret || req.headers?.authorization !== `Bearer ${cronSecret}`) {
+    res.status(401).json({ error: cronSecret ? "Unauthorized" : "CRON_SECRET is not configured." });
+    return;
   }
 
   const results = { sent: 0, failed: 0 };

@@ -1,4 +1,5 @@
 import { savePushSubscription, removePushSubscription, getMyPushSubscriptions } from "@/lib/supabase/db";
+import { authHeaders } from "@/lib/auth/auth-headers";
 
 export function isPushSupported() {
   return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
@@ -76,23 +77,22 @@ export async function unsubscribeFromPush(): Promise<{ error?: string }> {
   return {};
 }
 
+// The server looks up the caller's own subscriptions itself (it no longer
+// accepts a raw subscription from the client) and sends to all of them.
 export async function sendTestPush(userId: string, title: string, body: string): Promise<{ error?: string }> {
   const subscriptions = await getMyPushSubscriptions(userId);
   if (subscriptions.length === 0) return { error: "No push subscription found. Enable notifications first." };
 
-  const results = await Promise.all(
-    subscriptions.map((sub) =>
-      fetch("/api/push/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subscription: { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          title,
-          body,
-        }),
-      }).then((res) => res.ok),
-    ),
-  );
-  if (results.every((ok) => !ok)) return { error: "Push failed to send. Try re-enabling notifications." };
-  return {};
+  try {
+    const res = await fetch("/api/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+      body: JSON.stringify({ title, body }),
+    });
+    if (res.ok) return {};
+    const data = await res.json().catch(() => null);
+    return { error: data?.error || "Push failed to send. Try re-enabling notifications." };
+  } catch {
+    return { error: "Push failed to send. Check your connection and try again." };
+  }
 }

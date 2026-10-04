@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles, CheckCircle, ThumbsDown, ThumbsUp, Heart } from "lucide-react";
-import { respondToSurvey, generateGiftBundles, regenerateBundleItem, createAutoGiftOrder, type SurveyResponse, type GiftSuggestion, type AutoGiftBundle, type AutoGiftOrderItem } from "@/lib/autogift/survey";
+import { respondToSurvey, generateGiftBundles, regenerateBundleItem, createAutoGiftOrder, removeLocalAutoGiftOrder, type SurveyResponse, type GiftSuggestion, type AutoGiftBundle, type AutoGiftOrderItem } from "@/lib/autogift/survey";
 import { personalizeBundlesWithAI } from "@/lib/autogift/ai-personalize";
 import { trackUserEvent } from "@/lib/monitoring";
 import { useAuth } from "@/lib/auth/use-auth";
@@ -87,6 +87,7 @@ export function GiftSurveyModal({
   const [addressOptions, setAddressOptions] = useState<Array<{ label?: string; line1: string; city: string; state: string; zip: string }>>([]);
   const [address, setAddress] = useState({ label: "", line1: "", city: "", state: "", zip: "" });
   const [addressError, setAddressError] = useState<string | null>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [itemNotes, setItemNotes] = useState<Record<string, string>>({});
@@ -204,6 +205,7 @@ export function GiftSurveyModal({
     const invalidAddress = addressValidationError(address);
     if (invalidAddress) { setAddressError(invalidAddress); return; }
     setAddressError(null);
+    setOrderError(null);
     const selectedItems = selectedBundle.items
       .map(s => ({
         productName: s.name,
@@ -243,9 +245,17 @@ export function GiftSurveyModal({
       cardMessage: order.cardMessage,
       customerNotes: customerComment.trim() || undefined,
     });
-    if (error) console.error("Failed to sync AutoGift order to admin queue:", error.message);
-
     setPlacingOrder(false);
+    // The DB row IS the order as far as fulfillment is concerned -- the
+    // admin queue reads only from there. Showing "done" after a failed
+    // save left customers thinking a gift was on its way that nobody
+    // would ever see, charge, or ship.
+    if (error) {
+      console.error("Failed to sync AutoGift order to admin queue:", error.message);
+      removeLocalAutoGiftOrder(order.id);
+      setOrderError("We couldn't place your order -- nothing was charged. Check your connection and try again.");
+      return;
+    }
     setStep("done");
   }
 
@@ -469,6 +479,7 @@ export function GiftSurveyModal({
                   <input value={address.zip} onChange={(e) => setAddress(a => ({ ...a, zip: e.target.value }))} placeholder="ZIP *" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-givit-ember/20" />
                 </div>
                 {addressError && <p className="text-xs font-medium text-destructive">{addressError}</p>}
+                {orderError && <p role="alert" className="text-xs font-medium text-destructive">{orderError}</p>}
               </div>
 
               <div className="space-y-2">

@@ -4,6 +4,7 @@ import { Bookmark, Check, Mail, Share2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/use-auth";
+import { authHeaders } from "@/lib/auth/auth-headers";
 import { addToWishlist, removeFromWishlist } from "@/lib/supabase/db";
 
 const STORAGE_KEY = "givit-wishlist";
@@ -124,7 +125,7 @@ export function WishlistSharePanel() {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailTo, setEmailTo] = useState("");
   const [sending, setSending] = useState(false);
-  const [emailStatus, setEmailStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sent" | "error" | "signin">("idle");
 
   useEffect(() => {
     const sync = () => setItems(readWishlist());
@@ -181,9 +182,13 @@ export function WishlistSharePanel() {
     try {
       const res = await fetch("/api/wishlist/send-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify({ to: emailTo.trim(), items: text }),
       });
+      if (res.status === 401) {
+        setEmailStatus("signin");
+        return;
+      }
       if (!res.ok) throw new Error("send failed");
       setEmailStatus("sent");
       setEmailTo("");
@@ -237,6 +242,7 @@ export function WishlistSharePanel() {
           </button>
           {emailStatus === "sent" && <p className="w-full text-xs font-medium text-success">Sent.</p>}
           {emailStatus === "error" && <p className="w-full text-xs font-medium text-destructive">Couldn't send that. Try again.</p>}
+          {emailStatus === "signin" && <p className="w-full text-xs font-medium text-destructive">Sign in to email your wishlist.</p>}
         </form>
       )}
     </div>
