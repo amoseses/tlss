@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { X, Sparkles, CheckCircle, ThumbsDown, ThumbsUp, Heart } from "lucide-react";
 import { respondToSurvey, generateGiftBundles, regenerateBundleItem, createAutoGiftOrder, removeLocalAutoGiftOrder, type SurveyResponse, type GiftSuggestion, type AutoGiftBundle, type AutoGiftOrderItem } from "@/lib/autogift/survey";
 import { personalizeBundlesWithAI } from "@/lib/autogift/ai-personalize";
+import { spendCredit } from "@/lib/credits/credits";
 import { trackUserEvent } from "@/lib/monitoring";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getUserPaymentMethods, saveAutoGiftOrderToDb } from "@/lib/supabase/db";
@@ -94,6 +95,7 @@ export function GiftSurveyModal({
   const [itemFeedback, setItemFeedback] = useState<Record<string, "liked" | "disliked">>({});
   const [aiPersonalizing, setAiPersonalizing] = useState(false);
   const [cardMessageTouched, setCardMessageTouched] = useState(false);
+  const [aiCreditError, setAiCreditError] = useState<string | null>(null);
   const aiRequestToken = useRef(0);
   const shownProductIds = useRef<Set<string>>(new Set());
   // Approving with no saved card silently stalls in the admin queue --
@@ -156,17 +158,34 @@ export function GiftSurveyModal({
     setStep("suggestions");
 
     const requestToken = ++aiRequestToken.current;
+    setAiCreditError(null);
     setAiPersonalizing(true);
-    personalizeBundlesWithAI(response, normalizedBundles, recipientName, occasion, profile?.gifting_cohort)
-      .then(({ bundles: enhanced, cardMessage }) => {
+    (async () => {
+      // AI personalization is the only AI-powered step in AutoGift, so it's
+      // the only thing gated behind credits -- the deterministic bundles
+      // above are generated either way, this just skips the AI re-rank/
+      // rewrite pass when the user is out of credits.
+      if (user) {
+        const result = await spendCredit("autogift_purchase", 10, surveyId);
+        if (!result.ok) {
+          if (aiRequestToken.current === requestToken) {
+            setAiCreditError("You're out of AutoGift AI credits for this period. Buy more credits to get AI-personalized picks -- showing standard matches for now.");
+            setAiPersonalizing(false);
+          }
+          return;
+        }
+      }
+      try {
+        const { bundles: enhanced, cardMessage } = await personalizeBundlesWithAI(response, normalizedBundles, recipientName, occasion, profile?.gifting_cohort);
         if (aiRequestToken.current !== requestToken) return; // a newer generation superseded this one
         setBundles(enhanced);
         if (cardMessage) setCardMessage((prev) => (cardMessageTouched && prev ? prev : cardMessage));
-      })
-      .catch((error) => trackUserEvent("autogift_ai_personalize_failed", { message: String(error) }))
-      .finally(() => {
+      } catch (error) {
+        trackUserEvent("autogift_ai_personalize_failed", { message: String(error) });
+      } finally {
         if (aiRequestToken.current === requestToken) setAiPersonalizing(false);
-      });
+      }
+    })();
   }
 
   function handleSurveySubmit() {
@@ -420,6 +439,11 @@ export function GiftSurveyModal({
               {aiPersonalizing && (
                 <div className="flex items-center gap-2 rounded-lg bg-givit-ember/5 px-3 py-2 text-xs font-medium text-givit-ember">
                   <Sparkles className="h-3.5 w-3.5 animate-pulse" /> Your Gift AI is personalizing these picks and drafting a card message…
+                </div>
+              )}
+              {aiCreditError && (
+                <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                  {aiCreditError}
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
