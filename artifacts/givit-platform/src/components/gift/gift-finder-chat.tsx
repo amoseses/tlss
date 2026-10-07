@@ -13,7 +13,6 @@ import { getGiftRecipients, saveGiftRecipient } from "@/lib/supabase/db";
 import { parseBatchGiftRequest, runBatchGiftSearch, type BatchGiftPlan } from "@/lib/gift-batch";
 import { parseCompareRequest, findBestProductMatch } from "@/lib/gift-compare";
 import { getCohort } from "@/lib/data/gifting-cohorts";
-import { spendCredit } from "@/lib/credits/credits";
 
 type GiftResult = GiftRecommendResult;
 
@@ -332,15 +331,6 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   // Ids already shown, so "Not yet" can ask for a genuinely different set
   // instead of just acknowledging and stopping.
   const shownIdsRef = useRef<Set<string>>(new Set());
-  // One credit per conversation, not per message/follow-up -- set true the
-  // first time any of runSearch/runBatchSearch/runCompare actually fires
-  // an AI call, reset in startOver() when a genuinely new conversation
-  // starts.
-  const conversationChargedRef = useRef(false);
-  // The spend round-trip happens before `loading` flips true, so a second
-  // Enter press during it would otherwise fire a second spend. Concurrent
-  // callers share this one in-flight charge instead.
-  const chargeInFlightRef = useRef<Promise<boolean> | null>(null);
   // Recipients who've already gone through the "here's what I have, still
   // accurate?" confirm step this session -- so a follow-up message that
   // mentions them again doesn't ask a second time.
@@ -382,7 +372,6 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
     setForm({ recipient: "", relationship: "", age: "", gender: "Prefer not to say", occasion: "Birthday", budget: "", interests: "", style: "Practical", avoid: "" });
     contextRef.current = EMPTY_CONTEXT;
     shownIdsRef.current = new Set();
-    conversationChargedRef.current = false;
     focusInput();
   }
 
@@ -398,45 +387,6 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   async function regenerate() {
     if (!lastQuery || loading) return;
     await sendMessage(lastQuery, true);
-  }
-
-  // Gate shared by every function that actually fires an AI call
-  // (runSearch / runBatchSearch / runCompare). Charges once per
-  // conversation, not per message -- a no-op if this conversation already
-  // paid. Guests (no signed-in user) aren't gated in this pass, since Gift
-  // AI currently has no existing sign-in wall and blocking it here would
-  // be a behavior change beyond what this pass is scoped to -- worth a
-  // deliberate product decision, not a silent side effect of this change.
-  async function ensureConversationCharged(): Promise<boolean> {
-    if (conversationChargedRef.current) return true;
-    if (!user) return true;
-    if (chargeInFlightRef.current) return chargeInFlightRef.current;
-    const charge = (async () => {
-      const result = await spendCredit("gift_ai_chat", 1);
-      if (!result.ok) {
-        const outOfCredits = result.error === "insufficient_credits";
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            content: outOfCredits
-              ? "You've used all your free Your Gift AI conversations for this year. Grab a credit pack to keep going -- each new conversation costs 1 credit."
-              : "I couldn't check your credit balance just now. Give it a moment and try again.",
-            cta: outOfCredits ? { label: "Get credits", href: "/account#credits" } : undefined,
-          },
-        ]);
-        return false;
-      }
-      conversationChargedRef.current = true;
-      return true;
-    })();
-    chargeInFlightRef.current = charge;
-    try {
-      return await charge;
-    } finally {
-      chargeInFlightRef.current = null;
-    }
   }
 
   async function sendMessage(text: string, isRegenerate = false, excludeIds: string[] = []) {
@@ -511,7 +461,6 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   }
 
   async function runSearch(trimmed: string, isRegenerate = false, excludeIds: string[] = [], skipUserBubble = false) {
-    if (!(await ensureConversationCharged())) return;
     if (!isRegenerate) setLastQuery(trimmed);
     const replyId = crypto.randomUUID();
     setMessages((prev) => [
@@ -598,7 +547,6 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
 
   async function runBatchSearch(trimmed: string, parsed: ReturnType<typeof parseBatchGiftRequest>) {
     if (!parsed) return;
-    if (!(await ensureConversationCharged())) return;
     setLastQuery(trimmed);
     const replyId = crypto.randomUUID();
     setMessages((prev) => [
@@ -627,7 +575,6 @@ export function GiftFinderChat({ initialQuery }: { initialQuery?: string } = {})
   }
 
   async function runCompare(trimmed: string, productA: MarketplaceProduct, productB: MarketplaceProduct) {
-    if (!(await ensureConversationCharged())) return;
     setLastQuery(trimmed);
     const replyId = crypto.randomUUID();
     setMessages((prev) => [

@@ -29,7 +29,7 @@ export function CreditBalanceBadge({ isDark }: { isDark: boolean }) {
   return (
     <Link
       href="/account#credits"
-      title={`${status.balance} credits • ${status.freeAiRemaining} free AI actions left this year`}
+      title={`${status.balance} credits • ${status.freeAutogiftRemaining} free AutoGifts left this year`}
       className={`flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-semibold transition-colors ${
         isDark ? "bg-white/10 text-white hover:bg-white/15" : "bg-givit-sand/60 text-givit-ink hover:bg-givit-sand"
       }`}

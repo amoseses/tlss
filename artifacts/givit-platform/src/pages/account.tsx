@@ -528,10 +528,9 @@ export default function AccountPage() {
               <div className="space-y-2 text-sm">
                 <p className="text-3xl font-semibold text-givit-ink">{creditStatus.balance}<span className="ml-1.5 text-sm font-normal text-muted-foreground">credits</span></p>
                 <p className="text-muted-foreground">
-                  Free this year: <span className="font-medium text-foreground">{creditStatus.freeAiRemaining} of {creditStatus.freeAiLimit}</span> Gift AI conversations,{" "}
-                  <span className="font-medium text-foreground">{creditStatus.freeAutogiftRemaining} of {creditStatus.freeAutogiftLimit}</span> AutoGifts.
+                  Your Gift AI is always free. Free AutoGifts this year: <span className="font-medium text-foreground">{creditStatus.freeAutogiftRemaining} of {creditStatus.freeAutogiftLimit}</span>.
                 </p>
-                <p className="text-xs text-muted-foreground">Free uses are spent first and reset every January. Each Gift AI conversation after that costs 1 credit.</p>
+                <p className="text-xs text-muted-foreground">Free AutoGifts are used first and reset every January. After that, credits cover each AutoGift.</p>
               </div>
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {CREDIT_PACKS.map((pack) => (
