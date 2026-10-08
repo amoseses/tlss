@@ -10,6 +10,7 @@ import { initials } from "@/lib/utils";
 import { AutoGiftOnboardingWizard } from "@/components/autogift/autogift-onboarding-wizard";
 import { GiftSurveyModal } from "@/components/autogift/autogift-survey-modal";
 import { AutoGiftCalendar } from "@/components/autogift/autogift-calendar";
+import { detectUserRegion } from "@/lib/data/holidays";
 
 export default function ConciergePage() {
   const { user, profile, loading } = useAuth();
@@ -18,6 +19,7 @@ export default function ConciergePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarPersonId, setCalendarPersonId] = useState<string | null>(null);
+  const [region] = useState(() => detectUserRegion());
   // useAuth() re-validates the session (and flips loading back to true)
   // whenever the tab regains focus — without this, the full-page spinner
   // below would unmount the whole page, including an in-progress
@@ -140,7 +142,7 @@ export default function ConciergePage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <AutoGiftCalendar recipients={[calendarPerson]} scheduledKeys={scheduledKeys} />
+            <AutoGiftCalendar recipients={[calendarPerson]} scheduledKeys={scheduledKeys} region={region} />
           </div>
         </div>
       )}
@@ -329,7 +331,7 @@ export default function ConciergePage() {
                 </div>
               )}
 
-              {showCalendar && <AutoGiftCalendar recipients={recipients} scheduledKeys={scheduledKeys} />}
+              {showCalendar && <AutoGiftCalendar recipients={recipients} scheduledKeys={scheduledKeys} region={region} />}
             </>
           )}
         </div>

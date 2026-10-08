@@ -21,17 +21,11 @@ export async function callGroqJSON(
     model?: string;
   } = {}
 ): Promise<any> {
-
-  // POSTs to /api/metadata, not a dedicated /api/groq -- see the comment on
-  // handleGroqChat in api/metadata.ts for why (Vercel's Hobby-plan
-  // 12-function cap this repo has to work around).
-  const response = await fetch("/api/metadata", {
+  const response = await fetch("/api/groq", {
     method: "POST",
-
     headers: {
       "Content-Type": "application/json",
     },
-
     body: JSON.stringify({
       messages,
       temperature: opts.temperature ?? 0.7,
@@ -41,9 +35,7 @@ export async function callGroqJSON(
   });
 
   if (!response.ok) {
-    const errorText = await response
-      .text()
-      .catch(() => "");
+    const errorText = await response.text().catch(() => "");
 
     throw new Error(
       `Groq API request failed (${response.status}): ${
@@ -54,16 +46,11 @@ export async function callGroqJSON(
 
   const data = await response.json();
 
-  const content =
-    data.choices?.[0]?.message?.content?.trim();
+  const content = data.choices?.[0]?.message?.content?.trim();
 
   if (!content) {
-    throw new Error(
-      "Groq API response had no content."
-    );
+    throw new Error("Groq API response had no content.");
   }
 
-  return JSON.parse(
-    stripCodeFence(content)
-  );
+  return JSON.parse(stripCodeFence(content));
 }
