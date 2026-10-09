@@ -16,6 +16,12 @@ import { getUserFromRequest } from "../../server/api-lib/auth.mjs";
 import { getOrCreateStripeCustomer, getPaymentMethodSummary } from "../../server/api-lib/payments.mjs";
 import { getStripe } from "../../server/api-lib/stripe.mjs";
 import { restFetch } from "../../server/api-lib/supabase-rest.mjs";
+import { grantCredits, grantCreditsForPaidSession, hasGrantedForPaymentIntent } from "../../server/api-lib/credits.mjs";
+
+// Stripe signs the exact raw bytes of the webhook body, so Vercel's JSON
+// body parsing has to be off for this file. Safe because none of the other
+// handlers below read req.body (they use headers and query params only).
+export const config = { api: { bodyParser: false } };
 
 const UNCHARGEABLE_STATUSES = new Set(["charged", "admin_fulfillment", "ordered", "shipped", "delivered", "cancelled"]);
 
@@ -198,7 +204,57 @@ async function chargeAutoGiftOrder(req: any, res: any) {
   }
 }
 
+async function readRawBody(req: any): Promise<Buffer> {
+  if (Buffer.isBuffer(req.body)) return req.body;
+  if (typeof req.body === "string") return Buffer.from(req.body);
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  return Buffer.concat(chunks);
+}
+
+// POST ?action=stripe_webhook = Stripe -> us. Grants credit-pack credits the
+// moment payment succeeds, so a buyer who closes the tab before the success
+// page loads still gets their credits. Register this URL in Stripe
+// (Developers -> Webhooks) for checkout.session.completed and
+// checkout.session.async_payment_succeeded, and set STRIPE_WEBHOOK_SECRET.
+async function handleStripeWebhook(req: any, res: any) {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error("Stripe webhook hit but STRIPE_WEBHOOK_SECRET is not configured.");
+    res.status(500).json({ error: "Webhook not configured." });
+    return;
+  }
+
+  let event: any;
+  try {
+    const raw = await readRawBody(req);
+    event = getStripe().webhooks.constructEvent(raw, req.headers["stripe-signature"] as string, secret);
+  } catch (error: any) {
+    console.error("Stripe webhook signature check failed:", error?.message);
+    res.status(400).json({ error: "Invalid signature." });
+    return;
+  }
+
+  try {
+    if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+      const session = event.data.object;
+      if (session.metadata?.source === "givit_credit_pack" && session.payment_status === "paid") {
+        const credits = Number(session.metadata?.credits || 0);
+        if (!credits) throw new Error("Credit pack session is missing a credits amount.");
+        await grantCreditsForPaidSession(session, hasGrantedForPaymentIntent, grantCredits);
+      }
+    }
+    res.status(200).json({ received: true });
+  } catch (error: any) {
+    // 500 makes Stripe retry with backoff -- a transient DB blip shouldn't
+    // permanently lose a paid purchase's credits.
+    console.error("Stripe webhook handling failed:", event?.type, error?.message);
+    res.status(500).json({ error: "Webhook handling failed." });
+  }
+}
+
 export default async function handler(req: any, res: any) {
+  if (req.method === "POST" && req.query?.action === "stripe_webhook") return handleStripeWebhook(req, res);
   if (req.method === "POST" && req.query?.action === "charge_order") return chargeAutoGiftOrder(req, res);
   if (req.method === "POST") return startSetupIntent(req, res);
   if (req.method === "GET") return paymentMethodSummary(req, res);

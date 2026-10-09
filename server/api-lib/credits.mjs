@@ -98,6 +98,17 @@ export async function confirmCreditCheckoutSession(stripe, userId, sessionId, al
   if (session.metadata?.user_id !== userId) {
     throw new Error("This checkout session doesn't belong to you.");
   }
+  return grantCreditsForPaidSession(session, alreadyGrantedFn, grantFn);
+}
+
+// Shared by the success-page confirm above and the Stripe webhook
+// (api/stripe/setup-intent.ts, ?action=stripe_webhook) -- whichever lands
+// first grants; the other comes back alreadyGranted. Caller is responsible
+// for having established the session is trustworthy (own-session check for
+// confirm, signature verification for the webhook).
+export async function grantCreditsForPaidSession(session, alreadyGrantedFn, grantFn) {
+  const userId = session.metadata?.user_id;
+  if (!userId) throw new Error("Session is missing a user id.");
   if (session.payment_status !== "paid") {
     return { ok: false, status: session.payment_status };
   }
