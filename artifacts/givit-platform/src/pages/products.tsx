@@ -42,6 +42,7 @@ import {
   type MarketplaceProduct,
 } from "@/lib/data/marketplace";
 import { fetchAdminProducts } from "@/lib/data/data-layer";
+import { getTrendingProductClicks } from "@/lib/supabase/db";
 import { useSearchParams } from "@/lib/hooks/use-search-params";
 import { useAuth } from "@/lib/auth/use-auth";
 import { getGiftRecipients } from "@/lib/supabase/db";
@@ -266,6 +267,15 @@ export default function ProductsPage() {
   const minStr = get("min") || "";
   const maxStr = get("max") || "";
   const forId = get("for") || undefined;
+  // Real click counts from Your Gift AI, loaded once and only consulted by
+  // the "trending" sort -- an empty map (migration not run, or nothing
+  // clicked yet) quietly degrades to gift-match order below.
+  const [trendingClicks, setTrendingClicks] = useState<Map<string, number>>(new Map());
+  useEffect(() => {
+    let cancelled = false;
+    void getTrendingProductClicks().then((m) => { if (!cancelled) setTrendingClicks(m); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Changing just one control (e.g. the sort dropdown) should carry every
   // other active filter along with it, not silently drop them -- and stay
@@ -365,7 +375,9 @@ export default function ProductsPage() {
 
   const sorted = isMarketplaceShuffle ? getShuffledOrder(list) : [...list];
   if (!isMarketplaceShuffle) {
-    if (sortVal === "price_asc") sorted.sort((a, b) => a.price_cents - b.price_cents);
+    if (sortVal === "trending") sorted.sort((a, b) =>
+      ((trendingClicks.get(b.slug) ?? 0) - (trendingClicks.get(a.slug) ?? 0)) || (b.gift_match_score - a.gift_match_score));
+    else if (sortVal === "price_asc") sorted.sort((a, b) => a.price_cents - b.price_cents);
     else if (sortVal === "price_desc") sorted.sort((a, b) => b.price_cents - a.price_cents);
     else if (sortVal === "popular") sorted.sort((a, b) => b.gift_match_score - a.gift_match_score);
     else sorted.sort((a, b) => a.rank - b.rank);
@@ -694,6 +706,7 @@ export default function ProductsPage() {
                   className="h-8 rounded-full border border-border/40 bg-card px-3 text-xs font-medium text-foreground outline-none"
                 >
                   <option value="shuffled">Explore Marketplace</option>
+                  <option value="trending">Trending now</option>
                   <option value="ranked">GIVIT ranked</option>
                   <option value="popular">Gift match score</option>
                   <option value="price_asc">Price: Low to High</option>

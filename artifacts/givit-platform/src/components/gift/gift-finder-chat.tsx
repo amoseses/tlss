@@ -261,7 +261,13 @@ function GiftCard({ result, index, onItemFeedback }: { result: GiftResult; index
           </div>
         )}
         <div className="mt-3 grid gap-2">
-          <Link href={`/products/${result.slug}`} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-givit-ember px-3 text-xs font-semibold text-white transition hover:bg-givit-ember-hover">
+          <Link
+            href={`/products/${result.slug}`}
+            // The +1 behind marketplace "Trending now": what people actually
+            // click out of an AI answer, not what we guessed was popular.
+            onClick={() => trackUserEvent("product_click", { slug: result.slug, source: "gift_ai", position: index })}
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-givit-ember px-3 text-xs font-semibold text-white transition hover:bg-givit-ember-hover"
+          >
             <ExternalLink className="h-3.5 w-3.5" /> View product
           </Link>
           <WishlistButton compact item={{ slug: result.slug, name: result.name, href: `/products/${result.slug}`, image: imageSrc, price: formatMoneyLocal(displayPrice) }} />

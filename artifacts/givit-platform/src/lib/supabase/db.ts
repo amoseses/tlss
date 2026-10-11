@@ -307,6 +307,16 @@ export async function trackEvent(eventType: string, metadata?: Record<string, un
   });
 }
 
+// slug -> click count over the window. Empty map when the migration
+// hasn't been run yet or nothing has been clicked; callers fall back to
+// their normal ordering rather than showing an empty shelf.
+export async function getTrendingProductClicks(days = 30, limit = 60): Promise<Map<string, number>> {
+  const supabase = getDb();
+  const { data, error } = await supabase.rpc("get_trending_products", { p_days: days, p_limit: limit });
+  if (error || !Array.isArray(data)) return new Map();
+  return new Map(data.map((row: any) => [String(row.slug), Number(row.clicks) || 0]));
+}
+
 export async function getAnalytics() {
   const supabase = getDb();
   const [dauResult, topProductsResult, revenueResult, pendingSubmissionsResult] = await Promise.all([

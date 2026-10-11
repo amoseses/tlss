@@ -652,6 +652,37 @@ CREATE POLICY "Participants can update their own wishlist" ON secret_santa_parti
 -- own-assignment to read) before touching anything.
 
 -- ============================================================
+-- TRENDING PRODUCTS (real click behaviour, not a static score)
+-- Every product click in Your Gift AI writes an analytics_events row with
+-- the product's slug in metadata. Slug (not product_id) because the
+-- catalog is half Supabase rows and half static seed entries whose ids
+-- aren't UUIDs -- slug is the one identifier both halves share.
+--
+-- analytics_events is admin-read-only under RLS, and trending has to be
+-- readable by every shopper, so this is SECURITY DEFINER and returns ONLY
+-- (slug, count) -- never user ids, never raw rows.
+-- ============================================================
+CREATE INDEX IF NOT EXISTS analytics_events_type_created_idx
+  ON analytics_events (event_type, created_at DESC);
+
+CREATE OR REPLACE FUNCTION get_trending_products(p_days INT DEFAULT 30, p_limit INT DEFAULT 60)
+RETURNS TABLE(slug TEXT, clicks BIGINT)
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT ae.metadata->>'slug' AS slug, COUNT(*) AS clicks
+  FROM analytics_events ae
+  WHERE ae.event_type = 'product_click'
+    AND ae.created_at >= now() - (GREATEST(COALESCE(p_days, 30), 1) * INTERVAL '1 day')
+    AND COALESCE(ae.metadata->>'slug', '') <> ''
+  GROUP BY 1
+  ORDER BY clicks DESC, slug
+  LIMIT LEAST(GREATEST(COALESCE(p_limit, 60), 1), 200);
+$$;
+
+-- ============================================================
 -- AUTO-CREATE PROFILE ON SIGNUP
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
