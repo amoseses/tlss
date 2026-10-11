@@ -27,6 +27,28 @@ const CATEGORY_KEYWORDS = {
   food: "gourmet food gift",
 };
 
+// Vercel env vars routinely pick up stray whitespace, wrapping quotes, or
+// the already-combined "keystring:secret" pasted into one (or both)
+// fields -- any of which makes Etsy reject the header as badly formatted.
+// A keystring/secret never legitimately contains ":", so: the keystring is
+// the first segment of ETSY_API_KEY, and the secret is the last segment of
+// ETSY_SHARED_SECRET (falling back to the tail of ETSY_API_KEY if that was
+// the combined value and the second var is empty).
+function cleanEnv(value) {
+  return (value ?? "").trim().replace(/^["']+|["']+$/g, "").trim();
+}
+
+function parseEtsyCredentials(rawKey, rawSecret) {
+  const key = cleanEnv(rawKey);
+  const secret = cleanEnv(rawSecret);
+  const keystring = key.split(":")[0].trim();
+  const secretFromKey = key.includes(":") ? key.split(":").pop().trim() : "";
+  const sharedSecret = (secret ? secret.split(":").pop().trim() : "") || secretFromKey;
+  return { keystring, sharedSecret };
+}
+
+let credentialShape = "";
+
 function centsFromEtsyPrice(price) {
   if (!price || typeof price.amount !== "number" || !price.divisor) return null;
   return Math.round((price.amount / price.divisor) * 100);
@@ -65,7 +87,7 @@ async function fetchListingsForCategory(apiKey, categorySlug, keywords) {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Etsy listings/active failed for "${categorySlug}" (${res.status}): ${text.slice(0, 300)}`);
+    throw new Error(`Etsy listings/active failed for "${categorySlug}" (${res.status}): ${text.slice(0, 300)}${res.status === 403 && credentialShape ? ` [sent ${credentialShape}; expected keystring ~24 chars, secret ~10 chars]` : ""}`);
   }
   const body = await res.json();
   return Array.isArray(body?.results) ? body.results : [];
@@ -141,15 +163,14 @@ async function collectRowsForCategory(apiKey, categorySlug, keywords) {
  * category's Etsy call failing shouldn't block the rest from syncing.
  */
 export async function collectEtsyProductRows() {
-  const keystring = process.env.ETSY_API_KEY;
-  const sharedSecret = process.env.ETSY_SHARED_SECRET;
+  const { keystring, sharedSecret } = parseEtsyCredentials(process.env.ETSY_API_KEY, process.env.ETSY_SHARED_SECRET);
   if (!keystring) throw new Error("ETSY_API_KEY is not configured on the server.");
   if (!sharedSecret) throw new Error("ETSY_SHARED_SECRET is not configured on the server.");
-  // Etsy's own docs describe this format ("keystring:shared_secret") but
-  // don't make clear it's actually enforced for these endpoints -- it is:
-  // the keystring alone got a 403 "Shared secret is required in x-api-key
-  // header" on every single category.
+  // Etsy requires exactly "keystring:shared_secret" in x-api-key; the
+  // keystring alone gets a 403. Lengths (never the values) are included in
+  // errors below so a bad paste is diagnosable without Vercel log access.
   const apiKey = `${keystring}:${sharedSecret}`;
+  credentialShape = `keystring ${keystring.length} chars, secret ${sharedSecret.length} chars`;
 
   const rows = [];
   const errors = [];
