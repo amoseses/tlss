@@ -8,11 +8,14 @@ import { CreditBalanceBadge } from "@/components/layout/credit-balance-badge";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/lib/auth/use-auth";
 
+// Your Gift AI leads and is the only filled item: it's the product now,
+// not one tab among equals. Marketplace sits last and muted on purpose --
+// a ~200-item catalog can't win on selection, so it's a place to wander
+// rather than the front door.
 const NAV_ITEMS = [
+  { href: "/gift", label: "Your Gift AI", icon: Sparkles, primary: true },
   { href: "/home", label: "Dashboard", icon: LayoutGrid },
   { href: "/people", label: "People", icon: UserRound },
-  { href: "/gift", label: "Your Gift AI", icon: Sparkles },
-  { href: "/products", label: "Marketplace", icon: null },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   // Previously only reachable from a panel on /account -- easy to never
   // notice unless you already knew it existed. It's a standalone group
@@ -20,6 +23,7 @@ const NAV_ITEMS = [
   // top-level spot rather than staying buried a click deeper.
   { href: "/secret-santa", label: "Secret Santa", icon: Gift },
   { href: "/concierge", label: "AutoGift", icon: Bell, accent: true },
+  { href: "/products", label: "Marketplace", icon: null, muted: true },
 ];
 
 export function SiteHeader() {
@@ -73,12 +77,24 @@ export function SiteHeader() {
               const isActive = path === itemPath;
               const Icon = item.icon;
               const isAutoGift = item.accent;
+              const isPrimary = item.primary;
+              const isMuted = item.muted;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={`shrink-0 rounded-md px-3.5 py-1.5 text-sm font-semibold transition-colors whitespace-nowrap ${
-                    isAutoGift
+                    isPrimary
+                      ? "bg-givit-ember text-white shadow-sm hover:bg-givit-ember-hover"
+                      : isMuted
+                      ? isActive
+                        ? isDark
+                          ? "bg-white/15 text-white"
+                          : "bg-givit-ember/15 text-givit-ember"
+                        : isDark
+                          ? "text-white/45 hover:bg-white/10 hover:text-white/80"
+                          : "text-givit-ink/45 hover:bg-white hover:text-givit-ink/80"
+                    : isAutoGift
                       ? isActive
                         ? "bg-givit-ember text-white"
                         : "border border-givit-ember/40 text-givit-ember hover:bg-givit-ember/10"
