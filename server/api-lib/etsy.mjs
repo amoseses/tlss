@@ -7,6 +7,46 @@ import { restFetch } from "./supabase-rest.mjs";
 
 const ETSY_API_BASE = "https://openapi.etsy.com/v3/application";
 const LISTINGS_PER_CATEGORY = 10;
+// Etsy allows 10 requests/second. The sync makes 2 calls per category
+// (search + batch), and firing all 11 categories at once put ~22 in flight
+// simultaneously -- every one came back 429. Every Etsy call now goes
+// through etsyFetch, which serializes them a fixed gap apart (~6/sec, with
+// headroom) and retries a 429 rather than failing that category outright.
+const MIN_REQUEST_GAP_MS = 170;
+const MAX_RETRIES = 3;
+
+let requestChain = Promise.resolve();
+let lastRequestAt = 0;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Each call waits its turn on one shared chain, so the gap holds across
+// categories rather than only within one.
+function nextSlot() {
+  const run = requestChain.then(async () => {
+    const wait = MIN_REQUEST_GAP_MS - (Date.now() - lastRequestAt);
+    if (wait > 0) await sleep(wait);
+    lastRequestAt = Date.now();
+  });
+  requestChain = run.catch(() => {});
+  return run;
+}
+
+async function etsyFetch(url, apiKey) {
+  for (let attempt = 0; ; attempt++) {
+    await nextSlot();
+    const res = await fetch(url, { headers: { "x-api-key": apiKey } });
+    if (res.status !== 429 || attempt >= MAX_RETRIES) return res;
+    // Honour Retry-After when Etsy sends one; otherwise back off
+    // exponentially from the base gap (170ms, 340ms, 680ms...).
+    const retryAfter = Number(res.headers.get("retry-after"));
+    await sleep(Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 5000)
+      : MIN_REQUEST_GAP_MS * 2 ** (attempt + 1));
+  }
+}
 
 // Keyword chosen per GIVIT category rather than Etsy's own taxonomy tree --
 // keeps this to one search call per category instead of a taxonomy lookup
@@ -82,9 +122,7 @@ async function fetchListingsForCategory(apiKey, categorySlug, keywords) {
     // check for every single result with no error thrown anywhere.
     currency: "USD",
   });
-  const res = await fetch(`${ETSY_API_BASE}/listings/active?${params.toString()}`, {
-    headers: { "x-api-key": apiKey },
-  });
+  const res = await etsyFetch(`${ETSY_API_BASE}/listings/active?${params.toString()}`, apiKey);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Etsy listings/active failed for "${categorySlug}" (${res.status}): ${text.slice(0, 300)}${res.status === 403 && credentialShape ? ` [sent ${credentialShape}; expected keystring ~24 chars, secret ~10 chars]` : ""}`);
@@ -102,9 +140,7 @@ async function fetchImagesAndShopsByIds(apiKey, listingIds) {
     listing_ids: listingIds.join(","),
     includes: "Images,Shop",
   });
-  const res = await fetch(`${ETSY_API_BASE}/listings/batch?${params.toString()}`, {
-    headers: { "x-api-key": apiKey },
-  });
+  const res = await etsyFetch(`${ETSY_API_BASE}/listings/batch?${params.toString()}`, apiKey);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Etsy listings/batch failed (${res.status}): ${text.slice(0, 300)}`);
@@ -176,18 +212,16 @@ export async function collectEtsyProductRows() {
   const errors = [];
   const categoryEntries = Object.entries(CATEGORY_KEYWORDS);
 
-  const results = await Promise.allSettled(
-    categoryEntries.map(([categorySlug, keywords]) => collectRowsForCategory(apiKey, categorySlug, keywords)),
-  );
-
-  results.forEach((result, i) => {
-    const [categorySlug] = categoryEntries[i];
-    if (result.status === "rejected") {
-      errors.push(`${categorySlug}: ${result.reason?.message || result.reason}`);
-      return;
+  // Sequential rather than Promise.allSettled: etsyFetch already paces the
+  // calls, and running categories one at a time keeps the queue short and
+  // the failure of one category contained to that category.
+  for (const [categorySlug, keywords] of categoryEntries) {
+    try {
+      rows.push(...await collectRowsForCategory(apiKey, categorySlug, keywords));
+    } catch (error) {
+      errors.push(`${categorySlug}: ${error?.message || error}`);
     }
-    rows.push(...result.value);
-  });
+  }
 
   return { rows, errors };
 }

@@ -15,6 +15,10 @@ import { fetchUnopenedEmailNotifications, fetchProfilesByIds, markFollowupSent }
 import { sendEmail } from "../../server/api-lib/email.mjs";
 import { syncEtsyProducts } from "../../server/api-lib/etsy.mjs";
 
+// The Etsy sync paces its calls to stay under Etsy's 10/sec limit, so a
+// full 11-category run takes well over Vercel's 10s default.
+export const maxDuration = 60;
+
 const UNOPENED_AFTER_HOURS = 72;
 
 function followupBody(title: string, body: string) {

@@ -6,6 +6,10 @@ import { restFetch } from "../server/api-lib/supabase-rest.mjs";
 import { getCreditStatus, spendCredits, grantCredits, hasGrantedForPaymentIntent, createCreditCheckoutSession, confirmCreditCheckoutSession, CREDIT_PACKS } from "../server/api-lib/credits.mjs";
 import { getStripe } from "../server/api-lib/stripe.mjs";
 
+// The Etsy sync paces its calls to stay under Etsy's 10/sec limit, so a
+// full 11-category run takes well over Vercel's 10s default.
+export const maxDuration = 60;
+
 const GROQ_DEFAULT_MODEL = "openai/gpt-oss-120b";
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 // This branch is intentionally open to guests (Gift AI has no sign-in
