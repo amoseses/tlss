@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Link } from "wouter";
 import { ExternalLink, Play, Sparkles } from "lucide-react";
 
@@ -23,7 +23,7 @@ type Props = {
   shoppingFor?: ShoppingForPerson;
 };
 
-export function ProductCard({
+export const ProductCard = memo(function ProductCard({
   product,
   images,
   avgRating,
@@ -73,13 +73,14 @@ export function ProductCard({
     // to a horizontal row (centered image on the left, content + the
     // wishlist action beside it) at mobile widths, and reverts to the
     // regular vertical card from `sm` up.
-    <article className="group flex items-stretch gap-3 overflow-hidden rounded-2xl bg-card p-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10 sm:flex-col sm:gap-0 sm:p-0">
+    <article className="product-card-content group flex items-stretch gap-3 overflow-hidden rounded-2xl bg-card p-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10 sm:flex-col sm:gap-0 sm:p-0">
       <Link href={`/products/${product.slug}`} className="flex flex-1 items-center gap-3 sm:flex-col sm:items-stretch sm:gap-0">
-        <div className={`relative aspect-square w-24 shrink-0 self-center overflow-hidden rounded-xl bg-givit-sand sm:w-full sm:self-auto sm:rounded-none ${featured ? "sm:aspect-[4/3]" : "sm:aspect-square"}`}>
+        <div className="relative aspect-square w-20 shrink-0 self-center overflow-hidden rounded-xl bg-givit-sand sm:w-full sm:self-auto sm:rounded-none sm:aspect-[4/3]">
           <img
             src={imageSrc}
             alt={product.name}
             loading="lazy"
+            decoding="async"
             onError={() => setImageSrc(productPhotoFallback(product.id || product.slug, categorySlug))}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
@@ -157,4 +158,4 @@ export function ProductCard({
       </div>
     </article>
   );
-}
+});

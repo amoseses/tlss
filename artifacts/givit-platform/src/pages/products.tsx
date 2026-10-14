@@ -144,8 +144,7 @@ export default function ProductsPage() {
   const categories = MARKETPLACE_CATEGORIES;
 
   // Admin-managed products live in Supabase (real backend, not localStorage)
-  // — fetched once and merged in on top of the static seed catalog so they
-  // show up in the real marketplace, not just the admin dashboard.
+  // and are fetched once for marketplace browsing.
   const [adminProducts, setAdminProducts] = useState<MarketplaceProduct[]>([]);
   useEffect(() => {
     let mounted = true;
@@ -424,6 +423,8 @@ const gridProducts =
     ? sorted.filter((product) => !featuredIds.has(product.id))
     : sorted;
 
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
   function cnPill(active: boolean) {
     return active
       ? "givit-gradient text-white shadow-sm"
@@ -437,7 +438,31 @@ const gridProducts =
   // yank the page.
   const resultsRef = useRef<HTMLDivElement>(null);
   const resultsKey = `${categorySlug ?? ""}|${q ?? ""}|${occasion ?? ""}|${sortVal}|${minStr}|${maxStr}|${forId ?? ""}`;
+  const [visibleProductsState, setVisibleProductsState] = useState({ key: "", count: 9 });
+  const visibleProductCount = visibleProductsState.key === resultsKey ? visibleProductsState.count : 9;
   const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (awaitingPersonalization || visibleProductCount >= gridProducts.length) return;
+
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisibleProductsState((current) => ({
+            key: resultsKey,
+            count: Math.min((current.key === resultsKey ? current.count : 9) + 9, gridProducts.length),
+          }));
+        }
+      },
+      { rootMargin: "0px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [awaitingPersonalization, gridProducts.length, resultsKey, visibleProductCount]);
+
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -678,8 +703,9 @@ const gridProducts =
                 ))}
               </div>
             ) : sorted.length > 0 ? (
-              <ProductGrid
-                  products={gridProducts}
+              <>
+                <ProductGrid
+                  products={gridProducts.slice(0, visibleProductCount)}
                   ratings={ratings}
                   compact
                   rankContext={
@@ -697,6 +723,12 @@ const gridProducts =
                       : undefined
                   }
                 />
+                {visibleProductCount < gridProducts.length ? (
+                  <div ref={loadMoreRef} className="py-5 text-center text-sm text-muted-foreground" role="status">
+                    Showing {Math.min(visibleProductCount, gridProducts.length)} of {gridProducts.length} products
+                  </div>
+                ) : null}
+              </>
              ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No products match your filters. <Link href="/products" className="givit-link">Clear filters</Link>

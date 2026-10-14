@@ -214,6 +214,17 @@
 }
 
 @layer utilities {
+  .product-card-content {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 400px;
+  }
+
+  @media (max-width: 639px) {
+    .product-card-content {
+      contain-intrinsic-size: auto 132px;
+    }
+  }
+
   /* Softer than a plain bordered box on purpose -- this class (or
      givit-section below) is what nearly every card sitewide is built
      from, so a heavy border + flat shadow here is what reads as

@@ -446,74 +446,14 @@ function marketplaceImageFor(seed: SeedProduct) {
   return productPhotoFallback(seed.slug);
 }
 
-export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = ALL_SEED_PRODUCTS.map((seed, index) => {
-  const category = categoryBySlug.get(seed.category) ?? null;
-  const now = new Date(Date.UTC(2026, 5, 1, 12, 0, 0) - index * 86400000).toISOString();
-  const id = `gift-${seed.slug}`;
+// Synthetic placeholder products are intentionally disabled so only real,
+// admin-imported products appear in the marketplace.
+export const MARKETPLACE_PRODUCTS: MarketplaceProduct[] = [];
 
-  return {
-    id,
-    slug: seed.slug,
-    name: seed.name,
-    description: `${seed.summary}\n\nWhy GIVIT picked it: ${seed.why}\n\nBest for: ${(seed.recipients ?? []).join(", ")}. Interests: ${seed.interests.join(", ")}. Occasions: ${(seed.occasions ?? []).join(", ")}.`,
-    sku: `GIVIT-${String(seed.rank).padStart(4, "0")}`,
-    price_cents: seed.price,
-    weight_oz: category?.slug === "experiences" || seed.affiliateUrl.includes("subscription") ? 0 : Math.max(4, Math.round(seed.price / 650)),
-    min_order_qty: 1,
-    stock: 999,
-    is_published: true,
-    category_id: category?.id ?? null,
-    seller_id: null,
-    created_at: now,
-    updated_at: now,
-    affiliate_url: seed.affiliateUrl,
-    retailer: seed.retailer,
-    brand: seed.brand,
-    price_range: seed.priceRange,
-    rank: seed.rank!,
-    category_rank: ALL_SEED_PRODUCTS.filter((candidate) => candidate.category === seed.category && (candidate.rank ?? 0) <= seed.rank!).length,
-    gift_match_score: seed.score!,
-    ships_in_days: seed.shipsInDays ?? null,
-    tested_badge: seed.badge,
-    sale_price_cents: seed.salePrice,
-    deal_badge: seed.dealBadge,
-    interests: seed.interests,
-    occasions: seed.occasions ?? ["birthday", "holiday"],
-    recipients: seed.recipients ?? ["friend", "partner"],
-    ai_summary: seed.summary,
-    why_we_picked_it: seed.why,
-    category,
-    images: [
-      {
-        id: `${id}-image-1`,
-        product_id: id,
-        storage_path: productPageImageFor(seed),
-        sort_order: 0,
-      },
-      {
-        id: `${id}-image-2`,
-        product_id: id,
-        storage_path: marketplaceImageFor(seed),
-        sort_order: 1,
-      },
-    ],
-  };
-});
-
-export const MARKETPLACE_RATINGS = new Map<string, ProductRatingStats>(
-  MARKETPLACE_PRODUCTS.map((product) => [
-    product.id,
-    {
-      product_id: product.id,
-      avg_rating: (4.9 - (product.rank % 5) * 0.08).toFixed(1),
-      review_count: Math.max(38, 4200 - product.rank * 10),
-    },
-  ]),
-);
+export const MARKETPLACE_RATINGS = new Map<string, ProductRatingStats>();
 
 export function getAllMarketplaceProducts(): MarketplaceProduct[] {
-  if (typeof window === "undefined") return MARKETPLACE_PRODUCTS;
-  return [...MARKETPLACE_PRODUCTS, ...getImportedMarketplaceProducts()];
+  return getImportedMarketplaceProducts();
 }
 
 export function getMarketplaceProductBySlug(slug: string) {
@@ -561,36 +501,13 @@ export function getRelatedMarketplaceProducts(product: MarketplaceProduct) {
     .map(({ candidate }) => candidate);
 }
 
-export const GIFT_COLLECTIONS = [
-  {
-    slug: "perfect-pens-for-writers",
-    title: "Pens worth keeping",
-    description: "Sharp notebooks, desk tools, and pens that feel personal.",
-    query: "writing",
-    productSlugs: ["pilot-custom-823", "lamy-safari-fountain-pen", "uni-ball-jetstream-4-and-1", "field-notes-subscription"],
-  },
-  {
-    slug: "future-christmas-gifts",
-    title: "Holiday hits",
-    description: "High-confidence ideas to save before the rush.",
-    query: "holiday",
-    productSlugs: ["kindle-paperwhite", "lego-botanicals-orchid", "nintendo-switch-oled", "theragun-mini"],
-  },
-  {
-    slug: "experiences-over-stuff",
-    title: "Experiences over stuff",
-    description: "Tickets, classes, food nights, and local passes the admin can source.",
-    query: "experience",
-    productSlugs: ["private-pottery-class", "jazz-club-night", "chef-table-credit", "sports-ticket-credit"],
-  },
-  {
-    slug: "cool-tech-under-150",
-    title: "Cool tech under $150",
-    description: "Useful gadgets that solve real problems without clutter.",
-    query: "tech",
-    productSlugs: ["apple-airtags-4-pack", "anker-737-power-bank", "tile-mate", "backbone-one-controller"],
-  },
-];
+export const GIFT_COLLECTIONS: Array<{
+  slug: string;
+  title: string;
+  description: string;
+  query: string;
+  productSlugs: string[];
+}> = [];
 
 export function getMarketplaceProductCategoryRank(product: MarketplaceProduct) {
   return product.category_rank;

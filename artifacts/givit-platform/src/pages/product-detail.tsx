@@ -61,6 +61,7 @@ export default function ProductDetailPage() {
     );
   }
 
+  const productDescription = product.description ?? "";
   const stats = MARKETPLACE_RATINGS.get(product.id);
   const avg = stats?.avg_rating != null ? Number.parseFloat(String(stats.avg_rating)) : 4.8;
   const reviewCount = stats?.review_count ?? 0;
@@ -92,7 +93,7 @@ export default function ProductDetailPage() {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-givit-sand">
-            <img src={mainSrc} alt={product.name} onError={(event) => { event.currentTarget.src = productPhotoFallback(product.id, product.category?.slug); }} className="h-full w-full object-cover" />
+            <img src={mainSrc} alt={product.name} onError={(event) => { event.currentTarget.src = productPhotoFallback(product.id, product.category?.slug); }} className="h-full w-full object-contain" />
             {product.tested_badge ? (
               <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold uppercase tracking-wide text-givit-ember shadow-sm">
                 {product.tested_badge}
@@ -102,6 +103,12 @@ export default function ProductDetailPage() {
               <div className="absolute right-4 top-4 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold uppercase text-white shadow-sm">Deal</div>
             ) : null}
           </div>
+          {productDescription.trim() ? (
+            <div className="mt-4 rounded-2xl bg-card p-4">
+              <h2 className="font-semibold text-givit-ink">Product description</h2>
+              <p className="mt-1 whitespace-pre-line text-sm leading-6 text-muted-foreground">{productDescription}</p>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-5">
@@ -210,13 +217,12 @@ export default function ProductDetailPage() {
       <div className="mt-8">
         <Tabs defaultValue="details">
           <TabsList>
-            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="details">Interests</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
             <TabsTrigger value="related">Related gifts</TabsTrigger>
           </TabsList>
           <TabsContent value="details" className="mt-4">
-            <div className="givit-section prose prose-sm max-w-none">
-              <p className="whitespace-pre-line text-sm leading-7 text-muted-foreground">{product.description}</p>
+            <div className="givit-section">
               {product.interests.length > 0 && (
                 <div className="mt-4">
                   <p className="font-semibold text-givit-ink">Good for interests:</p>
